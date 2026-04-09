@@ -1,0 +1,117 @@
+=== TAB : antecedents ===
+Lignes : 2702 → 2710
+States modals : Aucun
+Handlers :
+  Aucun
+Modals JSX : Aucun
+Extractable : OUI
+------------------------------------------------------------
+
+=== TAB : constantes ===
+Lignes : 2712 → 2720
+States modals : Aucun
+Handlers :
+  - id :
+      Non trouvé / référence externe ou inline
+  - inline_handler :
+      Inline (() => ...) défini directement dans JSX
+Modals JSX : Aucun
+Extractable : OUI
+------------------------------------------------------------
+
+=== TAB : examen ===
+Lignes : 2722 → 2731
+States modals : Aucun
+Handlers :
+  Aucun
+Modals JSX : Aucun
+Extractable : OUI
+------------------------------------------------------------
+
+=== TAB : appareils ===
+Lignes : 2733 → 2821
+States modals : Aucun
+Handlers :
+  - inline_handler :
+      Inline (() => ...) défini directement dans JSX
+  - handleAddAppareil :
+      const handleAddAppareil = () => {
+        // Réinitialiser le formulaire à l'ouverture du modal
+        setAppareilForm({
+          appareil_id: '',
+          resultat_examen: '',
+          anomalies_detectees: '',
+          recommandations: ''
+        });
+        setShowAppareilModal(true);
+      };
+Modals JSX : Aucun
+Extractable : OUI
+------------------------------------------------------------
+
+=== TAB : diagnostics ===
+Lignes : 2824 → 2876
+States modals : Aucun
+Handlers :
+  - handleAddDiagnostic :
+      const handleAddDiagnostic = () => {
+        setShowDiagnosticModal(true);
+      };
+Modals JSX : Aucun
+Extractable : OUI
+------------------------------------------------------------
+
+=== TAB : actes ===
+Lignes : 2878 → 2949
+States modals : Aucun
+Handlers :
+  - handleAddActe :
+      const handleAddActe = () => {
+        setShowActeModal(true);
+      };
+Modals JSX : Aucun
+Extractable : OUI
+------------------------------------------------------------
+
+=== TAB : ordonnances ===
+Lignes : 2951 → 3046
+States modals : Aucun
+Handlers :
+  - handleAddOrdonnance :
+      const handleAddOrdonnance = () => {
+        setShowOrdonnanceModal(true);
+      };
+Modals JSX : Aucun
+Extractable : OUI
+------------------------------------------------------------
+
+=== TAB : certificats ===
+Lignes : 3048 → 3204
+States modals : Aucun
+Handlers :
+  - inline_handler :
+      Inline (() => ...) défini directement dans JSX
+  - generateCertificatsPDF :
+      Non trouvé / référence externe ou inline
+  - handleAddCertificat :
+      const handleAddCertificat = () => {
+        setShowCertificatModal(true);
+      };
+Modals JSX : Aucun
+Extractable : OUI
+------------------------------------------------------------
+
+=== TAB : synthese ===
+Lignes : 3206 → 3627
+States modals : Aucun
+Handlers :
+  - inline_handler :
+      Inline (() => ...) défini directement dans JSX
+  - handleAddSynthese :
+      const handleAddSynthese = () => {
+        setShowSyntheseModal(true);
+      };
+Modals JSX : Aucun
+Extractable : OUI
+------------------------------------------------------------
+

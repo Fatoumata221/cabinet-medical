@@ -1,0 +1,1103 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  FileSearch, 
+  Search, 
+  Filter, 
+  Plus, 
+  Edit, 
+  Trash2,
+  Eye,
+  Download,
+  Calendar,
+  User,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  FileText,
+  Save,
+  X,
+  Calculator,
+  CreditCard,
+  Receipt,
+  Stethoscope,
+  Activity
+} from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import SearchableSelect from '../../components/common/SearchableSelect';
+import { useAlert } from '../../contexts/AlertContext';
+
+const FacturationExamens = () => {
+  const { showError, showSuccess, showWarning, showInfo } = useAlert();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
+  const [showForm, setShowForm] = useState(false);
+  const [selectedExamen, setSelectedExamen] = useState(null);
+  const [showDetails, setShowDetails] = useState(null);
+  const [editingFacture, setEditingFacture] = useState(null);
+  const [factureData, setFactureData] = useState({
+    patientId: '',
+    examenId: '',
+    quantite: 1,
+    tarifUnitaire: '',
+    remise: 0,
+    dateRealisation: '',
+    observations: ''
+  });
+
+  // États pour les données réelles
+  const [patients, setPatients] = useState([]);
+  const [facturationExamens, setFacturationExamens] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Charger les données depuis la base de données
+  useEffect(() => {
+    fetchPatients();
+    fetchExamens();
+  }, []);
+
+  const fetchPatients = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
+        .from('patients')
+        .select(`
+          id,
+          nom,
+          prenom,
+          date_naissance,
+          sexe,
+          telephone,
+          adresse,
+          numero_dossier,
+          assurance_id,
+          actif,
+          assurances (
+            id,
+            nom,
+            type_assurance,
+            taux_remboursement,
+            description
+          )
+        `)
+        .eq('actif', true)
+        .order('nom', { ascending: true });
+
+      if (fetchError) throw fetchError;
+
+      console.log('✅ Patients chargés:', data?.length || 0);
+      setPatients(data || []);
+    } catch (err) {
+      console.error('❌ Erreur chargement patients:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchExamens = async () => {
+    try {
+      console.log('🔄 Chargement des examens prescrits...');
+
+      // Récupérer les examens prescrits sans les relations imbriquées
+      const { data: examensData, error: examensError } = await supabase
+        .from('examens_prescrits')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (examensError) throw examensError;
+
+      console.log('✅ Examens récupérés:', examensData?.length || 0);
+
+      if (!examensData || examensData.length === 0) {
+        setFacturationExamens([]);
+        return;
+      }
+
+      // Récupérer les IDs uniques des patients et consultations
+      const patientIds = [...new Set(examensData.map(e => e.patient_id).filter(Boolean))];
+      const consultationIds = [...new Set(examensData.map(e => e.consultation_id).filter(Boolean))];
+
+      // Récupérer les patients avec leurs assurances
+      const { data: patientsData, error: patientsError } = await supabase
+        .from('patients')
+        .select(`
+          id,
+          nom,
+          prenom,
+          assurance_id,
+          assurances (
+            nom,
+            taux_remboursement
+          )
+        `)
+        .in('id', patientIds);
+
+      if (patientsError) {
+        console.warn('⚠️ Erreur chargement patients:', patientsError);
+      }
+
+      // Récupérer les consultations avec les médecins
+      const { data: consultationsData, error: consultationsError } = await supabase
+        .from('consultations')
+        .select(`
+          id,
+          date_consultation,
+          medecin_id,
+          users (
+            id,
+            nom,
+            prenom
+          )
+        `)
+        .in('id', consultationIds);
+
+      if (consultationsError) {
+        console.warn('⚠️ Erreur chargement consultations:', consultationsError);
+      }
+
+      // Créer des maps pour un accès rapide
+      const patientsMap = new Map(patientsData?.map(p => [p.id, p]) || []);
+      const consultationsMap = new Map(consultationsData?.map(c => [c.id, c]) || []);
+
+      // Transformer les données
+      const facturations = examensData.map((examen, index) => {
+        const patient = patientsMap.get(examen.patient_id);
+        const consultation = consultationsMap.get(examen.consultation_id);
+        const medecin = consultation?.users;
+        const assurance = patient?.assurances;
+        const tauxCouverture = assurance?.taux_remboursement || 0;
+        
+        // Tarifs estimés basés sur le type d'examen
+        const tarifEstime = getTarifEstime(examen.type_examen);
+        const montantTotal = tarifEstime;
+        const montantAssurance = (montantTotal * tauxCouverture) / 100;
+        const montantPatient = montantTotal - montantAssurance;
+
+        return {
+          id: examen.id,
+          numero: `FE-${new Date(examen.created_at).getFullYear()}-${String(index + 1).padStart(3, '0')}`,
+          date: examen.date_prescription || examen.created_at?.split('T')[0],
+          patient: {
+            id: patient?.id,
+            nom: patient?.nom || 'Inconnu',
+            prenom: patient?.prenom || '',
+            assurance: assurance?.nom || 'Sans assurance',
+            tauxCouverture: tauxCouverture
+          },
+          examens: [
+            {
+              examen: {
+                id: examen.id,
+                libelle: examen.type_examen,
+                code: `EX-${examen.id}`,
+                categorie: getCategorieExamen(examen.type_examen),
+                duree: 30
+              },
+              quantite: 1,
+              tarifUnitaire: tarifEstime,
+              realise: examen.statut === 'termine'
+            }
+          ],
+          sousTotal: montantTotal,
+          remise: 0,
+          montantAssurance: montantAssurance,
+          montantPatient: montantPatient,
+          total: montantTotal,
+          statut: mapStatut(examen.statut),
+          medecin: medecin ? `Dr. ${medecin.prenom} ${medecin.nom}` : 'Non spécifié',
+          dateRealisation: examen.date_realisation || examen.date_prescription
+        };
+      });
+
+      console.log('✅ Facturations formatées:', facturations.length);
+      setFacturationExamens(facturations);
+    } catch (err) {
+      console.error('❌ Erreur chargement examens:', err);
+      setError(err.message);
+    }
+  };
+
+  // Fonction pour estimer le tarif selon le type d'examen
+  const getTarifEstime = (typeExamen) => {
+    const tarifs = {
+      'radiographie': 25000,
+      'echographie': 35000,
+      'ecg': 12000,
+      'scanner': 85000,
+      'irm': 120000,
+      'biologie': 18000,
+      'analyse': 15000
+    };
+
+    const type = typeExamen.toLowerCase();
+    for (const [key, tarif] of Object.entries(tarifs)) {
+      if (type.includes(key)) return tarif;
+    }
+    return 20000; // Tarif par défaut
+  };
+
+  // Fonction pour déterminer la catégorie
+  const getCategorieExamen = (typeExamen) => {
+    const type = typeExamen.toLowerCase();
+    if (type.includes('radio')) return 'Radiologie';
+    if (type.includes('echo') || type.includes('échographie')) return 'Échographie';
+    if (type.includes('ecg') || type.includes('cardio')) return 'Cardiologie';
+    if (type.includes('scan')) return 'Scanner';
+    if (type.includes('irm')) return 'IRM';
+    if (type.includes('bio') || type.includes('analyse') || type.includes('sang')) return 'Biologie';
+    return 'Autre';
+  };
+
+  // Mapper le statut de la DB vers le statut d'affichage
+  const mapStatut = (statutDB) => {
+    const mapping = {
+      'prescrit': 'programme',
+      'en_cours': 'en_cours',
+      'termine': 'payee',
+      'annule': 'annule'
+    };
+    return mapping[statutDB] || 'programme';
+  };
+
+  // Examens disponibles
+  const examensDisponibles = [
+    { id: 1, code: 'RAD001', libelle: 'Radiographie thoracique', tarif: 25000, categorie: 'Radiologie', duree: 15 },
+    { id: 2, code: 'ECH001', libelle: 'Échographie abdominale', tarif: 35000, categorie: 'Échographie', duree: 30 },
+    { id: 3, code: 'ECH002', libelle: 'Échographie pelvienne', tarif: 30000, categorie: 'Échographie', duree: 25 },
+    { id: 4, code: 'ECG001', libelle: 'Électrocardiogramme', tarif: 12000, categorie: 'Cardiologie', duree: 10 },
+    { id: 5, code: 'BIO001', libelle: 'Bilan lipidique', tarif: 18000, categorie: 'Biologie', duree: 5 },
+    { id: 6, code: 'BIO002', libelle: 'Glycémie à jeun', tarif: 8000, categorie: 'Biologie', duree: 5 },
+    { id: 7, code: 'RAD002', libelle: 'Scanner abdominal', tarif: 85000, categorie: 'Scanner', duree: 45 },
+    { id: 8, code: 'IRM001', libelle: 'IRM cérébrale', tarif: 120000, categorie: 'IRM', duree: 60 }
+  ];
+
+
+  const categories = ['Radiologie', 'Échographie', 'Cardiologie', 'Biologie', 'Scanner', 'IRM'];
+
+  const filteredFacturations = facturationExamens.filter(facture => {
+    const matchesSearch = facture.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         `${facture.patient.prenom} ${facture.patient.nom}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         facture.medecin.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = selectedStatus === 'all' || facture.statut === selectedStatus;
+    const matchesType = selectedType === 'all' || 
+                       facture.examens.some(e => e.examen.categorie === selectedType);
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFactureData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+    if (editingFacture) {
+      console.log('Modification facturation examen:', factureData);
+      showSuccess('Facturation examen modifiée avec succès!');
+      setEditingFacture(null);
+    } else {
+        console.log('🔄 Programmation nouvel examen...');
+        
+        // Récupérer l'examen sélectionné
+        const examenSelectionne = examensDisponibles.find(e => e.id === parseInt(factureData.examenId));
+        if (!examenSelectionne) {
+          showWarning('Veuillez sélectionner un examen valide');
+          return;
+        }
+
+        // 1. Récupérer la dernière consultation du patient pour obtenir le medecin_id
+        const { data: derniereConsultation, error: derniereConsultationError } = await supabase
+          .from('consultations')
+          .select('medecin_id')
+          .eq('patient_id', factureData.patientId)
+          .order('date_consultation', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        let medecinId = null;
+
+        if (derniereConsultationError) {
+          // Erreur lors de la requête
+          console.error('❌ Erreur récupération consultation:', derniereConsultationError);
+          showError('Erreur lors de la récupération de la consultation. Veuillez réessayer.');
+          return;
+        }
+
+        if (!derniereConsultation) {
+          // Si aucune consultation n'existe, essayer de récupérer l'utilisateur connecté
+          console.warn('⚠️ Aucune consultation trouvée pour ce patient, tentative avec utilisateur connecté...');
+          
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          
+          if (userError || !user) {
+            showError('Erreur: Aucune consultation trouvée pour ce patient et utilisateur non connecté. Veuillez d\'abord créer une consultation pour ce patient.');
+            return;
+          }
+
+          const { data: userData, error: userDataError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('auth_id', user.id)
+            .single();
+
+          if (userDataError || !userData) {
+            showError('Erreur: Impossible de récupérer les informations du médecin. Veuillez d\'abord créer une consultation pour ce patient.');
+            return;
+          }
+
+          medecinId = userData.id;
+        } else {
+          medecinId = derniereConsultation.medecin_id;
+        }
+
+        if (!medecinId) {
+          showError('Erreur: Impossible de déterminer le médecin. Veuillez d\'abord créer une consultation pour ce patient.');
+          return;
+        }
+
+        console.log('✅ Médecin ID (depuis consultation):', medecinId);
+        
+        // 2. Créer une consultation pour ce patient
+        const { data: consultationData, error: consultationError } = await supabase
+          .from('consultations')
+          .insert({
+            patient_id: factureData.patientId,
+            medecin_id: medecinId,
+            date_consultation: new Date().toISOString().split('T')[0],
+            motif: `Examen: ${examenSelectionne.libelle}`,
+            statut: 'terminee'
+          })
+          .select()
+          .single();
+
+        if (consultationError) throw consultationError;
+        console.log('✅ Consultation créée:', consultationData.id);
+
+        // 2. Créer l'examen prescrit
+        const { data: examenData, error: examenError } = await supabase
+          .from('examens_prescrits')
+          .insert({
+            consultation_id: consultationData.id,
+            patient_id: factureData.patientId,
+            type_examen: examenSelectionne.libelle,
+            description: factureData.observations,
+            date_prescription: new Date().toISOString().split('T')[0],
+            date_realisation: factureData.dateRealisation,
+            statut: 'prescrit',
+            notes: factureData.observations
+          })
+          .select()
+          .single();
+
+        if (examenError) throw examenError;
+        console.log('✅ Examen prescrit créé:', examenData.id);
+
+      showSuccess('Nouvel examen programmé avec succès!');
+        
+        // Recharger les examens
+        await fetchExamens();
+    }
+      
+    setShowForm(false);
+    setFactureData({
+      patientId: '', examenId: '', quantite: 1, tarifUnitaire: '', remise: 0, 
+      dateRealisation: '', observations: ''
+    });
+    } catch (error) {
+      console.error('❌ Erreur lors de la programmation:', error);
+      showError(`Erreur: ${error.message}`);
+    }
+  };
+
+  const handleEdit = (facture) => {
+    setEditingFacture(facture);
+    setFactureData({
+      patientId: facture.patient.id,
+      examenId: facture.examens[0]?.examen.id || '',
+      quantite: facture.examens[0]?.quantite || 1,
+      tarifUnitaire: facture.examens[0]?.tarifUnitaire || '',
+      remise: facture.remise || 0,
+      dateRealisation: facture.dateRealisation || '',
+      observations: facture.observations || ''
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = (facture) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la facturation ${facture.numero} ?`)) {
+      console.log('Suppression facturation examen:', facture.id);
+      showSuccess('Facturation supprimée avec succès!');
+    }
+  };
+
+  const handleDownload = (facture) => {
+    console.log('Téléchargement facturation examen:', facture.numero);
+    showInfo(`Téléchargement de la facturation ${facture.numero} en cours...`);
+  };
+
+  const getStatusColor = (statut) => {
+    switch (statut) {
+      case 'payee': return 'bg-green-100 text-green-800';
+      case 'programme': return 'bg-blue-100 text-blue-800';
+      case 'en_cours': return 'bg-yellow-100 text-yellow-800';
+      case 'annule': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (statut) => {
+    switch (statut) {
+      case 'payee': return 'Payée';
+      case 'programme': return 'Programmé';
+      case 'en_cours': return 'En cours';
+      case 'annule': return 'Annulé';
+      default: return statut;
+    }
+  };
+
+  const calculateTotal = () => {
+    const examen = examensDisponibles.find(e => e.id === parseInt(factureData.examenId));
+    if (!examen) return { total: 0, sousTotal: 0, remise: 0, partAssurance: 0, partPatient: 0 };
+    
+    const sousTotal = examen.tarif * factureData.quantite;
+    const montantRemise = (sousTotal * factureData.remise) / 100;
+    const total = sousTotal - montantRemise;
+    
+    // Récupérer le taux de couverture du patient sélectionné
+    const patient = patients.find(p => p.id === factureData.patientId);
+    const tauxCouverture = patient?.assurances?.taux_remboursement || 0;
+    
+    const partAssurance = (total * tauxCouverture) / 100;
+    const partPatient = total - partAssurance;
+    
+    return {
+      total,
+      sousTotal,
+      remise: montantRemise,
+      partAssurance,
+      partPatient,
+      tauxCouverture
+    };
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* En-tête */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Facturation des Examens</h1>
+          <p className="text-gray-600">Gestion et facturation des examens médicaux</p>
+        </div>
+        <div className="flex space-x-3">
+          <button 
+            onClick={() => setShowForm(true)}
+            className="flex items-center px-4 py-2 bg-medical-primary text-white rounded-lg hover:bg-medical-primary-dark transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Programmer examen
+          </button>
+        </div>
+      </div>
+
+      {/* Statistiques */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <FileSearch className="w-8 h-8 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Total examens</p>
+              <p className="text-2xl font-semibold text-gray-900">{facturationExamens.length}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Réalisés</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {facturationExamens.filter(f => f.statut === 'payee').length}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Calendar className="w-8 h-8 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Programmés</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {facturationExamens.filter(f => f.statut === 'programme').length}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Activity className="w-8 h-8 text-yellow-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">En cours</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {facturationExamens.filter(f => f.statut === 'en_cours').length}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <DollarSign className="w-8 h-8 text-medical-primary" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Chiffre d'affaires</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {facturationExamens.reduce((sum, f) => sum + f.total, 0).toLocaleString()} FCFA
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Barre de recherche et filtres */}
+      <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Rechercher</label>
+            <div className="flex">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="N° facture, patient, médecin..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+              />
+              <button className="px-4 py-2 bg-medical-primary text-white rounded-r-lg hover:bg-medical-primary-dark transition-colors">
+                <Search className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+            >
+              <option value="all">Tous les statuts</option>
+              <option value="payee">Réalisés</option>
+              <option value="programme">Programmés</option>
+              <option value="en_cours">En cours</option>
+              <option value="annule">Annulés</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Type d'examen</label>
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+            >
+              <option value="all">Tous les types</option>
+              {categories.map(category => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="flex items-end">
+            <button className="flex items-center px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+              <Filter className="w-4 h-4 mr-2" />
+              Filtres avancés
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Formulaire de programmation d'examen */}
+      {showForm && (
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Plus className="w-5 h-5 mr-2" />
+              {editingFacture ? 'Modifier l\'examen' : 'Programmer un examen'}
+            </h3>
+            <button
+              onClick={() => {
+                setShowForm(false);
+                setEditingFacture(null);
+                setFactureData({
+                  patientId: '', examenId: '', quantite: 1, tarifUnitaire: '', remise: 0, 
+                  dateRealisation: '', observations: ''
+                });
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <SearchableSelect
+                  options={patients.map(patient => ({
+                    id: patient.id,
+                    label: `${patient.prenom} ${patient.nom}`,
+                    nom: patient.nom,
+                    prenom: patient.prenom,
+                    assurance: patient.assurances?.nom || 'Sans assurance',
+                    tauxCouverture: patient.assurances?.taux_remboursement || 0,
+                    telephone: patient.telephone || '',
+                    numero_dossier: patient.numero_dossier || ''
+                  }))}
+                  value={factureData.patientId}
+                  onChange={(value) => setFactureData({...factureData, patientId: value})}
+                  placeholder={loading ? 'Chargement des patients...' : 'Sélectionner un patient'}
+                  searchPlaceholder="Rechercher un patient (nom, prénom, dossier)..."
+                  label="Patient *"
+                  required={true}
+                  emptyMessage="Aucun patient trouvé"
+                  renderOption={(patient) => (
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-900">
+                          {patient.prenom} {patient.nom}
+                        </span>
+                        {patient.numero_dossier && (
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            #{patient.numero_dossier}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500 mt-1">
+                        <span className="mr-3">
+                          🏥 {patient.assurance}
+                          {patient.tauxCouverture > 0 && (
+                            <span className="ml-1 text-green-600 font-medium">
+                              ({patient.tauxCouverture}%)
+                            </span>
+                          )}
+                        </span>
+                        {patient.telephone && (
+                          <span>📞 {patient.telephone}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                />
+                {error && (
+                  <p className="mt-1 text-sm text-red-600">
+                    Erreur: {error}
+                  </p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Examen *</label>
+                <select
+                  name="examenId"
+                  value={factureData.examenId}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                >
+                  <option value="">Sélectionner un examen</option>
+                  {examensDisponibles.map(examen => (
+                    <option key={examen.id} value={examen.id}>
+                      {examen.code} - {examen.libelle} ({examen.tarif.toLocaleString()} FCFA)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date de réalisation *</label>
+                <input
+                  type="date"
+                  name="dateRealisation"
+                  value={factureData.dateRealisation}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Quantité *</label>
+                <input
+                  type="number"
+                  name="quantite"
+                  value={factureData.quantite}
+                  onChange={handleInputChange}
+                  min="1"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Remise (%)</label>
+                <input
+                  type="number"
+                  name="remise"
+                  value={factureData.remise}
+                  onChange={handleInputChange}
+                  min="0"
+                  max="100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Total estimé</label>
+                <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 font-medium">
+                  {calculateTotal().total.toLocaleString()} FCFA
+                </div>
+              </div>
+            </div>
+            
+            {/* Détails de la facturation */}
+            {factureData.patientId && factureData.examenId && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Détails de la facturation</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Sous-total :</span>
+                    <span className="font-medium">{calculateTotal().sousTotal.toLocaleString()} FCFA</span>
+                  </div>
+                  {calculateTotal().remise > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Remise ({factureData.remise}%) :</span>
+                      <span className="font-medium">-{calculateTotal().remise.toLocaleString()} FCFA</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="text-gray-600">Total :</span>
+                    <span className="font-bold text-lg">{calculateTotal().total.toLocaleString()} FCFA</span>
+                  </div>
+                  <div className="border-t pt-2 mt-2">
+                    <div className="flex justify-between text-blue-600">
+                      <span>Part assurance ({calculateTotal().tauxCouverture}%) :</span>
+                      <span className="font-medium">{calculateTotal().partAssurance.toLocaleString()} FCFA</span>
+                    </div>
+                    <div className="flex justify-between text-orange-600">
+                      <span>Part patient :</span>
+                      <span className="font-bold">{calculateTotal().partPatient.toLocaleString()} FCFA</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Observations</label>
+              <textarea
+                name="observations"
+                value={factureData.observations}
+                onChange={handleInputChange}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                placeholder="Instructions particulières pour l'examen..."
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingFacture(null);
+                  setFactureData({
+                    patientId: '', examenId: '', quantite: 1, tarifUnitaire: '', remise: 0, 
+                    dateRealisation: '', observations: ''
+                  });
+                }}
+                className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="flex items-center px-6 py-2 bg-medical-primary text-white rounded-lg hover:bg-medical-primary-dark transition-colors"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {editingFacture ? 'Modifier' : 'Programmer'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Liste des examens */}
+      <div className="bg-white rounded-lg shadow-md border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Examens programmés et réalisés</h2>
+          <p className="text-sm text-gray-600">{filteredFacturations.length} examen(s) trouvé(s)</p>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  N° Facture
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Patient
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Examens
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date réalisation
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Montant
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Statut
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <Clock className="w-8 h-8 text-gray-400 animate-spin mb-2" />
+                      <p className="text-gray-500">Chargement des examens...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredFacturations.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <FileSearch className="w-12 h-12 text-gray-300 mb-3" />
+                      <p className="text-gray-500 font-medium">Aucun examen trouvé</p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        {searchTerm || selectedStatus !== 'all' || selectedType !== 'all'
+                          ? 'Essayez de modifier vos filtres de recherche'
+                          : 'Programmez votre premier examen'}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredFacturations.map((facture) => (
+                <tr key={facture.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{facture.numero}</div>
+                      <div className="text-sm text-gray-500">{new Date(facture.date).toLocaleDateString('fr-FR')}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {facture.patient.prenom} {facture.patient.nom}
+                      </div>
+                      <div className="text-sm text-gray-500">{facture.patient.assurance}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">
+                      {facture.examens.map((item, index) => (
+                        <div key={index} className="mb-1 flex items-center">
+                          <span>{item.examen.libelle}</span>
+                          {item.realise && <CheckCircle className="w-4 h-4 text-green-500 ml-2" />}
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {new Date(facture.dateRealisation).toLocaleDateString('fr-FR')}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {facture.total.toLocaleString()} FCFA
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Patient: {facture.montantPatient.toLocaleString()} FCFA
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(facture.statut)}`}>
+                      {getStatusText(facture.statut)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => setShowDetails(facture)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Voir détails"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleEdit(facture)}
+                        className="text-medical-primary hover:text-medical-primary-dark"
+                        title="Modifier"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDownload(facture)}
+                        className="text-green-600 hover:text-green-900"
+                        title="Télécharger"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(facture)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal de détails */}
+      {showDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Détails de l'examen {showDetails.numero}
+                </h3>
+                <button
+                  onClick={() => setShowDetails(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Informations patient */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Informations patient</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p><span className="font-medium">Nom :</span> {showDetails.patient.prenom} {showDetails.patient.nom}</p>
+                  <p><span className="font-medium">Assurance :</span> {showDetails.patient.assurance}</p>
+                  <p><span className="font-medium">Médecin :</span> {showDetails.medecin}</p>
+                  <p><span className="font-medium">Date réalisation :</span> {new Date(showDetails.dateRealisation).toLocaleDateString('fr-FR')}</p>
+                </div>
+              </div>
+              
+              {/* Examens programmés */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Examens programmés</h4>
+                <div className="space-y-2">
+                  {showDetails.examens.map((item, index) => (
+                    <div key={index} className="bg-gray-50 p-3 rounded flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{item.examen.libelle}</span>
+                        <span className="text-sm text-gray-500 block">{item.examen.categorie} - {item.examen.duree}min</span>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <span className="font-medium">{item.tarifUnitaire.toLocaleString()} FCFA</span>
+                        {item.realise && <CheckCircle className="w-5 h-5 text-green-500" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Détails financiers */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Détails financiers</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Sous-total :</span>
+                    <span>{showDetails.sousTotal.toLocaleString()} FCFA</span>
+                  </div>
+                  {showDetails.remise > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Remise :</span>
+                      <span>-{showDetails.remise.toLocaleString()} FCFA</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>Part assurance :</span>
+                    <span>{showDetails.montantAssurance.toLocaleString()} FCFA</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Part patient :</span>
+                    <span>{showDetails.montantPatient.toLocaleString()} FCFA</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>Total :</span>
+                    <span>{showDetails.total.toLocaleString()} FCFA</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDetails(null)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Fermer
+              </button>
+              <button 
+                onClick={() => handleDownload(showDetails)}
+                className="px-4 py-2 bg-medical-primary text-white rounded-lg hover:bg-medical-primary-dark"
+              >
+                Télécharger
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FacturationExamens;

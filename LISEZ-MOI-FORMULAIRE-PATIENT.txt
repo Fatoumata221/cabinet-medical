@@ -1,0 +1,126 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║   ✅ MODIFICATIONS FORMULAIRE PATIENT TERMINÉES                  ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📋 RÉSUMÉ RAPIDE
+================
+
+✅ Champ "Médecin Traitant" masqué
+✅ 3 Radio buttons ajoutés : IPM | Assurance | Mutuelle
+✅ Affichage conditionnel des champs selon le radio
+✅ Détection automatique du type lors de l'édition
+✅ 🆕 NETTOYAGE AUTOMATIQUE des champs lors de la sauvegarde
+✅ Migration SQL créée
+
+⚠️  ACTION REQUISE AVANT UTILISATION
+===================================
+
+🔴 ÉTAPE 1 : Exécuter la migration SQL (OBLIGATOIRE)
+
+   Option A - Script automatique (recommandé) :
+   -------------------------------------------
+   .\run-migration-assurance.ps1
+
+   Option B - Manuelle dans Supabase :
+   ------------------------------------
+   1. Ouvrir Supabase Dashboard
+   2. SQL Editor
+   3. Coller le contenu de :
+      supabase\migrations\20250106000001_add_assurance_fields.sql
+   4. Run
+
+
+🟢 ÉTAPE 2 : Tester
+
+   1. npm run dev
+   2. Aller sur /patients/create
+   3. Tester les 3 radio buttons (IPM, Assurance, Mutuelle)
+   4. Créer un patient test
+   5. Éditer ce patient → Vérifier que le bon radio est présélectionné
+
+
+📚 DOCUMENTATION
+================
+
+│ Fichier                                      │ Usage                    │
+├──────────────────────────────────────────────┼──────────────────────────┤
+│ RESUME_FINAL_AMELIORATIONS.md               │ 🆕 Résumé avec nettoyage │
+│ AMELIORATION_NETTOYAGE_CHAMPS.md            │ 🆕 Doc nettoyage auto    │
+│ RESUME_MODIFICATIONS_PATIENT_FORM.md         │ Vue d'ensemble rapide    │
+│ MODIFICATION_FORMULAIRE_PATIENT.md           │ Documentation complète   │
+│ GUIDE_UTILISATION_NOUVEAU_FORMULAIRE.md     │ Guide utilisateur        │
+│ run-migration-assurance.ps1                  │ Script migration         │
+
+
+🎯 PAGES MODIFIÉES
+==================
+
+✅ /patients/create  → PatientCreatePage.jsx
+✅ /patients/edit/:id → PatientEditPage.jsx
+
+
+🗄️  BASE DE DONNÉES
+====================
+
+Nouvelles colonnes ajoutées à la table "patients" :
+- nom_assurance (VARCHAR)
+- numero_assurance (VARCHAR)
+
+
+🧪 TESTS RECOMMANDÉS
+=====================
+
+Test 1 : Création avec IPM
+  ✓ Sélectionner IPM → Champ "Numéro IPM" apparaît
+
+Test 2 : Création avec Assurance
+  ✓ Sélectionner Assurance → 2 champs apparaissent
+
+Test 3 : Création avec Mutuelle
+  ✓ Sélectionner Mutuelle → 2 champs apparaissent
+
+Test 4 : Édition d'un patient existant
+  ✓ Ouvrir patient avec IPM → Radio IPM présélectionné
+
+
+💡 AIDE RAPIDE
+==============
+
+Q: Le bouton "Médecin Traitant" a disparu ?
+R: Oui, c'est normal. Il a été masqué comme demandé.
+
+Q: Je ne vois pas les nouveaux champs ?
+R: Avez-vous exécuté la migration SQL ?
+
+Q: Comment savoir quel type de couverture un patient a ?
+R: En mode édition, le radio correct est automatiquement sélectionné.
+
+Q: Puis-je ne sélectionner aucun radio ?
+R: Oui, c'est possible si le patient n'a pas de couverture.
+
+Q: Que se passe-t-il si je change le type de couverture ?
+R: 🆕 Le système nettoie automatiquement les anciens champs !
+   Ex: IPM → Assurance = l'ancien numero_ipm est mis à null.
+
+Q: Comment vérifier que le nettoyage fonctionne ?
+R: Ouvrez F12 → Console et cherchez les logs [PatientCreate]
+   Vous verrez les données avant/après nettoyage.
+
+
+📞 BESOIN D'AIDE ?
+==================
+
+1. Vérifier que la migration SQL est exécutée
+2. Vider le cache du navigateur (Ctrl + Shift + R)
+3. Consulter MODIFICATION_FORMULAIRE_PATIENT.md
+
+
+═══════════════════════════════════════════════════════════════════
+
+Date : 6 janvier 2025
+Status : ✅ PRÊT À L'EMPLOI (après migration SQL)
+
+═══════════════════════════════════════════════════════════════════
+

@@ -1,0 +1,29 @@
+/* Index des styles de calendrier - FullCalendar */
+
+/* Import des styles de base */
+@import './calendar-base.css';
+
+/* Import des styles pour la vue timegrid (vue horaire) */
+@import './calendar-timegrid.css';
+
+/* Import des styles pour la vue daygrid (vue mois/semaine) */
+@import './calendar-daygrid.css';
+
+/* Import des styles pour les événements */
+@import './calendar-events.css';
+
+/* Import des styles pour la vue resource timeline (ressources/médecins) */
+@import './calendar-resource.css';
+
+/* 
+  Structure des fichiers CSS du calendrier :
+  
+  calendar-base.css      - Styles communs à tous les calendriers
+  calendar-timegrid.css  - Styles spécifiques à la vue horaire
+  calendar-daygrid.css   - Styles spécifiques à la vue mois/semaine  
+  calendar-events.css    - Styles spécifiques aux événements
+  calendar-resource.css  - Styles spécifiques à la vue avec ressources
+  
+  Pour utiliser seulement certains styles, importez directement les fichiers nécessaires.
+  Exemple : pour une vue simple, importez seulement calendar-base.css et calendar-daygrid.css
+*/

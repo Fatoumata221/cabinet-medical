@@ -1,0 +1,6 @@
+{
+  "dependencies_to_add": {
+    "dotenv": "^16.3.1"
+  },
+  "instructions": "Ajoutez cette dépendance à votre package.json ou installez avec: npm install dotenv"
+}

@@ -1,0 +1,192 @@
+/* Exemples de configuration pour différents types de calendriers */
+
+/* ========================================
+   EXEMPLE 1: Calendrier simple (mois/semaine)
+   ======================================== */
+.calendar-simple {
+  /* Import des styles de base + daygrid + événements */
+  @import './calendar-base.css';
+  @import './calendar-daygrid.css';
+  @import './calendar-events.css';
+}
+
+/* ========================================
+   EXEMPLE 2: Calendrier horaire (timeGrid)
+   ======================================== */
+.calendar-timegrid {
+  /* Import des styles de base + timegrid + événements */
+  @import './calendar-base.css';
+  @import './calendar-timegrid.css';
+  @import './calendar-events.css';
+}
+
+/* ========================================
+   EXEMPLE 3: Calendrier avec ressources (médecins)
+   ======================================== */
+.calendar-resource {
+  /* Import de tous les styles */
+  @import './calendar-base.css';
+  @import './calendar-timegrid.css';
+  @import './calendar-daygrid.css';
+  @import './calendar-events.css';
+  @import './calendar-resource.css';
+}
+
+/* ========================================
+   EXEMPLE 4: Calendrier minimaliste
+   ======================================== */
+.calendar-minimal {
+  /* Import des styles de base seulement */
+  @import './calendar-base.css';
+  
+  /* Styles personnalisés pour un look minimaliste */
+  .fc {
+    @apply border-0 shadow-none;
+    background: transparent !important;
+  }
+  
+  .fc-event {
+    @apply rounded-md shadow-sm;
+    backdrop-filter: none !important;
+  }
+  
+  .fc-button {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+    backdrop-filter: none !important;
+  }
+}
+
+/* ========================================
+   EXEMPLE 5: Calendrier médical spécialisé
+   ======================================== */
+.calendar-medical {
+  /* Import de tous les styles */
+  @import './calendar-index.css';
+  
+  /* Styles spécifiques pour le médical */
+  .fc-event.confirme {
+    @apply bg-gradient-to-r from-green-500/90 to-emerald-600/90;
+  }
+  
+  .fc-event.urgente {
+    @apply bg-gradient-to-r from-red-500/90 to-red-600/90;
+    animation: pulse 2s infinite;
+  }
+  
+  .fc-event.consultation {
+    @apply bg-gradient-to-r from-blue-500/90 to-indigo-600/90;
+  }
+  
+  .fc-event.operation {
+    @apply bg-gradient-to-r from-purple-500/90 to-violet-600/90;
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+}
+
+/* ========================================
+   EXEMPLE 6: Calendrier avec thème personnalisé
+   ======================================== */
+.calendar-custom-theme {
+  /* Import des styles de base */
+  @import './calendar-base.css';
+  @import './calendar-daygrid.css';
+  @import './calendar-events.css';
+  
+  /* Thème personnalisé */
+  .fc {
+    @apply border-2 border-purple-200;
+    background: linear-gradient(135deg, #faf5ff, #f3e8ff) !important;
+  }
+  
+  .fc-col-header-cell {
+    @apply bg-gradient-to-br from-purple-50/80 to-pink-50/50;
+  }
+  
+  .fc-col-header-cell:hover {
+    @apply bg-gradient-to-br from-purple-100/80 to-pink-200/80;
+  }
+  
+  .fc-event {
+    @apply bg-gradient-to-r from-purple-500/90 to-pink-500/90;
+  }
+  
+  .fc-button {
+    @apply bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700;
+  }
+}
+
+/* ========================================
+   EXEMPLE 7: Calendrier accessible (haute visibilité)
+   ======================================== */
+.calendar-accessible {
+  /* Import des styles de base */
+  @import './calendar-base.css';
+  @import './calendar-daygrid.css';
+  @import './calendar-events.css';
+  
+  /* Styles pour l'accessibilité */
+  .fc {
+    @apply border-4 border-black;
+    background: white !important;
+  }
+  
+  .fc-col-header-cell {
+    @apply bg-black text-white border-2 border-black;
+  }
+  
+  .fc-col-header-cell-cushion {
+    @apply text-white font-bold text-xl;
+  }
+  
+  .fc-event {
+    @apply border-3 border-black;
+    background: #ffff00 !important;
+    color: black !important;
+  }
+  
+  .fc-event-time,
+  .fc-event-title {
+    @apply text-black font-bold;
+  }
+  
+  .fc-button {
+    @apply bg-black text-white border-3 border-black font-bold text-lg;
+  }
+}
+
+/* ========================================
+   EXEMPLE 8: Calendrier mode sombre forcé
+   ======================================== */
+.calendar-dark-forced {
+  /* Import de tous les styles */
+  @import './calendar-index.css';
+  
+  /* Forcer le mode sombre */
+  .fc {
+    @apply bg-gray-900 border-gray-700;
+  }
+  
+  .fc-col-header-cell {
+    @apply bg-gray-800 text-gray-200 border-gray-600;
+  }
+  
+  .fc-daygrid-day {
+    @apply bg-gray-800 text-gray-200 border-gray-600;
+  }
+  
+  .fc-event {
+    @apply bg-gray-700 text-gray-100 border-gray-500;
+  }
+  
+  .fc-button {
+    @apply bg-gray-700 text-gray-100 border-gray-500;
+  }
+}

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Toasts Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #059669;
+        }
+        .btn-error {
+            background-color: #ef4444;
+            color: white;
+        }
+        .btn-error:hover {
+            background-color: #dc2626;
+        }
+        .btn-info {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .btn-info:hover {
+            background-color: #2563eb;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        .toast {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            padding: 16px;
+            min-width: 300px;
+            border-left: 4px solid #3b82f6;
+            animation: slideIn 0.3s ease-out;
+            position: relative;
+        }
+        .toast.success {
+            border-left-color: #10b981;
+        }
+        .toast.error {
+            border-left-color: #ef4444;
+        }
+        .toast.info {
+            border-left-color: #3b82f6;
+        }
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .toast-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .toast-message {
+            flex: 1;
+            font-size: 14px;
+            color: #374151;
+        }
+        .toast-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #9ca3af;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toast-close:hover {
+            color: #374151;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        .toast.removing {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test des Toasts (Version Simple)</h1>
+        
+        <div class="button-group">
+            <button class="btn-success" onclick="showToast('success', '✅ Opération réussie !', 'Le patient a été enregistré avec succès.')">
+                ✅ Toast Succès
+            </button>
+            <button class="btn-error" onclick="showToast('error', '❌ Erreur', 'Impossible de se connecter à la base de données.')">
+                ❌ Toast Erreur
+            </button>
+            <button class="btn-info" onclick="showToast('info', 'ℹ️ Information', 'Le système sera en maintenance dans 30 minutes.')">
+                ℹ️ Toast Info
+            </button>
+            <button class="btn-info" onclick="showMedicalToast()">
+                🏥 Toast Médical
+            </button>
+            <button class="btn-error" onclick="showUrgentToast()">
+                🚨 Toast Urgent
+            </button>
+            <button class="btn-info" onclick="clearAllToasts()">
+                🧹 Effacer tout
+            </button>
+        </div>
+
+        <div class="status">
+            <strong>Status :</strong> <span id="status">Système de toast simple prêt</span><br>
+            <strong>Type :</strong> Toast natif JavaScript (sans React)<br>
+            <strong>Dernière action :</strong> <span id="lastAction">Aucune</span>
+        </div>
+    </div>
+
+    <!-- Container pour les toasts -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        let toastCounter = 0;
+
+        function updateStatus(message, action) {
+            document.getElementById('status').textContent = message;
+            document.getElementById('lastAction').textContent = action;
+        }
+
+        function showToast(type, title, message, autoClose = 5000) {
+            toastCounter++;
+            const toastId = `toast-${toastCounter}`;
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.id = toastId;
+            
+            const icon = type === 'success' ? '✅' : 
+                        type === 'error' ? '❌' : 
+                        type === 'info' ? 'ℹ️' : '🔔';
+            
+            toast.innerHTML = `
+                <button class="toast-close" onclick="removeToast('${toastId}')">&times;</button>
+                <div class="toast-content">
+                    <div class="toast-icon">${icon}</div>
+                    <div class="toast-message">
+                        <div style="font-weight: 600; margin-bottom: 4px;">${title}</div>
+                        <div>${message}</div>
+                        <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                            ${new Date().toLocaleTimeString('fr-FR')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('toast-container').appendChild(toast);
+            
+            // Auto-remove après le délai spécifié
+            if (autoClose > 0) {
+                setTimeout(() => {
+                    removeToast(toastId);
+                }, autoClose);
+            }
+            
+            updateStatus(`Toast ${type} affiché`, `Toast ${type}`);
+            console.log(`✅ Toast ${type} créé:`, title, message);
+        }
+
+        function removeToast(toastId) {
+            const toast = document.getElementById(toastId);
+            if (toast) {
+                toast.classList.add('removing');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }
+        }
+
+        function showMedicalToast() {
+            showToast('info', '🏥 Patient arrivé', 'M. Diallo est arrivé pour son rendez-vous de 14h30', 8000);
+        }
+
+        function showUrgentToast() {
+            showToast('error', '🚨 URGENT', 'Patient en détresse respiratoire - Salle 3', 0); // Ne se ferme pas automatiquement
+        }
+
+        function clearAllToasts() {
+            const container = document.getElementById('toast-container');
+            const toasts = container.querySelectorAll('.toast');
+            toasts.forEach(toast => {
+                removeToast(toast.id);
+            });
+            updateStatus('Tous les toasts effacés', 'Nettoyage');
+        }
+
+        // Test automatique au chargement
+        setTimeout(() => {
+            showToast('info', '🎉 Page chargée', 'Système de toast simple fonctionnel ! Cliquez sur les boutons pour tester.', 4000);
+            updateStatus('Test automatique exécuté', 'Chargement initial');
+        }, 1000);
+
+        console.log('🎉 Système de toast simple initialisé avec succès !');
+    </script>
+</body>
+</html>

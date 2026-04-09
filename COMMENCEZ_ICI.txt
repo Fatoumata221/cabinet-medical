@@ -1,0 +1,79 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║          🎯 COMMENCEZ ICI - CORRECTIONS CERTIFICATS          ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+🚀 ACTIONS IMMÉDIATES (5 MINUTES)
+══════════════════════════════════════════════════════════════
+
+┌──────────────────────────────────────────────────────────────┐
+│ ÉTAPE 1 : SUPABASE (2 minutes)                              │
+└──────────────────────────────────────────────────────────────┘
+
+  1. Ouvrir https://supabase.com/dashboard
+  2. Aller dans "SQL Editor"
+  3. Ouvrir le fichier : fix_certificats_medicaux_columns.sql
+  4. Copier TOUT le contenu
+  5. Coller dans SQL Editor
+  6. Cliquer "RUN" (ou Ctrl+Enter)
+  7. Attendre 30 secondes
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ ÉTAPE 2 : REDÉMARRER (1 minute)                             │
+└──────────────────────────────────────────────────────────────┘
+
+  Double-cliquer sur : fix_port_and_restart.bat
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ ÉTAPE 3 : TESTER (1 minute)                                 │
+└──────────────────────────────────────────────────────────────┘
+
+  1. Ouvrir l'application (http://localhost:5173 ou 3000)
+  2. Connexion médecin
+  3. Ouvrir une consultation
+  4. Onglet "Certificats"
+  5. "Ajouter un certificat"
+  6. Remplir et enregistrer
+  
+  ✅ Résultat : "Certificat médical créé avec succès !"
+
+
+══════════════════════════════════════════════════════════════
+                    C'EST TOUT ! ✨
+══════════════════════════════════════════════════════════════
+
+
+📝 OPTIONNEL : Signatures (5 minutes)
+══════════════════════════════════════════════════════════════
+
+Pour avoir les signatures sur les ordonnances et certificats :
+
+  Lire : GUIDE_SIGNATURE_MEDECIN.md
+
+
+📚 DOCUMENTATION COMPLÈTE
+══════════════════════════════════════════════════════════════
+
+  ⭐ RESUME_FINAL_CORRECTIONS.md  →  Vue d'ensemble complète
+  📘 README_URGENT.txt             →  Guide 3 étapes détaillé
+  📗 GUIDE_SIGNATURE_MEDECIN.md    →  Signatures (optionnel)
+
+
+🆘 PROBLÈME ?
+══════════════════════════════════════════════════════════════
+
+  Lire : SOLUTION_COMPLETE_IMMEDIATE.md
+  
+  Section "SI ÇA NE MARCHE TOUJOURS PAS" avec diagnostics
+
+
+══════════════════════════════════════════════════════════════
+
+            SUIVEZ LES 3 ÉTAPES ET C'EST BON ! 🎉
+
+══════════════════════════════════════════════════════════════
+

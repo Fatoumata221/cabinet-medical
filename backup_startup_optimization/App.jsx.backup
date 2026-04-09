@@ -1,0 +1,1012 @@
+import React from 'react';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Layout from './components/Layout';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import AccessDenied from './components/AccessDenied';
+import NotificationManager from './components/common/NotificationManager';
+import ProtectedRoute from './components/ProtectedRoute';
+import { ROLES } from './utils/permissions';
+
+// Composant Dashboard intelligent qui redirige selon le rôle
+const SmartDashboard = () => {
+  const { hasRole, userProfile, isLoading, currentUser } = useAuth();
+  
+  // Attendre que l'authentification soit chargée
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-medical-primary"></div>
+        <span className="ml-2">Chargement...</span>
+      </div>
+    );
+  }
+  
+  // Si pas d'utilisateur connecté, rediriger vers login
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Utiliser le profil ou les métadonnées utilisateur comme fallback
+  const role = userProfile?.role || currentUser?.user_metadata?.role || currentUser?.app_metadata?.role;
+  
+  if (role === ROLES.ADMIN) {
+    return <Dashboard />;
+  } else if (role === ROLES.DOCTOR) {
+    return <Navigate to="/my-waiting-queue" replace />;
+  } else if (role === ROLES.SECRETARY) {
+    return <Navigate to="/secretary" replace />;
+  } else {
+    return <Dashboard />;
+  }
+};
+
+// Import de toutes les pages
+import CalendarPage from './components/Calendar';
+import TestSimple from './pages/TestSimple';
+import TestAuth from './pages/TestAuth';
+
+
+
+// Pages de paramétrage
+import Medecins from './pages/parametrage/Medecins';
+import MedecinsForm from './pages/parametrage/MedecinsForm';
+import Specialites from './pages/parametrage/Specialites';
+import SpecialitesForm from './pages/parametrage/SpecialitesForm';
+import AnnuaireActesTarifs from './pages/parametrage/AnnuaireActesTarifs';
+import AnnuaireActesTarifsForm from './pages/parametrage/AnnuaireActesTarifsForm';
+import ExamensDiagnostic from './pages/parametrage/ExamensDiagnostic';
+import ExamensDiagnosticForm from './pages/parametrage/ExamensDiagnosticForm';
+import ListeMaladies from './pages/parametrage/ListeMaladies';
+import ListeMaladiesForm from './pages/parametrage/ListeMaladiesForm';
+import ListeVaccins from './pages/parametrage/ListeVaccins';
+import ListeVaccinsForm from './pages/parametrage/ListeVaccinsForm';
+import ListeEtiologies from './pages/parametrage/ListeEtiologies';
+import PlaintesPrincipales from './pages/parametrage/PlaintesPrincipales';
+import TypesSymptomes from './pages/parametrage/TypesSymptomes';
+import CategoriesAntecedents from './pages/parametrage/CategoriesAntecedents';
+import TypesAntecedents from './pages/parametrage/TypesAntecedents';
+import TypesCertificats from './pages/parametrage/TypesCertificats';
+import Employeurs from './pages/parametrage/Employeurs';
+import TiersPayant from './pages/parametrage/TiersPayant';
+import TypeCouvertureMedicale from './pages/parametrage/TypeCouvertureMedicale';
+import ListeArchives from './pages/parametrage/ListeArchives';
+import TypesArchives from './pages/parametrage/TypesArchives';
+import FamillesArchives from './pages/parametrage/FamillesArchives';
+
+// Nouvelles pages de paramétrage médical - Phase 1
+import Constantes from './pages/parametrage/Constantes';
+import SignesCliniques from './pages/parametrage/SignesCliniques';
+import Appareils from './pages/parametrage/Appareils';
+import Diagnostics from './pages/parametrage/Diagnostics';
+
+// Nouvelles pages de paramétrage médical - Phase 2
+import Antecedents from './pages/parametrage/Antecedents';
+import Medicaments from './pages/parametrage/Medicaments';
+
+// Nouvelles pages de paramétrage médical - Phase 3
+import ElementsSynthese from './pages/parametrage/ElementsSynthese';
+import TypesActes from './pages/parametrage/TypesActes';
+import Assurances from './pages/parametrage/Assurances';
+
+// Nouvelles pages du module Rendez-vous - Phase 2
+import FichePatient from './pages/rendez-vous/FichePatient';
+import PatientForm from './pages/PatientForm';
+import PriseRendezVous from './pages/rendez-vous/PriseRendezVous';
+import SalleAttente from './pages/rendez-vous/SalleAttente';
+import RappelsSMS from './pages/rendez-vous/RappelsSMS';
+
+// Nouvelles pages du module Rendez-vous - Phase 3 (Fonctionnalités avancées)
+import NotificationsRealtime from './pages/rendez-vous/NotificationsRealtime';
+import ScanDocuments from './pages/rendez-vous/ScanDocuments';
+import StatistiquesRealtime from './pages/rendez-vous/StatistiquesRealtime';
+
+// Pages du module Consultation - Phase 2
+import Consultations from './pages/consultation/Consultations';
+import ConsultationDetail from './pages/consultation/ConsultationDetail';
+
+// Pages du module Facturation - Phase 2
+import ActesPage from './pages/facturation/Actes';
+import ExamensPage from './pages/facturation/Examens';
+import FacturesPage from './pages/facturation/Factures';
+import LaboPage from './pages/facturation/Labo';
+import PharmaciePage from './pages/facturation/Pharmacie';
+import DiversPage from './pages/facturation/Divers';
+import ReportingPage from './pages/reporting/Reporting';
+
+// Pages d'administration
+import CanalProvenance from './pages/administration/CanalProvenance';
+import Professions from './pages/administration/Professions';
+import ListePeriodes from './pages/administration/ListePeriodes';
+import ListeProduits from './pages/administration/ListeProduits';
+import PosologieProduits from './pages/administration/PosologieProduits';
+import GestionUtilisateurs from './pages/administration/GestionUtilisateurs';
+import FormulaireUtilisateur from './pages/administration/FormulaireUtilisateur';
+
+// Pages pour médecins et secrétaires
+import IntroductionPatientPage from './pages/IntroductionPatientPage';
+import FicheIdentificationPage from './pages/FicheIdentificationPage';
+import ExamenMedicalPage from './pages/ExamenMedicalPage';
+import PrescriptionPage from './pages/PrescriptionPage';
+import ActesConsultationPage from './pages/ActesPage';
+import BcdsPage from './pages/BcdsPage';
+import StatisticsPage from './pages/StatisticsPage';
+import HistoriquesArchivesPage from './pages/HistoriquesArchivesPage';
+import PatientsPage from './pages/Patients';
+import WaitingQueuePage from './pages/WaitingQueuePage';
+import SecretaryDashboard from './components/secretary/SecretaryDashboard';
+import MedicalRecordsPage from './pages/MedicalRecordsPage';
+import PrescriptionsPage from './pages/PrescriptionsPage';
+import MyWaitingQueuePage from './pages/MyWaitingQueuePage';
+import TestDoctorSpecificQueue from './pages/test/TestDoctorSpecificQueue';
+import DoctorDashboard from './components/doctor/DoctorDashboard';
+import PermissionTestPage from './pages/PermissionTestPage';
+import MesPatientsPage from './pages/MesPatients';
+
+// Pages temporaires pour les autres sections
+const AppointmentsPage = () => <CalendarPage />;
+
+
+
+// Pages de paramétrage
+const MedecinsPage = () => <Medecins />;
+const SpecialitesPage = () => <Specialites />;
+const AnnuaireActesTarifsPage = () => <AnnuaireActesTarifs />;
+const ExamensDiagnosticPage = () => <ExamensDiagnostic />;
+const ListeMaladiesPage = () => <ListeMaladies />;
+const ListeVaccinsPage = () => <ListeVaccins />;
+const ListeEtiologiesPage = () => <ListeEtiologies />;
+const PlaintesPrincipalesPage = () => <PlaintesPrincipales />;
+const TypesSymptomesPage = () => <TypesSymptomes />;
+const CategoriesAntecedentsPage = () => <CategoriesAntecedents />;
+const TypesAntecedentsPage = () => <TypesAntecedents />;
+const TypesCertificatsPage = () => <TypesCertificats />;
+const EmployeursPage = () => <Employeurs />;
+const TiersPayantPage = () => <TiersPayant />;
+const TypeCouvertureMedicalePage = () => <TypeCouvertureMedicale />;
+const ListeArchivesPage = () => <ListeArchives />;
+const TypesArchivesPage = () => <TypesArchives />;
+const FamillesArchivesPage = () => <FamillesArchives />;
+
+// Nouvelles pages de paramétrage médical - Phase 1
+const ConstantesPage = () => <Constantes />;
+const SignesCliniquesPage = () => <SignesCliniques />;
+const AppareilsPage = () => <Appareils />;
+const DiagnosticsPage = () => <Diagnostics />;
+
+// Nouvelles pages de paramétrage médical - Phase 2
+const AntecedentsPage = () => <Antecedents />;
+const MedicamentsPage = () => <Medicaments />;
+
+// Nouvelles pages de paramétrage médical - Phase 3
+const ElementsSynthesePage = () => <ElementsSynthese />;
+const TypesActesPage = () => <TypesActes />;
+const AssurancesPage = () => <Assurances />;
+
+// Nouvelles pages du module Rendez-vous - Phase 2
+const FichePatientPage = () => <FichePatient />;
+const PriseRendezVousPage = () => <PriseRendezVous />;
+const SalleAttenteRendezVousPage = () => <SalleAttente />;
+const RappelsSMSPage = () => <RappelsSMS />;
+
+// Nouvelles pages du module Rendez-vous - Phase 3 (Fonctionnalités avancées)
+const NotificationsRealtimePage = () => <NotificationsRealtime />;
+const ScanDocumentsPage = () => <ScanDocuments />;
+const StatistiquesRealtimePage = () => <StatistiquesRealtime />;
+
+// Pages du module Consultation - Phase 2
+const ConsultationsPage = () => <Consultations />;
+const ConsultationDetailPage = () => <ConsultationDetail />;
+
+// Pages du module Facturation - Phase 2
+const ActesFacturationPage = () => <ActesPage />;
+const ExamensFacturationPage = () => <ExamensPage />;
+const LaboFacturationPage = () => <LaboPage />;
+const PharmacieFacturationPage = () => <PharmaciePage />;
+const FacturesFacturationPage = () => <FacturesPage />;
+
+// Pages d'administration
+const CanalProvenancePage = () => <CanalProvenance />;
+const ProfessionsPage = () => <Professions />;
+const ListePeriodesPage = () => <ListePeriodes />;
+const ListeProduitsPage = () => <ListeProduits />;
+const PosologieProduitsPage = () => <PosologieProduits />;
+const GestionUtilisateursPage = () => <GestionUtilisateurs />;
+
+const SettingsPage = () => (
+  <div className="space-y-6">
+    <h1 className="text-3xl font-bold text-gray-900">Paramètres</h1>
+    <div className="card">
+      <p className="text-gray-600">Page de paramètres en cours de développement...</p>
+    </div>
+  </div>
+);
+
+
+
+
+const UsersPage = () => (
+  <div className="space-y-6">
+    <h1 className="text-3xl font-bold text-gray-900">Gestion des Utilisateurs</h1>
+    <div className="card">
+      <p className="text-gray-600">Page de gestion des utilisateurs en cours de développement...</p>
+    </div>
+  </div>
+);
+
+const CabinetSettingsPage = () => (
+  <div className="space-y-6">
+    <h1 className="text-3xl font-bold text-gray-900">Paramètres du Cabinet</h1>
+    <div className="card">
+      <p className="text-gray-600">Page des paramètres du cabinet en cours de développement...</p>
+    </div>
+  </div>
+);
+
+const SecurityPage = () => (
+  <div className="space-y-6">
+    <h1 className="text-3xl font-bold text-gray-900">Sécurité</h1>
+    <div className="card">
+      <p className="text-gray-600">Page de sécurité en cours de développement...</p>
+    </div>
+  </div>
+);
+
+const AppContent = () => {
+  return (
+    <Router>
+      {/* Gestionnaire de notifications global */}
+      <NotificationManager />
+      <Routes>
+        {/* Route publique */}
+        <Route path="/login" element={<Login />} />
+        
+        {/* Routes de test */}
+        <Route path="/test-simple" element={<TestSimple />} />
+        <Route path="/test-auth" element={<TestAuth />} />
+        
+        {/* Route calendrier */}
+        <Route path="/calendar" element={
+            <Layout>
+              <CalendarPage />
+            </Layout>
+        } />
+        
+        {/* Routes protégées */}
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Layout>
+              <SmartDashboard />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Layout>
+              <SmartDashboard />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* Routes d'accueil spécifiques par rôle */}
+        <Route path="/secretary" element={
+          <ProtectedRoute allowedRoles={[ROLES.SECRETARY]}>
+            <Layout>
+              <SecretaryDashboard />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/doctor" element={
+          <ProtectedRoute allowedRoles={[ROLES.DOCTOR]}>
+            <Layout>
+              <MyWaitingQueuePage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+            <Layout>
+              <Dashboard />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* Routes principales */}
+        <Route path="/patients" element={
+          <ProtectedRoute>
+            <Layout>
+              <PatientsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/appointments" element={
+          <ProtectedRoute>
+            <Layout>
+              <AppointmentsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/waiting-queue" element={
+          <ProtectedRoute>
+            <Layout>
+              <WaitingQueuePage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route de test pour DoctorSpecificQueue */}
+        <Route path="/test-doctor-specific-queue" element={
+          <ProtectedRoute>
+            <Layout>
+              <TestDoctorSpecificQueue />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/secretary-dashboard" element={
+          <ProtectedRoute allowedRoles={[ROLES.SECRETARY, ROLES.ADMIN]}>
+            <Layout>
+              <SecretaryDashboard />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+
+        
+
+        
+
+        
+
+        
+        <Route path="/settings" element={
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+            <Layout>
+              <SettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+
+        
+        {/* Routes de paramétrage */}
+        <Route path="/parametrage/medecins" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <Medecins />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/medecins/form" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <MedecinsForm />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/specialites" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <Specialites />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/specialites/form" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <SpecialitesForm />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/annuaire-actes-tarifs" element={
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'secretary']}>
+            <Layout>
+              <AnnuaireActesTarifs />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/annuaire-actes-tarifs/form" element={
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'secretary']}>
+            <Layout>
+              <AnnuaireActesTarifsForm />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/examens-diagnostic" element={
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'secretary']}>
+            <Layout>
+              <ExamensDiagnostic />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/examens-diagnostic/form" element={
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'secretary']}>
+            <Layout>
+              <ExamensDiagnosticForm />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/liste-maladies" element={
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'secretary']}>
+            <Layout>
+              <ListeMaladies />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/liste-maladies/form" element={
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'secretary']}>
+            <Layout>
+              <ListeMaladiesForm />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/liste-vaccins" element={
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'secretary']}>
+            <Layout>
+              <ListeVaccins />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/liste-vaccins/form" element={
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'secretary']}>
+            <Layout>
+              <ListeVaccinsForm />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/liste-etiologies" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <ListeEtiologiesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/plaintes-principales" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <PlaintesPrincipalesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/types-symptomes" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <TypesSymptomesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/categories-antecedents" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <CategoriesAntecedentsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/types-antecedents" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <TypesAntecedentsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/types-certificats" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <TypesCertificatsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/employeurs" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <EmployeursPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/tiers-payant" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <TiersPayantPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/type-couverture-medicale" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <TypeCouvertureMedicalePage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/liste-archives" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <ListeArchivesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/types-archives" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <TypesArchivesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/familles-archives" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <FamillesArchivesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* Nouvelles routes de paramétrage médical - Phase 1 */}
+        <Route path="/parametrage/constantes" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <ConstantesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/signes-cliniques" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <SignesCliniquesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/appareils" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <AppareilsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/diagnostics" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <DiagnosticsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* Nouvelles routes de paramétrage médical - Phase 2 */}
+        <Route path="/parametrage/antecedents" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <AntecedentsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/medicaments" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <MedicamentsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* Nouvelles routes de paramétrage médical - Phase 3 */}
+        <Route path="/parametrage/elements-synthese" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <ElementsSynthesePage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/types-actes" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <TypesActesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/parametrage/assurances" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <AssurancesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* Nouvelles routes du module Rendez-vous - Phase 2 */}
+        <Route path="/rendez-vous/fiche-patient" element={
+          <ProtectedRoute>
+            <Layout>
+              <FichePatientPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/rendez-vous/fiche-patient/form" element={
+          <ProtectedRoute>
+            <Layout>
+              <PatientForm />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/rendez-vous/prise-rendez-vous" element={
+          <ProtectedRoute>
+            <Layout>
+              <PriseRendezVousPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/rendez-vous/salle-attente" element={
+          <ProtectedRoute>
+            <Layout>
+              <SalleAttenteRendezVousPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+                           <Route path="/rendez-vous/rappels-sms" element={
+                     <ProtectedRoute>
+                       <Layout>
+                         <RappelsSMSPage />
+                       </Layout>
+                     </ProtectedRoute>
+                   } />
+
+                   {/* Nouvelles routes du module Rendez-vous - Phase 3 (Fonctionnalités avancées) */}
+                   <Route path="/rendez-vous/notifications-realtime" element={
+                     <ProtectedRoute>
+                       <Layout>
+                         <NotificationsRealtimePage />
+                       </Layout>
+                     </ProtectedRoute>
+                   } />
+
+                   <Route path="/rendez-vous/scan-documents" element={
+                     <ProtectedRoute>
+                       <Layout>
+                         <ScanDocumentsPage />
+                       </Layout>
+                     </ProtectedRoute>
+                   } />
+
+                   <Route path="/rendez-vous/statistiques-realtime" element={
+                     <ProtectedRoute>
+                       <Layout>
+                         <StatistiquesRealtimePage />
+                       </Layout>
+                     </ProtectedRoute>
+                   } />
+
+                   <Route path="/consultation/:id" element={
+                     <ProtectedRoute>
+                       <Layout>
+                         <ConsultationDetailPage />
+                       </Layout>
+                     </ProtectedRoute>
+                   } />
+
+                   <Route path="/consultation-details" element={
+                     <ProtectedRoute>
+                       <Layout>
+                         <ConsultationDetailPage />
+                       </Layout>
+                     </ProtectedRoute>
+                   } />
+
+                   {/* Routes d'administration */}
+        <Route path="/administration/canal-provenance" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <CanalProvenancePage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/administration/professions" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <ProfessionsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/administration/liste-periodes" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <ListePeriodesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/administration/liste-produits" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <ListeProduitsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/administration/posologie-produits" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <PosologieProduitsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/administration/gestion-utilisateurs" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <GestionUtilisateursPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/administration/gestion-utilisateurs/details/:id" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <FormulaireUtilisateur />
+          </ProtectedRoute>
+        } />
+        
+        {/* Routes médecin */}
+        <Route path="/my-patients" element={
+          <ProtectedRoute allowedRoles={['doctor']}>
+            <Layout>
+              <MesPatientsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/medical-records" element={
+          <ProtectedRoute allowedRoles={['doctor']}>
+            <Layout>
+              <MedicalRecordsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/prescriptions" element={
+          <ProtectedRoute allowedRoles={['doctor']}>
+            <Layout>
+              <PrescriptionsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Routes pour médecins et secrétaires - Ma File d'attente */}
+        <Route path="/my-waiting-queue" element={
+          <ProtectedRoute allowedRoles={['doctor']}>
+            <Layout>
+              <MyWaitingQueuePage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/doctor-dashboard" element={
+          <ProtectedRoute allowedRoles={['doctor']}>
+            <Layout>
+              <DoctorDashboard />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+
+
+        {/* Routes pour médecins et secrétaires - Autres pages */}
+        <Route path="/introduction-patient" element={
+          <ProtectedRoute allowedRoles={['secretary']}>
+            <Layout>
+              <IntroductionPatientPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/fiche-identification" element={
+          <ProtectedRoute allowedRoles={['secretary']}>
+            <Layout>
+              <FicheIdentificationPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/examen-medical" element={
+          <ProtectedRoute allowedRoles={['doctor']}>
+            <Layout>
+              <ExamenMedicalPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/prescription" element={
+          <ProtectedRoute allowedRoles={['doctor']}>
+            <Layout>
+              <PrescriptionPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/actes" element={
+          <ProtectedRoute allowedRoles={['doctor']}>
+            <Layout>
+              <ActesConsultationPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/bcds" element={
+          <ProtectedRoute allowedRoles={['doctor']}>
+            <Layout>
+              <BcdsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/statistics" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <StatisticsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Routes pour médecins et secrétaires - Consultation */}
+        <Route path="/consultations" element={
+          <ProtectedRoute allowedRoles={['doctor']}>
+            <Layout>
+              <ConsultationsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Routes pour médecins et secrétaires - Facturation */}
+        <Route path="/facturation/actes" element={
+          <ProtectedRoute allowedRoles={['secretary']}>
+            <Layout>
+              <ActesFacturationPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/facturation/examens" element={
+          <ProtectedRoute allowedRoles={['secretary']}>
+            <Layout>
+              <ExamensFacturationPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/facturation/factures" element={
+          <ProtectedRoute allowedRoles={['secretary']}>
+            <Layout>
+              <FacturesFacturationPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/facturation/labo" element={
+          <ProtectedRoute allowedRoles={['secretary']}>
+            <Layout>
+              <LaboFacturationPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/facturation/pharmacie" element={
+          <ProtectedRoute allowedRoles={['secretary']}>
+            <Layout>
+              <PharmacieFacturationPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/facturation/divers" element={
+          <ProtectedRoute allowedRoles={['secretary']}>
+            <Layout>
+              <DiversPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Routes pour médecins et secrétaires - Reporting */}
+        <Route path="/reporting" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <ReportingPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Routes pour médecins et secrétaires - Historiques & Archives */}
+        <Route path="/historiques-archives" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <HistoriquesArchivesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* Routes admin */}
+        <Route path="/users" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <UsersPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/cabinet-settings" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout>
+              <CabinetSettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/security" element={
+          <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+            <Layout>
+              <SecurityPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* Route de test des permissions (développement uniquement) */}
+        <Route path="/test-permissions" element={
+          <ProtectedRoute>
+            <Layout>
+              <PermissionTestPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Route par défaut */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Router>
+  );
+};
+
+const App = () => {
+  return (
+    <AuthProvider>
+      <div className="App">
+        <NotificationManager />
+        <AppContent />
+      </div>
+    </AuthProvider>
+  );
+};
+
+export default App;

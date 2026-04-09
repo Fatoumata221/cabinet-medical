@@ -1,0 +1,181 @@
+/* Styles de base pour FullCalendar - Design EnhancedCalendar Moderne */
+
+/* Reset et base */
+.fc {
+  @apply font-sans;
+  border: 1px solid #e5e7eb !important;
+  background: white !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+/* Restauration de l'apparence tableau avec bordures */
+.fc table {
+  border-collapse: collapse !important;
+  border: 1px solid #e5e7eb !important;
+  background: white !important;
+}
+
+.fc td, .fc th {
+  border: 1px solid #e5e7eb !important;
+  background: white !important;
+  padding: 8px !important;
+}
+
+/* Boutons de navigation - Design moderne */
+.fc-button {
+  @apply bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-2xl font-semibold transition-all transform hover:scale-105 shadow-lg border-0;
+  backdrop-filter: blur(10px) !important;
+}
+
+.fc-button:disabled {
+  @apply bg-gray-400/50 cursor-not-allowed transform-none shadow-none;
+}
+
+.fc-button-active {
+  @apply bg-gradient-to-r from-blue-700 to-indigo-700 shadow-xl;
+}
+
+/* Toolbar - Design moderne */
+.fc-toolbar {
+  @apply mb-6;
+}
+
+.fc-toolbar-title {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+/* Masquer complètement l'affichage des mois dans la toolbar */
+.fc-toolbar-title {
+  display: none !important;
+}
+
+.dark .fc-toolbar-title {
+  @apply text-white;
+  display: none !important;
+}
+
+/* Popover pour les événements - Design moderne */
+.fc-popover {
+  @apply bg-white/95 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl;
+}
+
+.dark .fc-popover {
+  @apply bg-gray-900/95 border-gray-700/50;
+}
+
+.fc-popover-header {
+  @apply bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border-b border-blue-200/50 rounded-t-3xl backdrop-blur-sm;
+}
+
+.dark .fc-popover-header {
+  @apply bg-gradient-to-r from-gray-800/80 to-gray-900/80 border-gray-700/50;
+}
+
+.fc-popover-title {
+  @apply text-sm font-semibold text-gray-700;
+}
+
+.dark .fc-popover-title {
+  @apply text-gray-300;
+}
+
+/* Liste des événements - Design moderne */
+.fc-list {
+  @apply bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl;
+}
+
+.dark .fc-list {
+  @apply bg-gray-900/95;
+}
+
+.fc-list-day {
+  @apply bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border-b border-blue-200/50 backdrop-blur-sm;
+}
+
+.dark .fc-list-day {
+  @apply bg-gradient-to-r from-gray-800/80 to-gray-900/80 border-gray-700/50;
+}
+
+.fc-list-day-text {
+  @apply text-sm font-semibold text-gray-700;
+}
+
+.dark .fc-list-day-text {
+  @apply text-gray-300;
+}
+
+.fc-list-event {
+  @apply hover:bg-blue-50/50 transition-all duration-300 rounded-xl mx-2 my-1;
+}
+
+.dark .fc-list-event {
+  @apply hover:bg-blue-900/30;
+}
+
+/* Responsive - Design moderne */
+@media (max-width: 768px) {
+  .fc-toolbar {
+    @apply flex-col space-y-4;
+  }
+  
+  .fc-toolbar-chunk {
+    @apply flex justify-center;
+  }
+  
+  .fc-col-header-cell-cushion {
+    @apply text-sm;
+  }
+  
+  .fc-timegrid-slot-label {
+    @apply text-xs;
+  }
+  
+  .fc-col-header-cell {
+    @apply p-2 mx-0.5;
+  }
+  
+  .fc-timegrid-col-bg {
+    @apply mx-0.5;
+  }
+  
+  .fc-event {
+    @apply mx-1;
+  }
+}
+
+/* Animations personnalisées - Design moderne */
+.fc-event {
+  animation: slideInUp 0.4s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Amélioration de l'accessibilité - Design moderne */
+.fc-event:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2 ring-offset-white;
+}
+
+.dark .fc-event:focus {
+  @apply ring-offset-gray-900;
+}
+
+/* Amélioration des bordures et espacements - Restauration tableau */
+.fc td, .fc th {
+  @apply border-gray-200 bg-white;
+  border: 1px solid #e5e7eb !important;
+}
+
+.dark .fc td, .dark .fc th {
+  @apply border-gray-600 bg-gray-800;
+  border: 1px solid #4b5563 !important;
+}

@@ -1,0 +1,377 @@
+/* Styles pour le calendrier personnalisé */
+
+.custom-calendar {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Animation pour les statistiques */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Styles pour les créneaux horaires */
+.time-slot {
+  position: relative;
+  min-height: 60px;
+  border-bottom: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.time-slot:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.time-slot.dark:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Indicateur de l'heure actuelle */
+.current-time-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  z-index: 20;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+/* Styles pour les événements */
+.calendar-event {
+  margin-bottom: 4px;
+  padding: 8px;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-event:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Couleurs des événements selon le statut et la priorité */
+.event-urgent {
+  background: linear-gradient(135deg, #ea580c, #dc2626);
+  border-left: 4px solid #dc2626;
+}
+
+.event-tres-urgent {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  border-left: 4px solid #991b1b;
+}
+
+.event-annule {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  border-left: 4px solid #4b5563;
+}
+
+.event-termine {
+  background: linear-gradient(135deg, #059669, #047857);
+  border-left: 4px solid #047857;
+}
+
+.event-normal {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-left: 4px solid #2563eb;
+}
+
+/* Styles pour la vue semaine */
+.week-view {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 16px;
+}
+
+.week-day {
+  background: rgba(249, 250, 251, 0.8);
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 200px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.week-day.dark {
+  background: rgba(31, 41, 55, 0.8);
+  border-color: rgba(75, 85, 99, 0.5);
+}
+
+/* Styles pour les boutons */
+.calendar-button {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.calendar-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.calendar-button:active {
+  transform: translateY(0);
+}
+
+/* Styles pour les cartes de statistiques */
+.stats-card {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  border-radius: 24px;
+  padding: 16px;
+  transition: all 0.5s ease;
+}
+
+.stats-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card.dark {
+  background: rgba(17, 24, 39, 0.5);
+  border: 1px solid rgba(75, 85, 99, 0.5);
+}
+
+.stats-card.light {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+/* Styles pour le modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  max-width: 32rem;
+  width: 100%;
+  transform: scale(1);
+  transition: all 0.3s ease;
+}
+
+.modal-content.dark {
+  background: #111827;
+}
+
+/* Styles pour les formulaires */
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: #3b82f6;
+  border-color: transparent;
+}
+
+.form-input.dark {
+  background: #374151;
+  border-color: #4b5563;
+  color: white;
+}
+
+.form-input.dark:focus {
+  ring-color: #60a5fa;
+}
+
+/* Styles pour les sélecteurs */
+.select-container {
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 4px;
+}
+
+.select-container.dark {
+  background: #374151;
+}
+
+.select-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.select-input:focus {
+  outline: none;
+}
+
+.select-input.dark {
+  color: white;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .week-view {
+    grid-template-columns: repeat(1, 1fr);
+    gap: 8px;
+  }
+  
+  .stats-card {
+    position: static;
+    margin-bottom: 16px;
+  }
+  
+  .modal-content {
+    margin: 16px;
+    max-width: none;
+  }
+}
+
+/* Animations personnalisées */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in-bottom {
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+/* Styles pour les indicateurs de priorité */
+.priority-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fbbf24;
+}
+
+.priority-indicator.urgent {
+  background: #ea580c;
+}
+
+.priority-indicator.tres-urgent {
+  background: #dc2626;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Styles pour les tooltips */
+.tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  z-index: 1000;
+  pointer-events: none;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tooltip.show {
+  opacity: 1;
+}
+
+/* Styles pour le scroll personnalisé */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.custom-scrollbar.dark {
+  scrollbar-color: #475569 #1e293b;
+}
+
+.custom-scrollbar.dark::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.custom-scrollbar.dark::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.custom-scrollbar.dark::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

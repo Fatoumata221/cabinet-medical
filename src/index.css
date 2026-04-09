@@ -1,0 +1,1151 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap');
+@import './styles/designSystem.css';
+@import './styles/components.css';
+@import './styles/calendar-index.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Charte Graphique par défaut */
+  --medical-primary: #3b82f6;
+  --medical-primary-rgb: 59 130 246;
+  
+  --medical-secondary: #06b6d4;
+  --medical-secondary-rgb: 6 182 212;
+  
+  --medical-success: #22c55e;
+  --medical-success-rgb: 34 197 94;
+  
+  --medical-warning: #f59e0b;
+  --medical-warning-rgb: 245 158 11;
+  
+  --medical-danger: #ef4444;
+  --medical-danger-rgb: 239 68 68;
+  
+  --medical-info: #8b5cf6;
+  --medical-info-rgb: 139 92 246;
+  
+  --medical-dark: #1e293b;
+  --medical-dark-rgb: 30 41 59;
+  
+  --medical-light: #f1f5f9;
+  --medical-light-rgb: 241 245 249;
+}
+
+/* Correction des toasts React-Toastify */
+.Toastify__toast-container {
+  z-index: 9999 !important;
+  position: fixed !important;
+  top: 1rem !important;
+  right: 1rem !important;
+  pointer-events: none !important;
+}
+
+.Toastify__toast {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  margin-bottom: 1rem !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 0.5rem !important;
+}
+
+/* Styles personnalisés pour les toasts médicaux */
+.Toastify__toast--success {
+  background-color: #f0fdf4 !important;
+  border-left: 4px solid #10b981 !important;
+  color: #065f46 !important;
+}
+
+.Toastify__toast--error {
+  background-color: #fef2f2 !important;
+  border-left: 4px solid #ef4444 !important;
+  color: #991b1b !important;
+}
+
+.Toastify__toast--info {
+  background-color: #f0f9ff !important;
+  border-left: 4px solid #3b82f6 !important;
+  color: #1e40af !important;
+}
+
+.Toastify__toast--warning {
+  background-color: #fffbeb !important;
+  border-left: 4px solid #f59e0b !important;
+  color: #92400e !important;
+}
+
+/* Animation pour les toasts urgents */
+.urgent-toast {
+  animation: pulse 2s infinite !important;
+  background-color: #fef2f2 !important;
+  border-left: 4px solid #dc2626 !important;
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.8; 
+    transform: scale(1.02);
+  }
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+  .Toastify__toast-container {
+    left: 1rem !important;
+    right: 1rem !important;
+    width: auto !important;
+  }
+}
+
+/* Animations pour les notifications */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-slide-out-right {
+  animation: slide-out-right 0.3s ease-in;
+}
+
+/* Animations pour les cartes de patients */
+
+/* Animation de popup pour les cartes appelées */
+@keyframes patientCalled {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.3);
+  }
+  100% {
+    transform: scale(1.02);
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
+  }
+}
+
+.patient-called {
+  animation: patientCalled 0.6s ease-in-out;
+  border-color: #3b82f6 !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+}
+
+/* Animation de pulsation pour les urgences */
+@keyframes urgentPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.urgent-pulse {
+  animation: urgentPulse 2s infinite;
+}
+
+/* Animation d'entrée en consultation */
+@keyframes consultationActive {
+  0% {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  }
+  50% {
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  }
+  100% {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  }
+}
+
+.consultation-active {
+  animation: consultationActive 3s ease-in-out infinite;
+  border-color: #0ea5e9 !important;
+}
+
+/* Animation de survol et élévation */
+@keyframes hoverLift {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-2px);
+  }
+}
+
+.hover-lift:hover {
+  animation: hoverLift 0.2s ease-out forwards;
+}
+
+/* Animation de lueur */
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+  }
+}
+
+.glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Animations générales */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0,0,0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -30px, 0);
+  }
+  70% {
+    transform: translate3d(0, -15px, 0);
+  }
+  90% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-10px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Classes utilitaires */
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-fade-out {
+  animation: fadeOut 0.3s ease-out;
+}
+
+.animate-bounce {
+  animation: bounce 1s;
+}
+
+.animate-shake {
+  animation: shake 0.5s;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Transitions fluides */
+.transition-all {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Effet de ripple pour les boutons */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: ripple 0.6s ease-out;
+}
+
+@layer base {
+  * {
+    @apply border-border box-border;
+  }
+  
+  html {
+    @apply scroll-smooth;
+}
+
+body {
+    @apply bg-gradient-to-br from-blue-50 via-white to-cyan-50 text-foreground font-sans antialiased min-h-screen;
+  }
+}
+
+@layer components {
+  /* ===== SIDEBAR COMPONENTS ===== */
+  .sidebar-container {
+    @apply bg-gradient-to-b from-medical-dark to-slate-900 backdrop-blur-apple border-r border-white/10 shadow-apple-lg;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center px-4 py-3 mx-2 text-slate-300 hover:text-white rounded-2xl transition-all duration-300 cursor-pointer relative overflow-hidden;
+  }
+  
+  .sidebar-item::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-medical-primary/20 to-medical-secondary/20 opacity-0 transition-opacity duration-300 rounded-2xl;
+  }
+  
+  .sidebar-item:hover::before {
+    @apply opacity-100;
+  }
+  
+  .sidebar-item.active {
+    @apply bg-gradient-to-r from-medical-primary to-medical-secondary text-white shadow-medical;
+  }
+  
+  .sidebar-item.active::before {
+    @apply opacity-0;
+  }
+  
+  .sidebar-icon {
+    @apply relative z-10 mr-3 transition-transform duration-300;
+  }
+  
+  .sidebar-item:hover .sidebar-icon {
+    @apply scale-110;
+  }
+  
+  /* ===== CARD COMPONENTS ===== */
+  .card {
+    @apply bg-white/80 backdrop-blur-sm rounded-3xl shadow-apple border border-white/50 p-6 transition-all duration-300 hover:shadow-apple-lg hover:scale-[1.02] hover:bg-white/90;
+  }
+  
+  .card-medical {
+    @apply bg-gradient-to-br from-medical-primary/5 to-medical-secondary/5 border border-medical-primary/20 shadow-medical hover:shadow-medical hover:scale-[1.02];
+  }
+  
+  .card-success {
+    @apply bg-gradient-to-br from-medical-success/5 to-medical-accent/5 border border-medical-success/20 shadow-success hover:shadow-success hover:scale-[1.02];
+  }
+  
+  .card-warning {
+    @apply bg-gradient-to-br from-medical-warning/5 to-yellow-400/5 border border-medical-warning/20 shadow-warning hover:shadow-warning hover:scale-[1.02];
+  }
+  
+  .card-danger {
+    @apply bg-gradient-to-br from-medical-danger/5 to-red-400/5 border border-medical-danger/20 shadow-danger hover:shadow-danger hover:scale-[1.02];
+  }
+  
+  .card-purple {
+    @apply bg-gradient-to-br from-medical-purple/5 to-violet-400/5 border border-medical-purple/20 hover:scale-[1.02];
+  }
+  
+  .card-glass {
+    @apply bg-white/20 backdrop-blur-apple border border-white/30 shadow-apple-lg hover:bg-white/30 hover:shadow-apple-xl;
+  }
+  
+  /* ===== BUTTON COMPONENTS ===== */
+  .btn {
+    @apply px-6 py-3 rounded-2xl font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-2 transform hover:scale-105 active:scale-95 shadow-apple;
+  }
+  
+  .btn-primary {
+    @apply bg-gradient-medical text-white hover:shadow-medical focus:ring-medical-primary/50;
+  }
+  
+  .btn-secondary {
+    @apply bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 hover:from-slate-200 hover:to-slate-300 focus:ring-slate-300;
+  }
+  
+  .btn-success {
+    @apply bg-gradient-success text-white hover:shadow-success focus:ring-medical-success/50;
+  }
+  
+  .btn-warning {
+    @apply bg-gradient-warning text-white hover:shadow-warning focus:ring-medical-warning/50;
+  }
+  
+  .btn-danger {
+    @apply bg-gradient-danger text-white hover:shadow-danger focus:ring-medical-danger/50;
+  }
+  
+  .btn-purple {
+    @apply bg-gradient-purple text-white hover:shadow-glow focus:ring-medical-purple/50;
+  }
+  
+  .btn-pink {
+    @apply bg-gradient-pink text-white focus:ring-medical-pink/50;
+  }
+  
+  .btn-glass {
+    @apply bg-white/20 backdrop-blur-apple text-white border border-white/30 hover:bg-white/30;
+  }
+  
+  /* ===== INPUT COMPONENTS ===== */
+  .input-field {
+    @apply w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-medical-primary/20 focus:border-medical-primary transition-all duration-300 placeholder:text-slate-400 backdrop-blur-sm;
+  }
+  
+  .input-glass {
+    @apply bg-white/20 backdrop-blur-apple border-white/30 text-white placeholder:text-white/70 focus:ring-white/30 focus:border-white/50;
+  }
+  
+  /* ===== STATUS BADGES ===== */
+  .status-badge {
+    @apply px-3 py-1.5 rounded-full text-sm font-semibold shadow-apple transition-all duration-300 hover:scale-105;
+  }
+  
+  .status-waiting {
+    @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-[0_4px_16px_rgba(59,130,246,0.3)];
+  }
+  
+  .status-present {
+    @apply bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-[0_4px_16px_rgba(245,158,11,0.3)];
+  }
+  
+  .status-consultation {
+    @apply bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-[0_4px_16px_rgba(239,68,68,0.3)];
+  }
+  
+  .status-completed {
+    @apply bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-[0_4px_16px_rgba(16,185,129,0.3)];
+  }
+  
+  .status-emergency {
+    @apply bg-gradient-to-r from-red-600 to-red-700 text-white shadow-[0_4px_16px_rgba(220,38,38,0.4)] animate-pulse;
+  }
+  
+  /* ===== STATS CARDS ===== */
+  .stat-card {
+    @apply card cursor-pointer;
+  }
+  
+  .stat-card-medical {
+    @apply stat-card card-medical;
+  }
+  
+  .stat-card-success {
+    @apply stat-card card-success;
+  }
+  
+  .stat-card-warning {
+    @apply stat-card card-warning;
+  }
+  
+  .stat-card-danger {
+    @apply stat-card card-danger;
+  }
+  
+  .stat-icon {
+    @apply w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300;
+  }
+  
+  .stat-number {
+    @apply text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent;
+  }
+  
+  /* ===== NAVIGATION TABS ===== */
+  .nav-tab {
+    @apply px-6 py-3 rounded-2xl font-medium transition-all duration-300 cursor-pointer;
+  }
+  
+  .nav-tab.active {
+    @apply bg-gradient-medical text-white shadow-medical;
+  }
+  
+  .nav-tab:not(.active) {
+    @apply text-slate-600 hover:text-slate-900 hover:bg-slate-100;
+  }
+  
+  /* ===== MODAL & DROPDOWN ===== */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm;
+  }
+  
+  .modal-content {
+    @apply bg-white rounded-3xl shadow-apple-xl border border-white/50 backdrop-blur-apple;
+  }
+  
+  .dropdown-item {
+    @apply px-4 py-3 hover:bg-gradient-to-r hover:from-medical-primary/10 hover:to-medical-secondary/10 rounded-xl transition-all duration-200;
+  }
+  
+  /* ===== LOADING & ANIMATIONS ===== */
+  .loading-spinner {
+    @apply animate-spin rounded-full border-4 border-medical-primary/20 border-t-medical-primary;
+  }
+  
+  .fade-in {
+    @apply animate-fade-in;
+  }
+  
+  .slide-up {
+    @apply animate-slide-in;
+  }
+  
+  /* ===== SPECIAL EFFECTS ===== */
+  .glow-effect {
+    @apply relative;
+  }
+  
+  .glow-effect::before {
+    content: '';
+    @apply absolute -inset-1 bg-gradient-to-r from-medical-primary via-medical-secondary to-medical-accent rounded-3xl opacity-75 blur-lg;
+  }
+  
+  .glow-effect > * {
+    @apply relative;
+  }
+}
+
+/* ===== CUSTOM SCROLLBAR ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gradient-to-b from-medical-primary to-medical-secondary rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply from-medical-primary-dark to-medical-secondary-dark;
+}
+
+::-webkit-scrollbar-corner {
+  @apply bg-slate-100;
+}
+
+/* ===== CUSTOM ANIMATIONS ===== */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+  50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Styles personnalisés pour FullCalendar */
+.fc {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header du calendrier */
+.fc-header-toolbar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem;
+  border-radius: 0.75rem 0.75rem 0 0;
+  margin-bottom: 0;
+}
+
+.fc-toolbar-title {
+  color: white !important;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.fc-button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.fc-button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.fc-button:active {
+  transform: translateY(0);
+}
+
+.fc-button-primary {
+  background: white !important;
+  color: #3b82f6 !important;
+  font-weight: 600;
+}
+
+.fc-button-primary:hover {
+  background: #f8fafc !important;
+  color: #2563eb !important;
+}
+
+/* Corps du calendrier */
+.fc-view-harness {
+  background: white;
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+/* En-têtes des colonnes */
+.fc-col-header-cell {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-bottom: 2px solid #e2e8f0;
+  padding: 1rem 0;
+}
+
+.fc-col-header-cell-cushion {
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+/* Cellules du calendrier */
+.fc-daygrid-day {
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.fc-daygrid-day:hover {
+  background: #f9fafb;
+}
+
+.fc-daygrid-day.fc-day-today {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 2px solid #3b82f6;
+}
+
+/* Événements */
+.fc-event {
+  border-radius: 0.5rem;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  margin: 0.125rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  filter: brightness(1.1);
+}
+
+.fc-event-title {
+  font-weight: 600;
+}
+
+.fc-event-time {
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+/* Indicateur "aujourd'hui" */
+.fc-day-today {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+}
+
+/* Heures dans la vue temps */
+.fc-timegrid-slot {
+  border-bottom: 1px solid #f3f4f6;
+  height: 60px;
+}
+
+.fc-timegrid-slot-label {
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+/* Ligne "maintenant" */
+.fc-timegrid-now-indicator-line {
+  border-color: #ef4444;
+  border-width: 2px;
+}
+
+.fc-timegrid-now-indicator-arrow {
+  border-color: #ef4444;
+  border-width: 5px;
+}
+
+/* Sélection de créneaux */
+.fc-highlight {
+  background: rgba(59, 130, 246, 0.2) !important;
+  border: 2px dashed #3b82f6;
+  border-radius: 0.5rem;
+}
+
+/* Modal d'événement */
+.fc-event-main {
+  padding: 0.25rem 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .fc-toolbar {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .fc-event {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem;
+  }
+}
+
+/* Animations personnalisées */
+.fc-event {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Styles pour les statuts d'événements */
+.fc-event-status-confirme {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.fc-event-status-en_attente {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.fc-event-status-annule {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.fc-event-status-termine {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.fc-event-priorite-urgente {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border-left: 4px solid #dc2626;
+}
+
+.fc-event-priorite-tres_urgente {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border-left: 4px solid #991b1b;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Styles pour les composants personnalisés */
+.card {
+  @apply bg-white rounded-xl shadow-lg border border-gray-200 p-6;
+}
+
+.btn-primary {
+  @apply bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5;
+}
+
+.btn-secondary {
+  @apply bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors font-medium;
+}
+
+.btn-danger {
+  @apply bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg transition-colors font-medium;
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+}
+
+/* Focus states */
+.fc-button:focus,
+.fc-event:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Loading states */
+.fc-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Tooltip personnalisé */
+.fc-event-tooltip {
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+/* Styles pour les notifications */
+.notification-badge {
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Styles pour les statistiques */
+.stat-card {
+  @apply bg-white rounded-xl shadow-lg border border-gray-200 p-6 transition-all duration-200 hover:shadow-xl hover:-translate-y-1;
+}
+
+.stat-card:hover {
+  border-color: #3b82f6;
+}
+
+/* Styles pour la file d'attente */
+.queue-item {
+  @apply bg-gray-50 hover:bg-gray-100 rounded-lg p-3 transition-all duration-200 cursor-pointer;
+}
+
+.queue-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Styles pour les modals */
+.modal-overlay {
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Styles pour les formulaires */
+.form-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200;
+}
+
+.form-input:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200;
+}
+
+.form-textarea {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none;
+}
+
+/* Styles pour les badges de statut */
+.status-badge {
+  @apply px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.status-confirme {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-en_attente {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-annule {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.status-termine {
+  @apply bg-blue-100 text-blue-800;
+}
+
+/* Styles pour les priorités */
+.priority-badge {
+  @apply px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.priority-normale {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.priority-urgente {
+  @apply bg-orange-100 text-orange-800;
+}
+
+.priority-tres_urgente {
+  @apply bg-red-100 text-red-800;
+  animation: pulse 2s infinite;
+}
+
+/* ===== CALENDAR ANIMATIONS ===== */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* ===== SIDEBAR MODULES ===== */
+.sidebar-module {
+  @apply mb-2;
+}
+
+.sidebar-module-header {
+  @apply w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 cursor-pointer;
+}
+
+.sidebar-module-header:hover {
+  @apply bg-white/10;
+}
+
+.sidebar-module-header.expanded {
+  @apply bg-gradient-to-r from-medical-primary to-medical-secondary text-white shadow-medical;
+}
+
+.sidebar-module-header.expanded:hover {
+  @apply from-medical-primary-dark to-medical-secondary-dark;
+}
+
+.sidebar-module-items {
+  @apply ml-6 space-y-1 overflow-hidden;
+}
+
+.sidebar-module-item {
+  @apply flex items-center space-x-3 p-2 rounded-lg transition-all duration-200 text-sm;
+}
+
+.sidebar-module-item:hover {
+  @apply bg-white/10;
+}
+
+.sidebar-module-item.active {
+  @apply bg-gradient-to-r from-medical-primary/20 to-medical-secondary/20 text-white border-l-2 border-medical-primary;
+}
+
+.sidebar-module-item.active:hover {
+  @apply from-medical-primary/30 to-medical-secondary/30;
+}
+
+/* Animation pour les dropdowns */
+.sidebar-dropdown-enter {
+  @apply opacity-0 max-h-0;
+}
+
+.sidebar-dropdown-enter-active {
+  @apply opacity-100 max-h-96 transition-all duration-200 ease-out;
+}
+
+.sidebar-dropdown-exit {
+  @apply opacity-100 max-h-96;
+}
+
+.sidebar-dropdown-exit-active {
+  @apply opacity-0 max-h-0 transition-all duration-200 ease-in;
+}
+
+/* Responsive pour les modules */
+@media (max-width: 768px) {
+  .sidebar-module {
+    @apply mb-1;
+  }
+  
+  .sidebar-module-items {
+    @apply ml-4;
+  }
+}
+
+/* Animation pour le dialogue de confirmation */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+

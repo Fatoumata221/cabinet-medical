@@ -1,0 +1,459 @@
+import { supabase } from '../../lib/supabase';
+
+export const getConsultation = async (id) => {
+  const { data, error } = await supabase
+    .from('consultations')
+    .select(`
+      *,
+      patients:patient_id(id, nom, prenom, numero_dossier, date_naissance, sexe),
+      users:medecin_id(nom, prenom)
+    `)
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Erreur lors de la récupération de la consultation:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+export const fetchConsultations = async (options = {}) => {
+  const { doctorId, status } = options;
+
+  let query = supabase
+    .from('consultations')
+    .select(`
+      *,
+      patients:patient_id(id, nom, prenom, numero_dossier, date_naissance, sexe),
+      users:medecin_id(nom, prenom)
+    `);
+
+  if (doctorId) {
+    query = query.eq('medecin_id', doctorId);
+  }
+
+  if (status) {
+    query = query.eq('statut', status);
+  }
+
+  const { data, error } = await query.order('date_consultation', { ascending: false });
+
+  if (error) {
+    console.error('Erreur lors du chargement des consultations:', error);
+    throw error;
+  }
+  
+  return data || [];
+};
+
+export const getAntecedents = async (patientId) => {
+  if (!patientId) return [];
+  const { data, error } = await supabase
+    .from('antecedents_patients')
+    .select(`
+      id,
+      patient_id,
+      antecedent_id,
+      date_decouverte,
+      commentaires,
+      actif,
+      created_at,
+      antecedents (id, nom, description)
+    `)
+    .eq('patient_id', patientId)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Erreur getAntecedents:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getConstantes = async (consultationId) => {
+  if (!consultationId) return [];
+  const { data, error } = await supabase
+    .from('constantes_consultation')
+    .select(`
+      id,
+      consultation_id,
+      constante_id,
+      valeur_mesuree,
+      unite,
+      commentaires,
+      created_at,
+      constantes (id, nom, unite, description, valeur_min, valeur_max)
+    `)
+    .eq('consultation_id', consultationId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Erreur getConstantes:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getSignesCliniques = async (consultationId) => {
+  if (!consultationId) return [];
+  const { data, error } = await supabase
+    .from('signes_cliniques_consultation')
+    .select(`
+      id,
+      consultation_id,
+      signe_clinique_id,
+      intensite,
+      localisation,
+      commentaires,
+      created_at,
+      signes_cliniques (id, nom, description)
+    `)
+    .eq('consultation_id', consultationId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Erreur getSignesCliniques:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getExamensAppareils = async (consultationId) => {
+  if (!consultationId) return [];
+  const { data, error } = await supabase
+    .from('examens_appareils')
+    .select(`
+      id,
+      consultation_id,
+      appareil_id,
+      resultat_examen,
+      anomalies_detectees,
+      recommandations,
+      created_at,
+      appareils (id, nom, description)
+    `)
+    .eq('consultation_id', consultationId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Erreur getExamensAppareils:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getSyntheses = async (consultationId) => {
+  if (!consultationId) return [];
+  const { data, error } = await supabase
+    .from('syntheses_consultation')
+    .select(`
+      id,
+      consultation_id,
+      element_synthese_id,
+      commentaires,
+      created_at,
+      elements_synthese (id, nom, description)
+    `)
+    .eq('consultation_id', consultationId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Erreur getSyntheses:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getAutresSignes = async (consultationId) => {
+  if (!consultationId) return [];
+  const { data, error } = await supabase
+    .from('autres_signes_physiques')
+    .select('id, consultation_id, description, categorie, created_at')
+    .eq('consultation_id', consultationId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Erreur getAutresSignes:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getDiagnostics = async (consultationId) => {
+  if (!consultationId) return [];
+  const { data, error } = await supabase
+    .from('diagnostics_consultation')
+    .select(`
+      id,
+      consultation_id,
+      diagnostic_id,
+      commentaires,
+      certitude,
+      created_at,
+      diagnostics (id, nom, description)
+    `)
+    .eq('consultation_id', consultationId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Erreur getDiagnostics:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getActes = async (consultationId) => {
+  if (!consultationId) return [];
+  const { data, error } = await supabase
+    .from('actes_consultation')
+    .select(`
+      id,
+      consultation_id,
+      type_acte_id,
+      quantite,
+      tarif_unitaire,
+      montant_total,
+      notes,
+      created_at,
+      types_actes (id, nom, description, tarif_defaut)
+    `)
+    .eq('consultation_id', consultationId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Erreur getActes:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getOrdonnances = async (consultationId) => {
+  if (!consultationId) return [];
+  const { data, error } = await supabase
+    .from('ordonnances')
+    .select(`
+      id,
+      consultation_id,
+      numero_ordonnance,
+      date_prescription,
+      instructions_generales,
+      statut,
+      created_at,
+      lignes_ordonnance (
+        id,
+        ordonnance_id,
+        medicament_id,
+        posologie,
+        quantite,
+        duree_traitement,
+        instructions_particulieres,
+        medicaments (id, nom, forme_pharmaceutique, dosage)
+      )
+    `)
+    .eq('consultation_id', consultationId)
+    .order('date_prescription', { ascending: false });
+  if (error) {
+    console.error('Erreur getOrdonnances:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getCertificats = async (consultationId) => {
+  if (!consultationId) return [];
+  const { data, error } = await supabase
+    .from('certificats_medicaux')
+    .select(`
+      id,
+      consultation_id,
+      type_certificat_id,
+      duree_jours,
+      motif,
+      restrictions,
+      date_debut,
+      date_fin,
+      statut,
+      created_at,
+      types_certificats (id, nom, description)
+    `)
+    .eq('consultation_id', consultationId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Erreur getCertificats:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const getSyntheseHistorique = async (patientId) => {
+  if (!patientId) return [];
+  const { data: consultations } = await supabase
+    .from('consultations')
+    .select('id')
+    .eq('patient_id', patientId)
+    .order('date_consultation', { ascending: false })
+    .limit(20);
+  const consultationIds = (consultations || []).map((c) => c.id);
+  if (consultationIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('syntheses_consultation')
+    .select(`
+      id,
+      consultation_id,
+      element_synthese_id,
+      commentaires,
+      created_at,
+      elements_synthese (id, nom, description)
+    `)
+    .in('consultation_id', consultationIds)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Erreur getSyntheseHistorique:', error);
+    return [];
+  }
+  return data || [];
+};
+
+export const toggleAntecedentStatus = async (antecedentPatientId, currentActif) => {
+  const newActif = !currentActif;
+  const { data, error } = await supabase
+    .from('antecedents_patients')
+    .update({ actif: newActif })
+    .eq('id', antecedentPatientId)
+    .select()
+    .single();
+  if (error) {
+    console.error('Erreur toggleAntecedentStatus:', error);
+    throw error;
+  }
+  return data;
+};
+
+export const addSignesCliniques = async (consultationId, signes) => {
+  if (!consultationId || !signes?.length) return { count: 0 };
+  const rows = signes.map((s) => ({
+    consultation_id: parseInt(consultationId, 10),
+    signe_clinique_id: s.signe_clinique_id,
+    intensite: s.intensite || null,
+    localisation: s.localisation || null,
+    commentaires: s.commentaires || null,
+  }));
+  const { data, error } = await supabase
+    .from('signes_cliniques_consultation')
+    .insert(rows)
+    .select();
+  if (error) {
+    console.error('Erreur addSignesCliniques:', error);
+    throw error;
+  }
+  return { data, count: data?.length ?? 0 };
+};
+
+export const addAutreSigne = async (consultationId, description) => {
+  if (!consultationId || !description?.trim()) throw new Error('Consultation et description requis');
+  const { data, error } = await supabase
+    .from('autres_signes_physiques')
+    .insert({
+      consultation_id: parseInt(consultationId, 10),
+      description: description.trim(),
+      categorie: null,
+    })
+    .select()
+    .single();
+  if (error) {
+    console.error('Erreur addAutreSigne:', error);
+    throw error;
+  }
+  return data;
+};
+
+export const updateDentalState = async (consultationId, dentalState) => {
+  const { data, error } = await supabase
+    .from('consultations')
+    .update({ dental_state: dentalState })
+    .eq('id', consultationId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erreur lors de la sauvegarde de l\'état dentaire:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+export const createConsultation = async (consultationData) => {
+  const { data, error } = await supabase
+    .from('consultations')
+    .insert(consultationData)
+    .select(`
+      *,
+      patients (
+        id,
+        nom,
+        prenom,
+        date_naissance,
+        numero_dossier
+      )
+    `)
+    .single();
+
+  if (error) {
+    console.error('Erreur insertion consultation:', error);
+    throw error;
+  }
+  
+  return data;
+};
+
+export const updateConsultationStatus = async (consultationId, newStatus) => {
+  const { error } = await supabase
+    .from('consultations')
+    .update({ statut: newStatus })
+    .eq('id', consultationId);
+
+  if (error) {
+    console.error('Erreur lors de la mise à jour du statut:', error);
+    throw error;
+  }
+};
+
+export const deleteConsultation = async (consultationId) => {
+  const { error } = await supabase
+    .from('consultations')
+    .delete()
+    .eq('id', consultationId);
+
+  if (error) {
+    console.error('Erreur lors de la suppression:', error);
+    throw error;
+  }
+};
+
+export const generateRapport = async (consultationId, format = 'complet') => {
+    const { data, error } = await supabase
+      .from('rapports_consultation')
+      .insert({
+        consultation_id: consultationId,
+        type_rapport: 'pdf',
+        format_rapport: format,
+        statut: 'en_cours'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erreur lors de la génération du rapport:', error);
+      throw error;
+    }
+
+    // Simulation de génération (comme dans le code original)
+    // Dans une vraie implémentation, cela serait géré par un backend/worker
+    setTimeout(() => {
+      supabase
+        .from('rapports_consultation')
+        .update({
+          statut: 'termine',
+          url_fichier: `/rapports/consultation_${consultationId}_${format}.pdf`,
+          taille_fichier: 1024 * 100
+        })
+        .eq('id', data.id);
+    }, 2000);
+
+    return data;
+};

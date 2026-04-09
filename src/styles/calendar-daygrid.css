@@ -1,0 +1,394 @@
+/* Styles spécifiques pour la vue daygrid (vue mois/semaine) - FullCalendar */
+
+/* Headers des colonnes (jours) - Design moderne sans bordures arrondies */
+.fc-col-header {
+  @apply bg-gray-50 border-b-2 border-gray-200;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.fc-col-header-cell {
+  @apply p-4 bg-gradient-to-br from-white/90 to-blue-50/60 backdrop-blur-sm relative;
+  border-right: 2px solid #d1d5db !important;
+  border-bottom: 2px solid #e5e7eb !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  border-radius: 0 !important;
+}
+
+.fc-col-header-cell:last-child {
+  border-right: none !important;
+}
+
+/* Bordures verticales complètes pour les en-têtes de colonnes */
+.fc-col-header-cell::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 2px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #e5e7eb, #d1d5db, #e5e7eb) !important;
+  z-index: 10 !important;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1) !important;
+  pointer-events: none !important;
+}
+
+.fc-col-header-cell:last-child::before {
+  display: none !important;
+}
+
+.fc-col-header-cell:hover {
+  @apply bg-gradient-to-br from-blue-100/80 to-indigo-200/80;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15) !important;
+}
+
+.fc-col-header-cell::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-0 transition-all duration-300;
+}
+
+.fc-col-header-cell:hover::before {
+  @apply opacity-100;
+}
+
+.fc-col-header-cell-cushion {
+  @apply text-xl font-semibold text-gray-900 hover:text-blue-800 transition-all duration-300 cursor-pointer relative z-10 block text-center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  letter-spacing: -0.025em !important;
+  text-shadow: none !important;
+  pointer-events: none !important;
+  line-height: 1.2 !important;
+}
+
+/* Style spécial pour aujourd'hui */
+.fc-col-header-cell.fc-today {
+  @apply bg-gradient-to-br from-blue-100/90 to-indigo-200/90 border-blue-300/50;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15) !important;
+  border-radius: 0 !important;
+}
+
+.fc-col-header-cell.fc-today .fc-col-header-cell-cushion {
+  @apply text-blue-900 font-bold;
+  font-weight: 700 !important;
+}
+
+/* Style pour le samedi uniquement */
+.fc-col-header-cell.fc-day-sat {
+  @apply bg-gradient-to-br from-orange-50/90 to-red-50/90 border-orange-200/50;
+  border-radius: 0 !important;
+}
+
+.fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion {
+  @apply text-orange-800 font-semibold;
+}
+
+/* Masquer l'affichage des mois dans les en-têtes */
+.fc-col-header-cell-cushion::before {
+  content: none !important;
+}
+
+.fc-col-header-cell-cushion::after {
+  content: none !important;
+}
+
+/* Styles pour rendre les jours fonctionnels et interactifs */
+.fc-col-header-cell:active {
+  @apply bg-gradient-to-br from-blue-200/80 to-indigo-300/80;
+  transform: translateY(0px) !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+}
+
+.fc-col-header-cell.selected {
+  @apply bg-gradient-to-br from-blue-200/80 to-indigo-300/80 border-blue-400/50;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2) !important;
+}
+
+.fc-col-header-cell.selected .fc-col-header-cell-cushion {
+  @apply text-blue-900 font-extrabold;
+}
+
+/* Indicateur de sélection pour les jours */
+.fc-col-header-cell::after {
+  content: '';
+  @apply absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-1 bg-blue-500 rounded-full transition-all duration-300;
+}
+
+.fc-col-header-cell:hover::after {
+  @apply w-8;
+}
+
+.fc-col-header-cell.selected::after {
+  @apply w-12;
+}
+
+/* Animation d'ondulation pour les clics */
+.fc-col-header-cell.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.fc-col-header-cell.ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.fc-col-header-cell.ripple:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Styles pour les vues spécifiques - Design moderne */
+.fc-daygrid-day {
+  @apply hover:bg-blue-500/5 transition-all duration-300 rounded-2xl mx-1;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Styles pour les numéros de semaine - Design moderne */
+.fc-daygrid-day-number {
+  @apply text-sm font-semibold text-gray-700 hover:text-blue-600 transition-all duration-300 p-2 rounded-xl hover:bg-blue-50/50 cursor-pointer;
+}
+
+/* Styles pour les jours cliquables en mode grille avec bordures */
+.fc-daygrid-day {
+  @apply hover:bg-blue-500/5 transition-all duration-300 cursor-pointer;
+  border: 1px solid #e5e7eb !important;
+}
+
+.fc-daygrid-day:hover {
+  @apply bg-blue-500/10;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1) !important;
+}
+
+.fc-daygrid-day:active {
+  @apply bg-blue-500/20;
+  transform: translateY(0px) !important;
+}
+
+/* Styles pour les événements en mode liste - Design moderne */
+.fc-list-event-dot {
+  @apply border-2 border-current rounded-full;
+}
+
+/* Styles pour les événements en mode mois - Design moderne */
+.fc-daygrid-event {
+  @apply rounded-xl px-3 py-2 text-xs font-semibold shadow-md;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Styles pour les événements multi-jours - Design moderne */
+.fc-daygrid-event-dot {
+  @apply border-2 border-current rounded-full;
+}
+
+/* Styles pour les événements qui dépassent - Design moderne */
+.fc-daygrid-more-link {
+  @apply text-xs text-blue-600 hover:text-blue-800 font-semibold bg-blue-50/80 hover:bg-blue-100/80 px-2 py-1 rounded-xl transition-all duration-300;
+  backdrop-filter: blur(5px) !important;
+}
+
+/* Restauration de l'apparence tableau pour les vues spécifiques */
+.fc-daygrid-day-frame {
+  @apply border-gray-200 bg-white;
+  border: 1px solid #e5e7eb !important;
+}
+
+.fc-daygrid-day-events {
+  @apply border-gray-200 bg-transparent;
+  border: 1px solid #e5e7eb !important;
+}
+
+.fc-daygrid-day-bg {
+  @apply border-gray-200 bg-transparent;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* Styles pour les événements en mode semaine/mois - Design moderne avec bordures */
+.fc-daygrid-day-frame {
+  @apply rounded-lg mx-0 my-0;
+  border: 1px solid #e5e7eb !important;
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(255, 255, 255, 0.5)) !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+/* Animation d'entrée pour les jours */
+.fc-daygrid-day-frame {
+  animation: fadeInScale 0.3s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animation pour les jours sélectionnés */
+.fc-col-header-cell.selected,
+.fc-daygrid-day.selected {
+  animation: pulseSelect 0.3s ease-out;
+}
+
+@keyframes pulseSelect {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Effet de focus pour l'accessibilité */
+.fc-col-header-cell:focus,
+.fc-daygrid-day:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2 ring-offset-white;
+}
+
+/* Styles pour les jours avec des événements */
+.fc-daygrid-day.has-events {
+  @apply bg-blue-50/30;
+}
+
+/* Indicateur visuel pour les jours avec événements */
+.fc-daygrid-day.has-events::before {
+  content: '';
+  @apply absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full;
+}
+
+/* Mode sombre pour daygrid */
+.dark .fc-col-header-cell {
+  @apply bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50;
+  border-right: 2px solid #6b7280 !important;
+  border-bottom: 2px solid #4b5563 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+}
+
+.dark .fc-col-header-cell:last-child {
+  border-right: none !important;
+}
+
+/* Bordures verticales complètes pour les en-têtes de colonnes en mode sombre */
+.dark .fc-col-header-cell::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 2px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #6b7280, #4b5563, #6b7280) !important;
+  z-index: 10 !important;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3) !important;
+  pointer-events: none !important;
+}
+
+.dark .fc-col-header-cell:last-child::before {
+  display: none !important;
+}
+
+.dark .fc-col-header-cell:hover {
+  @apply bg-gradient-to-br from-gray-700/80 to-blue-900/80;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2) !important;
+}
+
+.dark .fc-col-header-cell:active {
+  @apply bg-gradient-to-br from-gray-600/80 to-blue-800/80;
+  transform: translateY(0px) !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark .fc-col-header-cell.selected {
+  @apply bg-gradient-to-br from-gray-600/80 to-blue-800/80 border-blue-600/50;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25) !important;
+}
+
+.dark .fc-col-header-cell-cushion {
+  @apply text-gray-300 hover:text-blue-400;
+  pointer-events: none !important;
+}
+
+.dark .fc-col-header-cell.selected .fc-col-header-cell-cushion {
+  @apply text-blue-300 font-extrabold;
+}
+
+/* Indicateur de sélection pour les jours en mode sombre */
+.dark .fc-col-header-cell::after {
+  content: '';
+  @apply absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-1 bg-blue-400 rounded-full transition-all duration-300;
+}
+
+.dark .fc-col-header-cell:hover::after {
+  @apply w-8;
+}
+
+.dark .fc-col-header-cell.selected::after {
+  @apply w-12;
+}
+
+.dark .fc-daygrid-day {
+  @apply hover:bg-blue-900/20;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark .fc-daygrid-day {
+  @apply hover:bg-blue-900/20 cursor-pointer;
+  border: 1px solid #4b5563 !important;
+}
+
+.dark .fc-daygrid-day:hover {
+  @apply bg-blue-900/30;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+}
+
+.dark .fc-daygrid-day:active {
+  @apply bg-blue-900/40;
+  transform: translateY(0px) !important;
+}
+
+.dark .fc-daygrid-day-number {
+  @apply text-gray-300 hover:text-blue-400 hover:bg-blue-900/30 cursor-pointer;
+}
+
+.dark .fc-daygrid-day.has-events {
+  @apply bg-blue-900/20;
+}
+
+.dark .fc-daygrid-day.has-events::before {
+  @apply bg-blue-400;
+}
+
+.dark .fc-daygrid-more-link {
+  @apply text-blue-400 hover:text-blue-300 bg-blue-900/30 hover:bg-blue-800/30;
+}
+
+.dark .fc-daygrid-day-frame {
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.8), rgba(17, 24, 39, 0.5)) !important;
+  border: 1px solid #4b5563 !important;
+}
+
+.dark .fc-col-header-cell:focus,
+.dark .fc-daygrid-day:focus {
+  @apply ring-offset-gray-900;
+}

@@ -1,0 +1,57 @@
+ // Données des utilisateurs de test (utilisent maintenant username)
+  const testUsers = [
+    {
+      role: 'Secrétaire',
+      username: 'sophie.leroy',
+      password: 'sophie1234',
+      icon: User,
+      description: 'Gestion des rendez-vous et accueil'
+    },
+    {
+      role: 'Médecin',
+      username: 'claire.bernard',
+      password: 'claire123',
+      icon: Stethoscope,
+      description: 'Consultations et prescriptions',
+      specialty: 'Pédiatrie'
+    },
+    {
+      role: 'Dr. Dabo',
+      username: 'dr.dabo',
+      password: 'dabo123',
+      icon: Stethoscope,
+      description: 'Consultations médicales',
+      specialty: 'Médecine Générale'
+    },
+    {
+      role: 'Dr. Mané',
+      username: 'dr.mane',
+      password: 'mane123',
+      icon: Stethoscope,
+      description: 'Consultations médicales',
+      specialty: 'Médecine Générale'
+    },
+    {
+      role: 'Dr. Niang',
+      username: 'dr.niang',
+      password: 'niang123',
+      icon: Stethoscope,
+      description: 'Consultations médicales',
+      specialty: 'Médecine Générale'
+    },
+    {
+      role: 'Administrateur',
+      username: 'alice.admin',
+      password: 'alice123',
+      icon: Shield,
+      description: 'Gestion complète du système'
+    }
+       {
+      role: 'dr. fall',
+      username: 'mansourfall',
+      password: 'Passer123',
+      icon: Shield,
+      specialty: 'dentiste'
+      description: 'Gestion complète du système'
+    }
+  ];

@@ -1,0 +1,297 @@
+/* Styles spécifiques pour la vue timegrid (vue horaire) - FullCalendar */
+
+/* Styles spécifiques pour le mode clair - zones de drop */
+.fc:not(.dark) .fc-timegrid-slot {
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.9),rgba(249, 250, 251, 0.8)) !important;
+}
+
+.fc:not(.dark) .fc-timegrid-slot-lane {
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(147, 197, 253, 0.5)) !important;
+}
+
+.fc:not(.dark) .fc-timegrid-slot.fc-slot-lane {
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.9), rgba(147, 197, 253, 0.6)) !important;
+}
+
+/* Headers des heures - Design moderne avec bordures */
+.fc-timegrid-axis {
+  @apply bg-gradient-to-br from-gray-50/80 to-white/80 backdrop-blur-sm border-r-2 border-gray-200;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.fc-timegrid-axis-cushion {
+  @apply text-sm font-semibold text-gray-600 p-3 text-center;
+}
+
+/* Colonnes de temps - Bordures verticales renforcées */
+.fc-timegrid-col {
+  @apply bg-transparent;
+  border-right: 2px solid #d1d5db !important;
+  position: relative !important;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+.fc-timegrid-col:last-child {
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+/* Bordures verticales complètes pour chaque colonne */
+.fc-timegrid-col::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 2px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #e5e7eb, #d1d5db, #e5e7eb) !important;
+  z-index: 10 !important;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1) !important;
+  pointer-events: none !important;
+}
+
+.fc-timegrid-col:last-child::before {
+  display: none !important;
+}
+
+/* Slots de temps - Design fluide avec bordures */
+.fc-timegrid-slot {
+  @apply border-b border-gray-100 hover:bg-blue-500/20 transition-all duration-300 mx-2 my-1;
+  min-height: 60px !important;
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(255, 255, 255, 0.5)) !important;
+}
+
+/* Forcer les styles pour le mode clair */
+.fc-timegrid-slot:not(.dark) {
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(147, 197, 253, 0.5)) !important;
+}
+
+.fc-timegrid-slot.fc-slot-lane {
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(147, 197, 253, 0.5)) !important;
+}
+
+.fc-timegrid-slot-label {
+  @apply text-xs font-medium text-gray-500 p-2 text-center border-r border-gray-200;
+}
+
+/* Délimateurs pour les heures rondes uniquement */
+.fc-timegrid-slot-label {
+  @apply text-xs font-medium text-gray-500 p-2 text-center border-r border-gray-200;
+}
+
+/* Heures rondes - approche alternative */
+.fc-timegrid-slot-label:contains(":00"),
+.fc-timegrid-slot-label:contains("00") {
+  @apply font-semibold text-gray-700;
+  border-bottom: 2px solid #d1d5db;
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.9), rgba(243, 244, 246, 0.7)) !important;
+}
+
+/* Styles pour les heures rondes via nth-child */
+.fc-timegrid-slot-label:nth-child(4n+1) {
+  @apply font-semibold text-gray-700;
+  border-bottom: 2px solid #d1d5db;
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.9), rgba(243, 244, 246, 0.7)) !important;
+}
+
+/* Styles pour les heures spécifiques */
+.fc-timegrid-slot-label[data-time="08:00"],
+.fc-timegrid-slot-label[data-time="09:00"],
+.fc-timegrid-slot-label[data-time="10:00"],
+.fc-timegrid-slot-label[data-time="11:00"],
+.fc-timegrid-slot-label[data-time="12:00"],
+.fc-timegrid-slot-label[data-time="13:00"],
+.fc-timegrid-slot-label[data-time="14:00"],
+.fc-timegrid-slot-label[data-time="15:00"],
+.fc-timegrid-slot-label[data-time="16:00"],
+.fc-timegrid-slot-label[data-time="17:00"],
+.fc-timegrid-slot-label[data-time="18:00"] {
+  @apply font-semibold text-gray-700;
+  border-bottom: 2px solid #d1d5db;
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.9), rgba(243, 244, 246, 0.7)) !important;
+}
+
+.fc-timegrid-slot-lane {
+  @apply border-b border-gray-100;
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.7), rgba(147, 197, 253, 0.4)) !important;
+  border-right: 2px solid #d1d5db !important;
+  position: relative !important;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+.fc-timegrid-slot-lane:last-child {
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+/* Bordures verticales complètes pour les slots de colonnes */
+.fc-timegrid-slot-lane::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 2px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #e5e7eb, #d1d5db, #e5e7eb) !important;
+  z-index: 10 !important;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1) !important;
+  pointer-events: none !important;
+}
+
+.fc-timegrid-slot-lane:last-child::before {
+  display: none !important;
+}
+
+/* Zones de drop supplémentaires */
+.fc-timegrid-slot.fc-slot-label {
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.6), rgba(147, 197, 253, 0.4)) !important;
+}
+
+/* Indicateur "maintenant" - Design moderne */
+.fc-timegrid-now-indicator-line {
+  @apply border-red-500 border-2 rounded-full;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3) !important;
+}
+
+.fc-timegrid-now-indicator-arrow {
+  @apply border-red-500;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5) !important;
+}
+
+/* Sélection de créneaux - Design moderne */
+.fc-highlight {
+  @apply border border-blue-400/60 rounded-2xl mx-2;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(99, 102, 241, 0.3)) !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+/* Styles pour les créneaux sélectionnés - Design moderne */
+.fc-timegrid-slot.selected {
+  @apply bg-gradient-to-r from-blue-100/50 to-indigo-100/50 border-blue-300/50 rounded-2xl;
+  backdrop-filter: blur(5px) !important;
+}
+
+/* Styles pour les créneaux non disponibles - Design moderne */
+.fc-timegrid-slot.unavailable {
+  @apply bg-gray-100/50 opacity-50 rounded-2xl;
+  backdrop-filter: blur(5px) !important;
+}
+
+/* Mode sombre pour timegrid */
+.dark .fc-timegrid-axis {
+  @apply bg-gradient-to-br from-gray-800/80 to-gray-900/80;
+  border-right: 2px solid #4b5563 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .fc-timegrid-axis-cushion {
+  @apply text-gray-400;
+}
+
+.dark .fc-timegrid-col {
+  @apply bg-transparent;
+  border-right: 2px solid #6b7280 !important;
+  position: relative !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark .fc-timegrid-col:last-child {
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+/* Bordures verticales complètes pour chaque colonne en mode sombre */
+.dark .fc-timegrid-col::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 2px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #6b7280, #4b5563, #6b7280) !important;
+  z-index: 10 !important;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3) !important;
+  pointer-events: none !important;
+}
+
+.dark .fc-timegrid-col:last-child::before {
+  display: none !important;
+}
+
+.dark .fc-timegrid-col-bg {
+  @apply bg-gradient-to-br from-blue-900/40 to-indigo-900/30 border-blue-700/30;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .fc-timegrid-slot {
+  @apply hover:bg-blue-900/30;
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.3), rgba(30, 58, 138, 0.2)) !important;
+}
+
+.dark .fc-timegrid-slot-lane {
+  @apply border-b border-gray-700;
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.3), rgba(30, 58, 138, 0.2)) !important;
+  border-right: 2px solid #6b7280 !important;
+  position: relative !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark .fc-timegrid-slot-lane:last-child {
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+/* Bordures verticales complètes pour les slots de colonnes en mode sombre */
+.dark .fc-timegrid-slot-lane::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 2px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #6b7280, #4b5563, #6b7280) !important;
+  z-index: 10 !important;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3) !important;
+  pointer-events: none !important;
+}
+
+.dark .fc-timegrid-slot-lane:last-child::before {
+  display: none !important;
+}
+
+.dark .fc-timegrid-slot-label {
+  @apply text-gray-400;
+}
+
+/* Délimateurs pour les heures rondes en mode sombre */
+.dark .fc-timegrid-slot-label[data-time="08:00"],
+.dark .fc-timegrid-slot-label[data-time="09:00"],
+.dark .fc-timegrid-slot-label[data-time="10:00"],
+.dark .fc-timegrid-slot-label[data-time="11:00"],
+.dark .fc-timegrid-slot-label[data-time="12:00"],
+.dark .fc-timegrid-slot-label[data-time="13:00"],
+.dark .fc-timegrid-slot-label[data-time="14:00"],
+.dark .fc-timegrid-slot-label[data-time="15:00"],
+.dark .fc-timegrid-slot-label[data-time="16:00"],
+.dark .fc-timegrid-slot-label[data-time="17:00"],
+.dark .fc-timegrid-slot-label[data-time="18:00"] {
+  @apply font-semibold text-gray-300;
+  border-bottom: 2px solid #6b7280;
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.8), rgba(55, 65, 81, 0.6)) !important;
+}
+
+/* Styles pour les heures rondes en mode sombre via nth-child */
+.dark .fc-timegrid-slot-label:nth-child(4n+1) {
+  @apply font-semibold text-gray-300;
+  border-bottom: 2px solid #6b7280;
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.8), rgba(55, 65, 81, 0.6)) !important;
+}
+
+.dark .fc-timegrid-slot.selected {
+  @apply border-blue-600/70;
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.5), rgba(79, 70, 229, 0.5)) !important;
+}
+
+.dark .fc-timegrid-slot.unavailable {
+  @apply bg-gray-800/50;
+}

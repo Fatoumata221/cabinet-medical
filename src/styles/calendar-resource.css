@@ -1,0 +1,446 @@
+/* Styles spécifiques pour la vue resource timeline (ressources/médecins) - FullCalendar */
+
+/* Styles pour les ressources (médecins) dans la vue jour en colonne */
+.fc-resource-timeline-header {
+  @apply bg-gradient-to-br from-blue-50/80 to-indigo-50/80 backdrop-blur-sm border-b border-blue-200/50;
+}
+
+.fc-resource-timeline-header-cell {
+  @apply p-4 border-none bg-gradient-to-br from-white/80 to-blue-50/50 backdrop-blur-sm rounded-t-2xl mx-1 mb-2 relative overflow-hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s ease !important;
+}
+
+.fc-resource-timeline-header-cell:hover {
+  @apply bg-gradient-to-br from-blue-100/80 to-indigo-200/80;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2) !important;
+}
+
+.fc-resource-timeline-header-cell-cushion {
+  @apply text-lg font-bold text-gray-800 transition-all duration-300 cursor-pointer relative z-10 block text-center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Styles pour les colonnes de ressources avec bordures verticales complètes - FORCÉ */
+.fc-resource-timeline-col,
+.fc-resource-timeline-col * {
+  @apply bg-transparent !important;
+  border-right: 3px solid #cbd5e1 !important;
+  position: relative !important;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+.fc-resource-timeline-col:last-child,
+.fc-resource-timeline-col:last-child * {
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+/* Bordures verticales complètes pour chaque colonne - FORCÉ */
+.fc-resource-timeline-col::before,
+.fc-resource-timeline-col *::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 3px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #e2e8f0, #cbd5e1, #e2e8f0) !important;
+  z-index: 999 !important;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1) !important;
+  pointer-events: none !important;
+}
+
+.fc-resource-timeline-col:last-child::before,
+.fc-resource-timeline-col:last-child *::before {
+  display: none !important;
+}
+
+/* Bordures supplémentaires pour renforcer la séparation - FORCÉ */
+.fc-resource-timeline-col::after,
+.fc-resource-timeline-col *::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 3px !important;
+  width: 1px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.05), transparent) !important;
+  z-index: 998 !important;
+  pointer-events: none !important;
+}
+
+.fc-resource-timeline-col:last-child::after,
+.fc-resource-timeline-col:last-child *::after {
+  display: none !important;
+}
+
+/* Styles spécifiques pour forcer les bordures - même approche que les backgrounds */
+.fc:not(.dark) .fc-resource-timeline-col {
+  border-right: 3px solid #cbd5e1 !important;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+.fc:not(.dark) .fc-resource-timeline-col::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 3px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #e2e8f0, #cbd5e1, #e2e8f0) !important;
+  z-index: 999 !important;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1) !important;
+  pointer-events: none !important;
+}
+
+/* Styles pour les slots de ressources */
+.fc-resource-timeline-slot {
+  @apply border-none hover:bg-blue-500/20 transition-all duration-300 mx-2 my-1;
+  min-height: 60px !important;
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(255, 255, 255, 0.5)) !important;
+}
+
+.fc-resource-timeline-slot-lane,
+.fc-resource-timeline-slot-lane * {
+  @apply bg-transparent !important;
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.7), rgba(147, 197, 253, 0.4)) !important;
+  border-right: 3px solid #cbd5e1 !important;
+  position: relative !important;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+.fc-resource-timeline-slot-lane:last-child,
+.fc-resource-timeline-slot-lane:last-child * {
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+/* Bordures verticales complètes pour les slots de ressources - FORCÉ */
+.fc-resource-timeline-slot-lane::before,
+.fc-resource-timeline-slot-lane *::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 3px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #e2e8f0, #cbd5e1, #e2e8f0) !important;
+  z-index: 999 !important;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.08) !important;
+  pointer-events: none !important;
+}
+
+.fc-resource-timeline-slot-lane:last-child::before,
+.fc-resource-timeline-slot-lane:last-child *::before {
+  display: none !important;
+}
+
+/* Bordures supplémentaires pour les slots de ressources - FORCÉ */
+.fc-resource-timeline-slot-lane::after,
+.fc-resource-timeline-slot-lane *::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 3px !important;
+  width: 1px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.03), transparent) !important;
+  z-index: 998 !important;
+  pointer-events: none !important;
+}
+
+.fc-resource-timeline-slot-lane:last-child::after,
+.fc-resource-timeline-slot-lane:last-child *::after {
+  display: none !important;
+}
+
+/* Styles spécifiques pour forcer les bordures des slots - même approche que les backgrounds */
+.fc:not(.dark) .fc-resource-timeline-slot-lane {
+  border-right: 3px solid #cbd5e1 !important;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+.fc:not(.dark) .fc-resource-timeline-slot-lane::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 3px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #e2e8f0, #cbd5e1, #e2e8f0) !important;
+  z-index: 999 !important;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.08) !important;
+  pointer-events: none !important;
+}
+
+/* Styles pour les en-têtes de ressources */
+.fc-resource-timeline-header-cell.fc-resource {
+  @apply bg-gradient-to-br from-green-50/80 to-emerald-50/50 border-green-200/50;
+  position: relative;
+}
+
+.fc-resource-timeline-header-cell.fc-resource .fc-resource-timeline-header-cell-cushion {
+  @apply text-green-800;
+}
+
+/* Bordures pour les en-têtes de ressources - FORCÉ */
+.fc-resource-timeline-header-cell,
+.fc-resource-timeline-header-cell * {
+  @apply bg-transparent !important;
+  border-right: 3px solid #cbd5e1 !important;
+  position: relative !important;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+.fc-resource-timeline-header-cell:last-child,
+.fc-resource-timeline-header-cell:last-child * {
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+/* Bordures verticales complètes pour les en-têtes - FORCÉ */
+.fc-resource-timeline-header-cell::before,
+.fc-resource-timeline-header-cell *::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 3px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #e2e8f0, #cbd5e1, #e2e8f0) !important;
+  z-index: 999 !important;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1) !important;
+  pointer-events: none !important;
+}
+
+.fc-resource-timeline-header-cell:last-child::before,
+.fc-resource-timeline-header-cell:last-child *::before {
+  display: none !important;
+}
+
+/* Bordures supplémentaires pour les en-têtes - FORCÉ */
+.fc-resource-timeline-header-cell::after,
+.fc-resource-timeline-header-cell *::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 3px !important;
+  width: 1px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.05), transparent) !important;
+  z-index: 998 !important;
+  pointer-events: none !important;
+}
+
+.fc-resource-timeline-header-cell:last-child::after,
+.fc-resource-timeline-header-cell:last-child *::after {
+  display: none !important;
+}
+
+/* Styles spécifiques pour forcer les bordures des en-têtes - même approche que les backgrounds */
+.fc:not(.dark) .fc-resource-timeline-header-cell {
+  border-right: 3px solid #cbd5e1 !important;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+.fc:not(.dark) .fc-resource-timeline-header-cell::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 3px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #e2e8f0, #cbd5e1, #e2e8f0) !important;
+  z-index: 999 !important;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1) !important;
+  pointer-events: none !important;
+}
+
+/* Animation pour les colonnes de ressources */
+.fc-resource-timeline-col {
+  animation: slideInRight 0.4s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Indicateur de spécialité pour les médecins */
+.fc-resource-timeline-header-cell::after {
+  content: attr(data-specialite);
+  @apply absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-500 font-medium;
+  opacity: 0.8;
+}
+
+/* Styles pour les handles de redimensionnement des colonnes */
+.column-resize-handle {
+  position: absolute !important;
+  right: 0 !important;
+  top: 0 !important;
+  width: 4px !important;
+  height: 100% !important;
+  cursor: col-resize !important;
+  background: transparent !important;
+  z-index: 1000 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.column-resize-handle:hover {
+  background: rgba(59, 130, 246, 0.3) !important;
+}
+
+.column-resize-handle:active {
+  background: rgba(59, 130, 246, 0.6) !important;
+}
+
+/* Indicateur visuel pendant le redimensionnement */
+.column-resize-handle.resizing {
+  background: rgba(59, 130, 246, 0.8) !important;
+  width: 6px !important;
+}
+
+/* Styles pour les colonnes redimensionnables */
+.fc-resource-timeline-col.resizable {
+  position: relative !important;
+  transition: width 0.1s ease !important;
+}
+
+/* Indicateur de redimensionnement sur les en-têtes */
+.fc-resource-timeline-header-cell.resizable {
+  position: relative !important;
+}
+
+.fc-resource-timeline-header-cell.resizable::after {
+  content: '⋮' !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 12px !important;
+  color: #9ca3af !important;
+  cursor: col-resize !important;
+  opacity: 0.5 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.fc-resource-timeline-header-cell.resizable:hover::after {
+  opacity: 1 !important;
+  color: #3b82f6 !important;
+}
+
+/* Mode sombre pour resource timeline */
+.dark .fc-resource-timeline-header {
+  @apply bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50;
+}
+
+.dark .fc-resource-timeline-header-cell {
+  @apply bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .fc-resource-timeline-header-cell:hover {
+  @apply bg-gradient-to-br from-gray-700/80 to-blue-900/80;
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2) !important;
+}
+
+.dark .fc-resource-timeline-header-cell-cushion {
+  @apply text-gray-300;
+}
+
+.dark .fc-resource-timeline-col,
+.dark .fc-resource-timeline-col * {
+  border-right: 3px solid #475569 !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .fc-resource-timeline-col::before,
+.dark .fc-resource-timeline-col *::before {
+  background: linear-gradient(to bottom, #475569, #64748b, #475569) !important;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .fc-resource-timeline-col::after,
+.dark .fc-resource-timeline-col *::after {
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.05), transparent) !important;
+}
+
+.dark .fc-resource-timeline-slot {
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.3), rgba(30, 58, 138, 0.2)) !important;
+}
+
+.dark .fc-resource-timeline-slot-lane,
+.dark .fc-resource-timeline-slot-lane * {
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.3), rgba(30, 58, 138, 0.2)) !important;
+  border-right: 3px solid #475569 !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark .fc-resource-timeline-slot-lane::before,
+.dark .fc-resource-timeline-slot-lane *::before {
+  background: linear-gradient(to bottom, #475569, #64748b, #475569) !important;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+.dark .fc-resource-timeline-slot-lane::after,
+.dark .fc-resource-timeline-slot-lane *::after {
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.03), transparent) !important;
+}
+
+.dark .fc-resource-timeline-header-cell.fc-resource {
+  @apply bg-gradient-to-br from-green-900/80 to-emerald-900/50 border-green-700/50;
+}
+
+.dark .fc-resource-timeline-header-cell.fc-resource .fc-resource-timeline-header-cell-cushion {
+  @apply text-green-300;
+}
+
+.dark .fc-resource-timeline-header-cell,
+.dark .fc-resource-timeline-header-cell * {
+  border-right: 3px solid #475569 !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .fc-resource-timeline-header-cell::before,
+.dark .fc-resource-timeline-header-cell *::before {
+  background: linear-gradient(to bottom, #475569, #64748b, #475569) !important;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .fc-resource-timeline-header-cell::after,
+.dark .fc-resource-timeline-header-cell *::after {
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.05), transparent) !important;
+}
+
+.dark .fc-resource-timeline-header-cell::after {
+  @apply text-gray-400;
+}
+
+.dark .column-resize-handle:hover {
+  background: rgba(147, 197, 253, 0.3) !important;
+}
+
+.dark .column-resize-handle:active {
+  background: rgba(147, 197, 253, 0.6) !important;
+}
+
+.dark .column-resize-handle.resizing {
+  background: rgba(147, 197, 253, 0.8) !important;
+}
+
+.dark .fc-resource-timeline-header-cell.resizable::after {
+  color: #6b7280 !important;
+}
+
+.dark .fc-resource-timeline-header-cell.resizable:hover::after {
+  color: #93c5fd !important;
+}
