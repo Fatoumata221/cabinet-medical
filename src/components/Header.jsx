@@ -86,6 +86,7 @@ const Header = () => {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [cabinetName, setCabinetName] = useState('Cabinet Médical');
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -105,6 +106,51 @@ const Header = () => {
       };
     }
   }, [currentUser?.id, userProfile?.id]);
+
+  const [cabinetLogo, setCabinetLogo] = useState(null);
+
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  useEffect(() => {
+  /*const loadCabinetName = async () => {
+    if (!userProfile?.tenant_id) return;
+
+
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('name, logo_url')
+      .eq('id', userProfile.tenant_id)
+      .single();
+
+    if (!error && data?.name) {
+      setCabinetName(data.name);
+    }
+  };*/
+
+  const loadCabinet = async () => {
+    if (!userProfile?.tenant_id) return;
+
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('name, logo_url')
+      .eq('id', userProfile.tenant_id)
+      .single();
+
+    if (error) {
+      console.error('Erreur chargement cabinet:', error);
+      return;
+    }
+
+    if (data) {
+      setCabinetName(data.name || 'Cabinet Médical');
+      setCabinetLogo(data.logo_url || null);
+    }
+  };
+
+    loadCabinet();
+  }, [userProfile?.tenant_id]);
 
   const loadNotifications = async () => {
     try {
@@ -350,7 +396,8 @@ const Header = () => {
       '/parametrage': 'Paramétrage',
       '/administration': 'Administration'
     };
-    return titles[path] || 'Cabinet Médical';
+    //return titles[path] || 'Cabinet Médical';
+    return titles[path] || cabinetName;
   };
 
   const handleLogout = async () => {
@@ -383,6 +430,58 @@ const Header = () => {
 
   const { settings } = usePersonnalisation();
 
+  const uploadCabinetLogo = async () => {
+  if (!selectedFile || !userProfile?.tenant_id) return;
+
+  try {
+    setUploadingLogo(true);
+
+    const fileExt = selectedFile.name.split('.').pop();
+    const fileName = `${userProfile.tenant_id}-${Date.now()}.${fileExt}`;
+    const filePath = `logos/${fileName}`;
+
+    // 1. UPLOAD
+    const { error: uploadError } = await supabase
+      .storage
+      .from('cabinet-assets')
+      .upload(filePath, selectedFile);
+
+    if (uploadError) {
+      console.error(uploadError);
+      return;
+    }
+
+    // 2. GET PUBLIC URL
+    const { data } = supabase
+      .storage
+      .from('cabinet-assets')
+      .getPublicUrl(filePath);
+
+    const publicUrl = data.publicUrl;
+
+    // 3. UPDATE TENANT TABLE
+    const { error: updateError } = await supabase
+      .from('tenants')
+      .update({ logo_url: publicUrl })
+      .eq('id', userProfile.tenant_id);
+
+    if (updateError) {
+      console.error(updateError);
+      return;
+    }
+
+    // 4. UPDATE UI
+    setCabinetLogo(publicUrl);
+    setPreviewUrl(null);
+    setSelectedFile(null);
+
+  } catch (err) {
+    console.error('Erreur upload logo:', err);
+  } finally {
+    setUploadingLogo(false);
+  }
+};
+
   return (
     <header 
       className="border-b shadow-sm transition-colors duration-200"
@@ -397,9 +496,47 @@ const Header = () => {
           <div className="flex items-center space-x-6">
             {/* Logo simplifié */}
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-medical-primary rounded-lg flex items-center justify-center">
-                <Stethoscope className="w-6 h-6 text-white" />
-              </div>
+              <div className="w-10 h-10 rounded-lg overflow-hidden bg-white border flex items-center justify-center">
+                  {cabinetLogo ? (
+                    <img
+                      src={cabinetLogo}
+                      alt="Cabinet Logo"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <Stethoscope className="w-6 h-6 text-medical-primary" />
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+  <label className="cursor-pointer text-xs text-blue-600 hover:underline">
+    Modifier
+    <input
+      type="file"
+      accept="image/*"
+      className="hidden"
+      onChange={(e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setSelectedFile(file);
+        setPreviewUrl(URL.createObjectURL(file));
+      }}
+    />
+  </label>
+
+  {selectedFile && (
+    <button
+      onClick={uploadCabinetLogo}
+      disabled={uploadingLogo}
+      className="px-2 py-1 text-xs bg-medical-primary text-white rounded"
+    >
+      {uploadingLogo ? "Upload..." : "Enregistrer"}
+    </button>
+  )}
+</div>
               <div>
                 <h1 
                   className="text-lg font-semibold"
@@ -410,6 +547,10 @@ const Header = () => {
                 >
                   {getPageTitle()}
                 </h1>
+
+                <p className="text-xs text-gray-500">
+                  {cabinetName}
+                </p>
               </div>
             </div>
 

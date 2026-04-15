@@ -37,7 +37,7 @@ const Login = () => {
   }, []);
 
   // Données des utilisateurs de test
-  const testUsers = [
+  /*const testUsers = [
     {
       role: 'Secrétaire',
       email: 'sophie.leroy@cabinet.local',
@@ -122,7 +122,47 @@ const Login = () => {
       color: 'bg-orange-500 hover:bg-orange-600',
       description: 'Encaissement et gestion caisse'
     }
-  ];
+  ];*/
+
+  const [testUsers, setTestUsers] = useState([]);
+
+  useEffect(() => {
+  if (!showQuickLogin) return;
+
+  const loadUsers = async () => {
+    const { data, error } = await supabase
+      .rpc('search_usernames', { search_term: '' });
+
+    if (!error && data) {
+      const mapped = data.map(u => ({
+        role: u.role === 'doctor' ? 'Médecin' 
+            : u.role === 'secretary' ? 'Secrétaire'
+            : u.role === 'admin' ? 'Administrateur'
+            : u.role === 'caissier' ? 'Caissier'
+            : u.role === 'accounting' ? 'Comptabilité'
+            : u.role,
+        username: u.username,
+        password: '',
+        nom: u.nom,
+        prenom: u.prenom,
+        icon: u.role === 'doctor' ? Stethoscope 
+            : u.role === 'admin' ? Shield 
+            : u.role === 'accounting' ? Award
+            : u.role === 'caissier' ? Calculator
+            : User,
+        color: u.role === 'doctor' ? 'bg-green-500 hover:bg-green-600'
+             : u.role === 'secretary' ? 'bg-blue-500 hover:bg-blue-600'
+             : u.role === 'admin' ? 'bg-purple-500 hover:bg-purple-600'
+             : u.role === 'caissier' ? 'bg-orange-500 hover:bg-orange-600'
+             : 'bg-indigo-500 hover:bg-indigo-600',
+        description: `${u.prenom || ''} ${u.nom || ''}`.trim()
+      }));
+      setTestUsers(mapped);
+    }
+  };
+
+  loadUsers();
+}, [showQuickLogin]);
 
   // Fonction pour rechercher les usernames via RPC
   const searchUsernames = async (searchTerm) => {
