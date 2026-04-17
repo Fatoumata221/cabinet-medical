@@ -496,60 +496,32 @@ const Header = () => {
           <div className="flex items-center space-x-6">
             {/* Logo simplifié */}
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-lg overflow-hidden bg-white border flex items-center justify-center">
-                  {cabinetLogo ? (
-                    <img
-                      src={cabinetLogo}
-                      alt="Cabinet Logo"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <Stethoscope className="w-6 h-6 text-medical-primary" />
-                  )}
-                </div>
-                <div className="flex items-center space-x-2">
-  <label className="cursor-pointer text-xs text-blue-600 hover:underline">
-    Modifier
-    <input
-      type="file"
-      accept="image/*"
-      className="hidden"
-      onChange={(e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        setSelectedFile(file);
-        setPreviewUrl(URL.createObjectURL(file));
-      }}
-    />
-  </label>
-
-  {selectedFile && (
-    <button
-      onClick={uploadCabinetLogo}
-      disabled={uploadingLogo}
-      className="px-2 py-1 text-xs bg-medical-primary text-white rounded"
-    >
-      {uploadingLogo ? "Upload..." : "Enregistrer"}
-    </button>
-  )}
-</div>
+              <div className="w-12 h-12 rounded-lg overflow-hidden bg-white border flex items-center justify-center p-1">
+                {cabinetLogo ? (
+                  <img
+                    src={cabinetLogo}
+                    alt="Cabinet Logo"
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <Stethoscope className="w-6 h-6 text-medical-primary" />
+                )}
+              </div> 
               <div>
                 <h1 
-                  className="text-lg font-semibold"
+                  className="text-base font-bold"
                   style={{ 
                     color: settings.couleur_header_texte || '#111827',
                     fontFamily: settings.police_famille
                   }}
                 >
-                  {getPageTitle()}
-                </h1>
-
-                <p className="text-xs text-gray-500">
                   {cabinetName}
+                </h1>
+                <p className="text-xs text-gray-500">
+                  {getPageTitle()}
                 </p>
               </div>
             </div>
