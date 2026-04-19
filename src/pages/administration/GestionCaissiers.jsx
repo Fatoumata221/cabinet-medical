@@ -18,7 +18,7 @@ import { ROLES } from '../../utils/permissions';
 import { useToast } from '../../hooks/useToast.jsx';
 
 const GestionCaissiers = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, cabinetId } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const [caissiers, setCaissiers] = useState([]);
@@ -37,15 +37,21 @@ const GestionCaissiers = () => {
 
   useEffect(() => {
     fetchCaissiers();
-  }, []);
+  }, [cabinetId]);
 
   const fetchCaissiers = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('users')
         .select('*')
-        .eq('role', ROLES.CASHIER)
+        .in('role', ['caissier', 'cashier'])
         .order('nom');
+        
+      if (cabinetId) {
+        query = query.eq('cabinet_id', cabinetId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setCaissiers(data || []);

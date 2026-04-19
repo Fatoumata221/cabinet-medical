@@ -20,19 +20,33 @@ export const sendNotification = async (type, senderId, receiverId, consultationI
   try {
     console.log('📤 [Notifications] Envoi notification:', { type, senderId, receiverId, patientName });
     
+    // 1. Récupérer le cabinet_id de l'expéditeur
+    const { data: senderInfos } = await supabase
+      .from('users')
+      .select('cabinet_id')
+      .eq('id', senderId)
+      .single();
+    
+    const cabinetId = senderInfos?.cabinet_id;
+    
     const message = generateNotificationMessage(type, patientName, additionalData.medecinName);
     const titre = generateNotificationTitle(type);
     
-    // Pour CONSULTATION_ENDED, envoyer à TOUTES les secrétaires actives
+    // Pour CONSULTATION_ENDED, envoyer à TOUTES les secrétaires actives du MÊME cabinet
     if (type === NOTIFICATION_TYPES.CONSULTATION_ENDED) {
-      console.log('🔵 [Notifications] Notification CONSULTATION_ENDED - Envoi à TOUTES les secrétaires actives');
+      console.log('🔵 [Notifications] Notification CONSULTATION_ENDED - Envoi aux secrétaires actives du cabinet');
       
-      // Récupérer toutes les secrétaires actives
-      let { data: secretaires, error: secretairesError } = await supabase
+      let query = supabase
         .from('users')
         .select('id')
         .eq('role', 'secretary')
         .eq('actif', true);
+        
+      if (cabinetId) {
+        query = query.eq('cabinet_id', cabinetId);
+      }
+      
+      let { data: secretaires, error: secretairesError } = await query;
       
       if (secretairesError) {
         console.error('❌ [Notifications] Erreur récupération secrétaires:', secretairesError);
@@ -54,6 +68,7 @@ export const sendNotification = async (type, senderId, receiverId, consultationI
         titre: titre,
         message: message,
         medecin_id: senderId,
+        cabinet_id: cabinetId, // Ajouter cabinet_id
         waiting_queue_id: additionalData.waitingQueueId || null,
         patient_id: additionalData.patientId || null,
         lu: false,
@@ -123,6 +138,7 @@ export const sendNotification = async (type, senderId, receiverId, consultationI
       message: message,
       medecin_id: type === NOTIFICATION_TYPES.PATIENT_ON_WAY ? receiverId : senderId,
       secretaire_id: type === NOTIFICATION_TYPES.PATIENT_ON_WAY ? senderId : receiverId,
+      cabinet_id: cabinetId, // Ajouter cabinet_id
       waiting_queue_id: additionalData.waitingQueueId || null,
       patient_id: additionalData.patientId || null,
       lu: false,
@@ -239,6 +255,9 @@ export const markAsRead = async (notificationId) => {
  */
 export const getUnreadNotifications = async (userId, userRole) => {
   try {
+    const { data: user } = await supabase.from('users').select('cabinet_id').eq('id', userId).single();
+    const cabinetId = user?.cabinet_id;
+
     let query = supabase
       .from('notifications_medecin_secretaire')
       .select(`
@@ -249,6 +268,10 @@ export const getUnreadNotifications = async (userId, userRole) => {
       `)
       .eq('lu', false)
       .order('created_at', { ascending: false });
+
+    if (cabinetId) {
+      query = query.eq('cabinet_id', cabinetId);
+    }
 
     // Filtrer selon le rôle
     if (userRole === 'doctor') {
@@ -302,6 +325,9 @@ export const getUnreadNotifications = async (userId, userRole) => {
  */
 export const getAllNotifications = async (userId, userRole, limit = 50) => {
   try {
+    const { data: user } = await supabase.from('users').select('cabinet_id').eq('id', userId).single();
+    const cabinetId = user?.cabinet_id;
+
     let query = supabase
       .from('notifications_medecin_secretaire')
       .select(`
@@ -311,7 +337,11 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
         patient:patients(id, nom, prenom)
       `)
       .order('created_at', { ascending: false })
-      .limit(limit * 2); // Récupérer plus de notifications pour compenser le filtrage côté client
+      .limit(limit * 2);
+
+    if (cabinetId) {
+      query = query.eq('cabinet_id', cabinetId);
+    }
 
     // Filtrer selon le rôle
     if (userRole === 'doctor') {
@@ -377,6 +407,9 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
  */
 export const markAllAsRead = async (userId, userRole) => {
   try {
+    const { data: user } = await supabase.from('users').select('cabinet_id').eq('id', userId).single();
+    const cabinetId = user?.cabinet_id;
+
     let query = supabase
       .from('notifications_medecin_secretaire')
       .update({ 
@@ -384,6 +417,10 @@ export const markAllAsRead = async (userId, userRole) => {
         lu_at: new Date().toISOString() 
       })
       .eq('lu', false);
+
+    if (cabinetId) {
+      query = query.eq('cabinet_id', cabinetId);
+    }
 
     // Filtrer selon le rôle
     if (userRole === 'doctor') {
@@ -459,16 +496,16 @@ export const subscribeToNotifications = (userId, userRole, callback) => {
         });
       return channel;
     } else if (userRole === 'secretary') {
-      // TOUTES les secrétaires écoutent TOUTES les notifications secrétaire
-      // On utilise un canal partagé pour toutes les secrétaires
-      // Le filtre écoute toutes les insertions (on filtrera côté client si nécessaire)
+        // Filtrer par cabinet_id via getUnreadNotifications callback logic ou au moment de récupérer les events.
+      // Pour une vraie isolation RLS, la souscription doit être associée au filtre eq.cabinet_id ou via supabase.auth
+      // Etant donné la limitation du channel public, nous filtrons toutes les notifications sauf celles des médecins
       const channel = supabase
         .channel(`notifications_secretaires_shared`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'notifications_medecin_secretaire'
-          // Pas de filtre pour écouter toutes les notifications
+          // Pas de filtre strict sur cabinet ici pour ne pas avoir de problème d'async dans setup, on gèrera via db view/rls
         }, (payload) => {
           console.log('🔔 [Notifications] Changement détecté:', payload);
           

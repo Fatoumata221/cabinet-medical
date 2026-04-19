@@ -330,35 +330,46 @@ export const AuthProvider = ({ children }) => {
 
   // Vérifier les rôles (utilise le cache du profil ou les métadonnées utilisateur)
   const hasRole = (role) => {
+    // Normaliser cashier → caissier
+    const normalizedTarget = role === 'cashier' ? 'caissier' : role;
+    
     // Essayer d'abord le profil en cache
     if (userProfile?.role) {
-      return userProfile.role === role;
+      const normalizedUserRole = userProfile.role === 'cashier' ? 'caissier' : userProfile.role;
+      return normalizedUserRole === normalizedTarget;
     }
     
     // Puis le profil dans currentUser
     if (currentUser?.profile?.role) {
-      return currentUser.profile.role === role;
+      const normalizedUserRole = currentUser.profile.role === 'cashier' ? 'caissier' : currentUser.profile.role;
+      return normalizedUserRole === normalizedTarget;
     }
     
     // Enfin les métadonnées utilisateur comme fallback
     const userRole = currentUser?.user_metadata?.role || currentUser?.app_metadata?.role;
-    return userRole === role;
+    const normalizedUserRole = userRole === 'cashier' ? 'caissier' : userRole;
+    return normalizedUserRole === normalizedTarget;
   };
 
   const hasAnyRole = (roles) => {
+    const normalizedRoles = roles.map(r => r === 'cashier' ? 'caissier' : r);
+    
     // Essayer d'abord le profil en cache
     if (userProfile?.role) {
-      return roles.includes(userProfile.role);
+      const normalizedUserRole = userProfile.role === 'cashier' ? 'caissier' : userProfile.role;
+      return normalizedRoles.includes(normalizedUserRole);
     }
     
     // Puis le profil dans currentUser
     if (currentUser?.profile?.role) {
-      return roles.includes(currentUser.profile.role);
+      const normalizedUserRole = currentUser.profile.role === 'cashier' ? 'caissier' : currentUser.profile.role;
+      return normalizedRoles.includes(normalizedUserRole);
     }
     
     // Enfin les métadonnées utilisateur comme fallback
     const userRole = currentUser?.user_metadata?.role || currentUser?.app_metadata?.role;
-    return roles.includes(userRole);
+    const normalizedUserRole = userRole === 'cashier' ? 'caissier' : userRole;
+    return normalizedRoles.includes(normalizedUserRole);
   };
 
   // Obtenir les informations utilisateur (avec cache)
@@ -433,10 +444,14 @@ export const AuthProvider = ({ children }) => {
     return session.access_token;
   };
 
+  // Cabinet ID depuis le profil utilisateur
+  const cabinetId = userProfile?.cabinet_id || null;
+
   const value = {
     currentUser,
     session,
     userProfile,
+    cabinetId,
     login,
     logout,
     register,

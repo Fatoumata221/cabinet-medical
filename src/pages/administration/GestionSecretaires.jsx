@@ -24,7 +24,7 @@ import { ROLES, getRoleDisplayName } from '../../utils/permissions';
 import { useToast } from '../../hooks/useToast.jsx';
 
 const GestionSecretaires = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, cabinetId } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError, showWarning } = useToast();
   const [secretaires, setSecretaires] = useState([]);
@@ -45,15 +45,21 @@ const GestionSecretaires = () => {
 
   useEffect(() => {
     fetchSecretaires();
-  }, []);
+  }, [cabinetId]);
 
   const fetchSecretaires = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('users')
         .select('*')
         .eq('role', ROLES.SECRETARY)
         .order('nom');
+        
+      if (cabinetId) {
+        query = query.eq('cabinet_id', cabinetId);
+      }
+        
+      const { data, error } = await query;
       
       if (error) throw error;
       setSecretaires(data || []);

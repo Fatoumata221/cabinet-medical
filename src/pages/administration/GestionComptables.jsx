@@ -23,7 +23,7 @@ import { ROLES, getRoleDisplayName, getRoleColor } from '../../utils/permissions
 import { useToast } from '../../hooks/useToast.jsx';
 
 const GestionComptables = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, cabinetId } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const [comptables, setComptables] = useState([]);
@@ -42,15 +42,21 @@ const GestionComptables = () => {
 
   useEffect(() => {
     fetchComptables();
-  }, []);
+  }, [cabinetId]);
 
   const fetchComptables = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('users')
         .select('*')
         .eq('role', ROLES.ACCOUNTING)
         .order('nom');
+        
+      if (cabinetId) {
+        query = query.eq('cabinet_id', cabinetId);
+      }
+
+      const { data, error } = await query;
       
       if (error) throw error;
       setComptables(data || []);

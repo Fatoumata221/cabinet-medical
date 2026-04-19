@@ -1,1674 +1,2656 @@
--- WARNING: This schema is for context only and is not meant to be run.
--- Table order and constraints may not be valid for execution.
+-- ============================================================================
+-- BASE.SQL — Schéma Complet du Cabinet Médical
+-- ============================================================================
+-- 
+-- Ce fichier regroupe l'ensemble du schéma de la base de données 
+-- pour le projet Cabinet Médical (Supabase / PostgreSQL).
+--
+-- 📅 Dernière mise à jour : 2026-04-18
+-- 📦 Version : 2.0.0
+--
+-- 🎯 OBJECTIF :
+--   - Permettre une migration vers une nouvelle base Supabase
+--   - Servir de documentation de référence pour le schéma
+--   - Recréer la base de données complète en une seule exécution
+--
+-- ⚠️ INSTRUCTIONS :
+--   1. Créer un nouveau projet Supabase
+--   2. Ouvrir l'éditeur SQL dans Supabase Dashboard
+--   3. Exécuter ce script en totalité
+--   4. Configurer les variables d'environnement (VITE_SUPABASE_URL, etc.)
+--
+-- 📝 NOTE : L'ordre des tables respecte les dépendances de clés étrangères.
+--           Utiliser IF NOT EXISTS pour l'idempotence.
+-- ============================================================================
 
-CREATE TABLE public.actes (
-  id bigint NOT NULL DEFAULT nextval('actes_id_seq'::regclass),
-  consultation_id bigint,
-  patient_id bigint NOT NULL,
-  medecin_id bigint NOT NULL,
-  date_acte date NOT NULL,
-  type_acte character varying NOT NULL,
-  description text,
-  montant numeric DEFAULT 0,
-  statut character varying DEFAULT 'en_cours'::character varying CHECK (statut::text = ANY (ARRAY['en_cours'::character varying, 'termine'::character varying, 'annule'::character varying]::text[])),
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by uuid,
-  updated_by uuid,
-  CONSTRAINT actes_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_actes_consultation FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT fk_actes_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_actes_medecin FOREIGN KEY (medecin_id) REFERENCES public.users(id),
-  CONSTRAINT actes_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
-  CONSTRAINT actes_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
-);
-CREATE TABLE public.actes_consultation (
-  id integer NOT NULL DEFAULT nextval('actes_consultation_id_seq'::regclass),
-  consultation_id bigint,
-  type_acte_id bigint,
-  quantite integer DEFAULT 1,
-  tarif_unitaire numeric NOT NULL,
-  montant_total numeric DEFAULT ((quantite)::numeric * tarif_unitaire),
-  notes text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT actes_consultation_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_actes_consultation_consultation FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT fk_actes_consultation_type_acte FOREIGN KEY (type_acte_id) REFERENCES public.types_actes(id),
-  CONSTRAINT fk_actes_consultation_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_actes_consultation_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.analyses_labo_prescrites (
-  id integer NOT NULL DEFAULT nextval('analyses_labo_prescrites_id_seq'::regclass),
-  consultation_id bigint,
-  patient_id bigint,
-  type_analyse character varying NOT NULL,
-  description text,
-  urgence boolean DEFAULT false,
-  date_prescription date DEFAULT CURRENT_DATE,
-  date_prelevement date,
-  date_resultat date,
-  statut character varying DEFAULT 'prescrit'::character varying CHECK (statut::text = ANY (ARRAY['prescrit'::character varying, 'preleve'::character varying, 'en_cours'::character varying, 'termine'::character varying, 'annule'::character varying]::text[])),
-  resultat text,
-  valeurs_normales text,
-  interpretation text,
-  notes text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT analyses_labo_prescrites_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_analyses_consultation FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT fk_analyses_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_analyses_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_analyses_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.analyses_tendances (
-  id bigint NOT NULL DEFAULT nextval('analyses_tendances_id_seq'::regclass),
-  nom_analyse character varying NOT NULL,
-  type_metrique character varying NOT NULL CHECK (type_metrique::text = ANY (ARRAY['consultations'::character varying, 'revenus'::character varying, 'patients'::character varying, 'actes'::character varying, 'duree'::character varying]::text[])),
-  periode_analyse character varying NOT NULL CHECK (periode_analyse::text = ANY (ARRAY['jour'::character varying, 'semaine'::character varying, 'mois'::character varying, 'trimestre'::character varying, 'annee'::character varying]::text[])),
-  date_debut_analyse date NOT NULL,
-  date_fin_analyse date NOT NULL,
-  donnees_tendance jsonb NOT NULL,
-  coefficient_tendance numeric,
-  r_squared numeric,
-  prediction_prochaine_periode numeric,
-  intervalle_confiance jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT analyses_tendances_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.annuaire_actes_tarifs (
-  id bigint NOT NULL DEFAULT nextval('annuaire_actes_tarifs_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  code_ccam character varying,
-  tarif_base numeric DEFAULT 0,
-  tarif_secu numeric DEFAULT 0,
-  tarif_mutuelle numeric DEFAULT 0,
-  categorie character varying,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT annuaire_actes_tarifs_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.antecedents (
-  id bigint NOT NULL DEFAULT nextval('antecedents_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  categorie character varying DEFAULT 'generale'::character varying,
-  code_cim character varying,
-  niveau_gravite character varying DEFAULT 'leger'::character varying CHECK (niveau_gravite::text = ANY (ARRAY['leger'::character varying, 'modere'::character varying, 'grave'::character varying, 'critique'::character varying]::text[])),
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT antecedents_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_antecedents_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_antecedents_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.antecedents_patients (
-  id bigint NOT NULL DEFAULT nextval('antecedents_patients_id_seq'::regclass),
-  patient_id bigint NOT NULL,
-  antecedent_id bigint NOT NULL,
-  consultation_id bigint,
-  date_decouverte date,
-  commentaires text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT antecedents_patients_pkey PRIMARY KEY (id),
-  CONSTRAINT antecedents_patients_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT antecedents_patients_antecedent_id_fkey FOREIGN KEY (antecedent_id) REFERENCES public.antecedents(id),
-  CONSTRAINT antecedents_patients_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id)
-);
-CREATE TABLE public.appareils (
-  id bigint NOT NULL DEFAULT nextval('appareils_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  specialite_id bigint,
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT appareils_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_appareils_specialite FOREIGN KEY (specialite_id) REFERENCES public.specialites(id),
-  CONSTRAINT fk_appareils_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_appareils_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.appointments (
-  id bigint NOT NULL DEFAULT nextval('appointments_id_seq'::regclass),
-  patient_id bigint NOT NULL,
-  medecin_id bigint NOT NULL,
-  date_heure timestamp with time zone NOT NULL,
-  motif character varying,
-  statut character varying DEFAULT 'confirme'::character varying CHECK (statut::text = ANY (ARRAY['confirme'::character varying, 'en_attente'::character varying, 'annule'::character varying]::text[])),
-  duree integer,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by uuid,
-  updated_by uuid,
-  priorite character varying DEFAULT 'normale'::character varying CHECK (priorite::text = ANY (ARRAY['normale'::character varying::text, 'urgente'::character varying::text, 'tres_urgente'::character varying::text])),
-  couleur character varying DEFAULT '#3b82f6'::character varying,
-  heure_fin timestamp with time zone,
-  type_rdv character varying DEFAULT 'consultation'::character varying CHECK (type_rdv::text = ANY (ARRAY['consultation'::character varying, 'suivi'::character varying, 'urgence'::character varying, 'preventif'::character varying]::text[])),
-  notes text,
-  rappel_envoye boolean DEFAULT false,
-  rappel_veille_envoye boolean DEFAULT false,
-  motif_detaille text,
-  CONSTRAINT appointments_pkey PRIMARY KEY (id),
-  CONSTRAINT appointments_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
-  CONSTRAINT appointments_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
-  CONSTRAINT fk_appointments_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_appointments_medecin FOREIGN KEY (medecin_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.apprentissage_continu (
-  id bigint NOT NULL DEFAULT nextval('apprentissage_continu_id_seq'::regclass),
-  modele_id bigint,
-  type_action character varying NOT NULL CHECK (type_action::text = ANY (ARRAY['entrainement'::character varying, 'evaluation'::character varying, 'optimisation'::character varying]::text[])),
-  donnees_utilisees jsonb,
-  parametres_entrainement jsonb,
-  resultats jsonb,
-  amelioration_performance numeric,
-  date_debut timestamp with time zone DEFAULT now(),
-  date_fin timestamp with time zone,
-  statut character varying DEFAULT 'en_cours'::character varying CHECK (statut::text = ANY (ARRAY['en_cours'::character varying, 'termine'::character varying, 'erreur'::character varying]::text[])),
-  CONSTRAINT apprentissage_continu_pkey PRIMARY KEY (id),
-  CONSTRAINT apprentissage_continu_modele_id_fkey FOREIGN KEY (modele_id) REFERENCES public.modeles_ia(id)
-);
-CREATE TABLE public.archives (
-  id bigint NOT NULL DEFAULT nextval('archives_id_seq'::regclass),
-  patient_id bigint NOT NULL,
-  famille_archive_id bigint NOT NULL,
-  type_archive_id bigint NOT NULL,
-  titre character varying NOT NULL,
-  description text,
-  date_archivage date NOT NULL,
-  statut character varying DEFAULT 'actif'::character varying CHECK (statut::text = ANY (ARRAY['actif'::character varying, 'inactif'::character varying, 'supprime'::character varying]::text[])),
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by uuid,
-  updated_by uuid,
-  CONSTRAINT archives_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_archives_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_archives_famille FOREIGN KEY (famille_archive_id) REFERENCES public.familles_archives(id),
-  CONSTRAINT fk_archives_type FOREIGN KEY (type_archive_id) REFERENCES public.types_archives(id),
-  CONSTRAINT archives_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
-  CONSTRAINT archives_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
-);
-CREATE TABLE public.assurances (
-  id bigint NOT NULL DEFAULT nextval('assurances_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  type_assurance character varying DEFAULT 'mutuelle'::character varying CHECK (type_assurance::text = ANY (ARRAY['mutuelle'::character varying, 'securite_sociale'::character varying, 'privee'::character varying, 'autre'::character varying]::text[])),
-  taux_remboursement numeric,
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT assurances_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_assurances_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_assurances_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.autres_signes_physiques (
-  id bigint NOT NULL DEFAULT nextval('autres_signes_physiques_id_seq'::regclass),
-  consultation_id bigint NOT NULL,
-  description text NOT NULL,
-  categorie character varying,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT autres_signes_physiques_pkey PRIMARY KEY (id),
-  CONSTRAINT autres_signes_physiques_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id)
-);
-CREATE TABLE public.canal_provenance (
-  id bigint NOT NULL DEFAULT nextval('canal_provenance_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT canal_provenance_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.certificats_medicaux (
-  id bigint NOT NULL DEFAULT nextval('certificats_medicaux_id_seq'::regclass),
-  consultation_id bigint NOT NULL,
-  type_certificat_id bigint NOT NULL,
-  duree_jours integer,
-  motif text,
-  restrictions text,
-  date_debut date DEFAULT CURRENT_DATE,
-  date_fin date,
-  statut character varying DEFAULT 'actif'::character varying CHECK (statut::text = ANY (ARRAY['actif'::character varying, 'expire'::character varying, 'annule'::character varying]::text[])),
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  patient_id bigint,
-  medecin_id bigint,
-  CONSTRAINT certificats_medicaux_pkey PRIMARY KEY (id),
-  CONSTRAINT certificats_medicaux_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT certificats_medicaux_medecin_id_fkey FOREIGN KEY (medecin_id) REFERENCES public.users(id),
-  CONSTRAINT certificats_medicaux_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT certificats_medicaux_type_certificat_id_fkey FOREIGN KEY (type_certificat_id) REFERENCES public.types_certificats(id)
-);
-CREATE TABLE public.constantes (
-  id bigint NOT NULL DEFAULT nextval('constantes_id_seq'::regclass),
-  nom character varying NOT NULL UNIQUE,
-  description text,
-  unite character varying,
-  valeur_min numeric,
-  valeur_max numeric,
-  valeur_normale_min numeric,
-  valeur_normale_max numeric,
-  categorie character varying DEFAULT 'generale'::character varying,
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT constantes_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_constantes_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_constantes_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.constantes_consultation (
-  id bigint NOT NULL DEFAULT nextval('constantes_consultation_id_seq'::regclass),
-  consultation_id bigint NOT NULL,
-  constante_id bigint NOT NULL,
-  valeur_mesuree numeric NOT NULL,
-  unite character varying,
-  commentaires text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT constantes_consultation_pkey PRIMARY KEY (id),
-  CONSTRAINT constantes_consultation_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT constantes_consultation_constante_id_fkey FOREIGN KEY (constante_id) REFERENCES public.constantes(id)
-);
-CREATE TABLE public.constats_appareils (
-  id bigint NOT NULL DEFAULT nextval('constats_appareils_id_seq'::regclass),
-  appareil_id bigint NOT NULL,
-  nom character varying NOT NULL,
-  description text,
-  type_constat character varying DEFAULT 'normal'::character varying CHECK (type_constat::text = ANY (ARRAY['normal'::character varying, 'anormal'::character varying, 'pathologique'::character varying]::text[])),
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT constats_appareils_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_constats_appareil FOREIGN KEY (appareil_id) REFERENCES public.appareils(id),
-  CONSTRAINT fk_constats_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_constats_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.consultations (
-  id bigint NOT NULL DEFAULT nextval('consultations_id_seq'::regclass),
-  patient_id bigint NOT NULL,
-  medecin_id bigint NOT NULL,
-  date_consultation date NOT NULL,
-  motif character varying,
-  diagnostic text,
-  traitement text,
-  notes text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  duree_consultation integer DEFAULT 0,
-  niveau_urgence character varying DEFAULT 'normale'::character varying CHECK (niveau_urgence::text = ANY (ARRAY['normale'::character varying, 'urgente'::character varying, 'tres_urgente'::character varying]::text[])),
-  type_consultation character varying DEFAULT 'standard'::character varying CHECK (type_consultation::text = ANY (ARRAY['standard'::character varying, 'suivi'::character varying, 'urgence'::character varying, 'preventive'::character varying]::text[])),
-  notes_confidentielles text,
-  plan_suivi text,
-  prochaine_consultation date,
-  statut character varying DEFAULT 'en_cours'::character varying CHECK (statut::text = ANY (ARRAY['en_cours'::character varying::text, 'terminee'::character varying::text, 'annulee'::character varying::text])),
-  appointment_id bigint,
-  motif_consultation text,
-  notes_generales text,
-  CONSTRAINT consultations_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_consultations_appointment FOREIGN KEY (appointment_id) REFERENCES public.appointments(id),
-  CONSTRAINT fk_consultations_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_consultations_medecin FOREIGN KEY (medecin_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.correlations_detectees (
-  id bigint NOT NULL DEFAULT nextval('correlations_detectees_id_seq'::regclass),
-  regle_id bigint,
-  metrique_1 character varying NOT NULL,
-  metrique_2 character varying NOT NULL,
-  coefficient_correlation numeric NOT NULL,
-  significativite numeric,
-  periode_analyse jsonb,
-  interpretation text,
-  date_detection timestamp with time zone DEFAULT now(),
-  CONSTRAINT correlations_detectees_pkey PRIMARY KEY (id),
-  CONSTRAINT correlations_detectees_regle_id_fkey FOREIGN KEY (regle_id) REFERENCES public.regles_alertes_avancees(id)
-);
-CREATE TABLE public.diagnostics (
-  id bigint NOT NULL DEFAULT nextval('diagnostics_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  code_cim character varying,
-  specialite_id bigint,
-  niveau_gravite character varying DEFAULT 'leger'::character varying CHECK (niveau_gravite::text = ANY (ARRAY['leger'::character varying, 'modere'::character varying, 'grave'::character varying, 'critique'::character varying]::text[])),
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT diagnostics_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_diagnostics_specialite FOREIGN KEY (specialite_id) REFERENCES public.specialites(id),
-  CONSTRAINT fk_diagnostics_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_diagnostics_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.diagnostics_consultation (
-  id bigint NOT NULL DEFAULT nextval('diagnostics_consultation_id_seq'::regclass),
-  consultation_id bigint NOT NULL,
-  diagnostic_id bigint NOT NULL,
-  commentaires text,
-  certitude character varying DEFAULT 'probable'::character varying CHECK (certitude::text = ANY (ARRAY['certain'::character varying, 'probable'::character varying, 'possible'::character varying]::text[])),
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT diagnostics_consultation_pkey PRIMARY KEY (id),
-  CONSTRAINT diagnostics_consultation_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT diagnostics_consultation_diagnostic_id_fkey FOREIGN KEY (diagnostic_id) REFERENCES public.diagnostics(id)
-);
-CREATE TABLE public.disponibilites_medecins (
-  id bigint NOT NULL DEFAULT nextval('disponibilites_medecins_id_seq'::regclass),
-  medecin_id bigint NOT NULL,
-  date_disponibilite date NOT NULL,
-  heure_debut time without time zone NOT NULL,
-  heure_fin time without time zone NOT NULL,
-  statut character varying DEFAULT 'disponible'::character varying CHECK (statut::text = ANY (ARRAY['disponible'::character varying, 'indisponible'::character varying, 'pause'::character varying, 'conges'::character varying]::text[])),
-  motif_indisponibilite text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT disponibilites_medecins_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_disponibilites_medecins_medecin FOREIGN KEY (medecin_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.divers_instructions (
-  id bigint NOT NULL DEFAULT nextval('divers_instructions_id_seq'::regclass),
-  consultation_id bigint NOT NULL,
-  medecin_id bigint NOT NULL,
-  type_instruction character varying NOT NULL DEFAULT 'general'::character varying,
-  titre character varying NOT NULL,
-  description text NOT NULL,
-  priorite character varying DEFAULT 'normale'::character varying CHECK (priorite::text = ANY (ARRAY['basse'::character varying, 'normale'::character varying, 'haute'::character varying, 'urgente'::character varying]::text[])),
-  statut character varying DEFAULT 'en_attente'::character varying CHECK (statut::text = ANY (ARRAY['en_attente'::character varying, 'en_cours'::character varying, 'terminee'::character varying, 'annulee'::character varying]::text[])),
-  date_creation timestamp with time zone DEFAULT now(),
-  date_modification timestamp with time zone DEFAULT now(),
-  date_execution timestamp with time zone,
-  notes_execution text,
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT divers_instructions_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_divers_consultation FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT fk_divers_medecin FOREIGN KEY (medecin_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.documents_patients (
-  id bigint NOT NULL DEFAULT nextval('documents_patients_id_seq'::regclass),
-  patient_id bigint NOT NULL,
-  type_document character varying NOT NULL CHECK (type_document::text = ANY (ARRAY['analyse'::character varying, 'imagerie'::character varying, 'prescription'::character varying, 'certificat'::character varying, 'autre'::character varying]::text[])),
-  nom_fichier character varying NOT NULL,
-  url_fichier character varying NOT NULL,
-  taille_fichier bigint,
-  format_fichier character varying,
-  description text,
-  date_scan timestamp with time zone DEFAULT now(),
-  scanned_by bigint NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  date_document date,
-  statut_validation character varying DEFAULT 'valide'::character varying CHECK (statut_validation::text = ANY (ARRAY['en_attente'::character varying, 'valide'::character varying, 'rejete'::character varying, 'archive'::character varying]::text[])),
-  apercu_url character varying,
-  apercu_genere boolean DEFAULT false,
-  hash_fichier character varying,
-  consultation_id bigint,
-  CONSTRAINT documents_patients_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_documents_patients_consultation_id FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT fk_documents_patients_scanned_by FOREIGN KEY (scanned_by) REFERENCES public.users(id),
-  CONSTRAINT fk_documents_patients_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id)
-);
-CREATE TABLE public.elements_synthese (
-  id bigint NOT NULL DEFAULT nextval('elements_synthese_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  categorie character varying DEFAULT 'generale'::character varying,
-  type_element character varying DEFAULT 'observation'::character varying CHECK (type_element::text = ANY (ARRAY['observation'::character varying, 'conclusion'::character varying, 'recommandation'::character varying, 'prescription'::character varying]::text[])),
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT elements_synthese_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_elements_synthese_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_elements_synthese_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.employeurs (
-  id bigint NOT NULL DEFAULT nextval('employeurs_id_seq'::regclass),
-  nom character varying NOT NULL,
-  adresse text,
-  telephone character varying,
-  email character varying,
-  siret character varying,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT employeurs_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.examens_appareils (
-  id bigint NOT NULL DEFAULT nextval('examens_appareils_id_seq'::regclass),
-  consultation_id bigint NOT NULL,
-  appareil_id bigint NOT NULL,
-  resultat_examen text,
-  anomalies_detectees text,
-  recommandations text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT examens_appareils_pkey PRIMARY KEY (id),
-  CONSTRAINT examens_appareils_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT examens_appareils_appareil_id_fkey FOREIGN KEY (appareil_id) REFERENCES public.appareils(id)
-);
-CREATE TABLE public.examens_diagnostic (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  nom character varying NOT NULL UNIQUE,
-  description text,
-  preparation text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT examens_diagnostic_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.examens_medicaux (
-  id bigint NOT NULL DEFAULT nextval('examens_medicaux_id_seq'::regclass),
-  patient_id bigint NOT NULL,
-  medecin_id bigint NOT NULL,
-  consultation_id bigint,
-  type_examen character varying NOT NULL,
-  description text,
-  resultat text,
-  date_examen date NOT NULL,
-  statut character varying DEFAULT 'en_cours'::character varying CHECK (statut::text = ANY (ARRAY['en_cours'::character varying, 'termine'::character varying, 'annule'::character varying]::text[])),
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by uuid,
-  updated_by uuid,
-  CONSTRAINT examens_medicaux_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_examens_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_examens_medecin FOREIGN KEY (medecin_id) REFERENCES public.users(id),
-  CONSTRAINT fk_examens_consultation FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT examens_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
-  CONSTRAINT examens_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
-);
-CREATE TABLE public.examens_prescrits (
-  id integer NOT NULL DEFAULT nextval('examens_prescrits_id_seq'::regclass),
-  consultation_id bigint,
-  patient_id bigint,
-  type_examen character varying NOT NULL,
-  description text,
-  urgence boolean DEFAULT false,
-  date_prescription date DEFAULT CURRENT_DATE,
-  date_realisation date,
-  statut character varying DEFAULT 'prescrit'::character varying CHECK (statut::text = ANY (ARRAY['prescrit'::character varying, 'en_cours'::character varying, 'termine'::character varying, 'annule'::character varying]::text[])),
-  resultat text,
-  notes text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT examens_prescrits_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.exports_programmes (
-  id bigint NOT NULL DEFAULT nextval('exports_programmes_id_seq'::regclass),
-  nom_export character varying NOT NULL,
-  template_id bigint,
-  frequence character varying NOT NULL CHECK (frequence::text = ANY (ARRAY['unique'::character varying, 'quotidien'::character varying, 'hebdomadaire'::character varying, 'mensuel'::character varying]::text[])),
-  parametres_export jsonb,
-  destinataires jsonb,
-  derniere_execution timestamp with time zone,
-  prochaine_execution timestamp with time zone,
-  statut character varying DEFAULT 'actif'::character varying CHECK (statut::text = ANY (ARRAY['actif'::character varying, 'inactif'::character varying, 'pause'::character varying]::text[])),
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT exports_programmes_pkey PRIMARY KEY (id),
-  CONSTRAINT exports_programmes_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.templates_export(id),
-  CONSTRAINT exports_programmes_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.factures (
-  id integer NOT NULL DEFAULT nextval('factures_id_seq1'::regclass),
-  consultation_id bigint,
-  patient_id bigint,
-  numero_facture character varying NOT NULL UNIQUE,
-  date_facture date DEFAULT CURRENT_DATE,
-  montant_ht numeric DEFAULT 0,
-  tva numeric DEFAULT 0,
-  montant_ttc numeric DEFAULT 0,
-  montant_paye numeric DEFAULT 0,
-  montant_restant numeric DEFAULT (montant_ttc - montant_paye),
-  statut_paiement character varying DEFAULT 'en_attente'::character varying CHECK (statut_paiement::text = ANY (ARRAY['en_attente'::character varying, 'partiel'::character varying, 'paye'::character varying, 'impaye'::character varying]::text[])),
-  mode_paiement character varying,
-  assurance_id bigint,
-  numero_carte character varying,
-  emetteur_monnaie_electronique character varying,
-  date_paiement timestamp with time zone,
-  notes text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT factures_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_factures_consultation FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT fk_factures_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_factures_assurance FOREIGN KEY (assurance_id) REFERENCES public.assurances(id),
-  CONSTRAINT fk_factures_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_factures_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.factures_old (
-  id bigint NOT NULL DEFAULT nextval('factures_id_seq'::regclass),
-  acte_id bigint,
-  patient_id bigint NOT NULL,
-  numero_facture character varying NOT NULL UNIQUE,
-  montant_ht numeric NOT NULL,
-  tva numeric DEFAULT 0,
-  montant_ttc numeric NOT NULL,
-  mode_reglement character varying,
-  statut_paiement character varying DEFAULT 'en_attente'::character varying CHECK (statut_paiement::text = ANY (ARRAY['en_attente'::character varying, 'paye'::character varying, 'impaye'::character varying, 'partiel'::character varying]::text[])),
-  date_echeance date,
-  notes text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by uuid,
-  updated_by uuid,
-  CONSTRAINT factures_old_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_factures_acte FOREIGN KEY (acte_id) REFERENCES public.actes(id),
-  CONSTRAINT fk_factures_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT factures_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
-  CONSTRAINT factures_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
-);
-CREATE TABLE public.familles_archives (
-  id bigint NOT NULL DEFAULT nextval('familles_archives_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT familles_archives_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.favoris_medecins (
-  id integer NOT NULL DEFAULT nextval('favoris_medecins_id_seq'::regclass),
-  medecin_id bigint,
-  type_favori character varying NOT NULL,
-  element_id integer NOT NULL,
-  ordre integer DEFAULT 0,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT favoris_medecins_pkey PRIMARY KEY (id),
-  CONSTRAINT favoris_medecins_medecin_id_fkey FOREIGN KEY (medecin_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.filtres_globaux (
-  id bigint NOT NULL DEFAULT nextval('filtres_globaux_id_seq'::regclass),
-  nom_filtre character varying NOT NULL,
-  description text,
-  type_filtre character varying NOT NULL CHECK (type_filtre::text = ANY (ARRAY['date'::character varying, 'utilisateur'::character varying, 'specialite'::character varying, 'statut'::character varying, 'personnalise'::character varying]::text[])),
-  configuration_filtre jsonb NOT NULL,
-  valeurs_defaut jsonb,
-  actif boolean DEFAULT true,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT filtres_globaux_pkey PRIMARY KEY (id),
-  CONSTRAINT filtres_globaux_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.historique_alertes (
-  id bigint NOT NULL DEFAULT nextval('historique_alertes_id_seq'::regclass),
-  regle_id bigint,
-  type_alerte character varying NOT NULL,
-  message text NOT NULL,
-  donnees_contexte jsonb,
-  statut character varying DEFAULT 'nouvelle'::character varying CHECK (statut::text = ANY (ARRAY['nouvelle'::character varying, 'lue'::character varying, 'traitee'::character varying, 'ignoree'::character varying]::text[])),
-  priorite character varying DEFAULT 'normale'::character varying,
-  date_declenchement timestamp with time zone DEFAULT now(),
-  date_traitement timestamp with time zone,
-  traite_par bigint,
-  notes_traitement text,
-  CONSTRAINT historique_alertes_pkey PRIMARY KEY (id),
-  CONSTRAINT historique_alertes_regle_id_fkey FOREIGN KEY (regle_id) REFERENCES public.regles_alertes(id),
-  CONSTRAINT historique_alertes_traite_par_fkey FOREIGN KEY (traite_par) REFERENCES public.users(id)
-);
-CREATE TABLE public.historique_consultations (
-  id integer NOT NULL DEFAULT nextval('historique_consultations_id_seq'::regclass),
-  consultation_id integer,
-  medecin_id bigint,
-  action character varying NOT NULL,
-  section_modifiee character varying,
-  anciennes_valeurs jsonb,
-  nouvelles_valeurs jsonb,
-  commentaire text,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT historique_consultations_pkey PRIMARY KEY (id),
-  CONSTRAINT historique_consultations_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT historique_consultations_medecin_id_fkey FOREIGN KEY (medecin_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.historique_exports (
-  id bigint NOT NULL DEFAULT nextval('historique_exports_id_seq'::regclass),
-  export_programme_id bigint,
-  template_id bigint,
-  date_execution timestamp with time zone DEFAULT now(),
-  statut character varying NOT NULL CHECK (statut::text = ANY (ARRAY['en_cours'::character varying, 'termine'::character varying, 'erreur'::character varying]::text[])),
-  url_fichier character varying,
-  taille_fichier bigint,
-  duree_generation integer,
-  nombre_lignes integer,
-  message_erreur text,
-  CONSTRAINT historique_exports_pkey PRIMARY KEY (id),
-  CONSTRAINT historique_exports_export_programme_id_fkey FOREIGN KEY (export_programme_id) REFERENCES public.exports_programmes(id),
-  CONSTRAINT historique_exports_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.templates_export(id)
-);
-CREATE TABLE public.historique_taches_automatisees (
-  id bigint NOT NULL DEFAULT nextval('historique_taches_automatisees_id_seq'::regclass),
-  tache_id bigint,
-  date_debut_execution timestamp with time zone DEFAULT now(),
-  date_fin_execution timestamp with time zone,
-  statut character varying NOT NULL CHECK (statut::text = ANY (ARRAY['en_cours'::character varying, 'termine'::character varying, 'erreur'::character varying, 'annule'::character varying]::text[])),
-  resultat jsonb,
-  message_erreur text,
-  duree_execution integer,
-  ressources_utilisees jsonb,
-  CONSTRAINT historique_taches_automatisees_pkey PRIMARY KEY (id),
-  CONSTRAINT historique_taches_automatisees_tache_id_fkey FOREIGN KEY (tache_id) REFERENCES public.taches_automatisees(id)
-);
-CREATE TABLE public.instructions_diverses (
-  id integer NOT NULL DEFAULT nextval('instructions_diverses_id_seq'::regclass),
-  consultation_id bigint,
-  patient_id bigint,
-  type_instruction character varying NOT NULL,
-  titre character varying NOT NULL,
-  description text NOT NULL,
-  urgence boolean DEFAULT false,
-  date_instruction date DEFAULT CURRENT_DATE,
-  date_execution date,
-  statut character varying DEFAULT 'en_attente'::character varying CHECK (statut::text = ANY (ARRAY['en_attente'::character varying, 'en_cours'::character varying, 'termine'::character varying, 'annule'::character varying]::text[])),
-  traite_par bigint,
-  notes text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT instructions_diverses_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_instructions_consultation FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT fk_instructions_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_instructions_traite_par FOREIGN KEY (traite_par) REFERENCES public.users(id),
-  CONSTRAINT fk_instructions_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_instructions_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.invoices (
-  id bigint NOT NULL DEFAULT nextval('invoices_id_seq'::regclass),
-  patient_id bigint NOT NULL,
-  consultation_id bigint,
-  montant numeric NOT NULL,
-  statut_paiement character varying NOT NULL CHECK (statut_paiement::text = ANY (ARRAY['paye'::character varying, 'en_attente'::character varying, 'impaye'::character varying]::text[])),
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT invoices_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_invoices_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_invoices_consultation FOREIGN KEY (consultation_id) REFERENCES public.consultations(id)
-);
-CREATE TABLE public.lignes_facture (
-  id integer NOT NULL DEFAULT nextval('lignes_facture_id_seq'::regclass),
-  facture_id bigint,
-  acte_consultation_id bigint,
-  description character varying NOT NULL,
-  quantite integer DEFAULT 1,
-  prix_unitaire numeric NOT NULL,
-  montant_ligne numeric DEFAULT ((quantite)::numeric * prix_unitaire),
-  notes text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT lignes_facture_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_lignes_facture_facture FOREIGN KEY (facture_id) REFERENCES public.factures(id),
-  CONSTRAINT fk_lignes_facture_acte FOREIGN KEY (acte_consultation_id) REFERENCES public.actes_consultation(id)
-);
-CREATE TABLE public.lignes_ordonnance (
-  id bigint NOT NULL DEFAULT nextval('lignes_ordonnance_id_seq'::regclass),
-  ordonnance_id bigint NOT NULL,
-  medicament_id bigint NOT NULL,
-  posologie text NOT NULL,
-  quantite integer DEFAULT 1,
-  duree_traitement character varying,
-  instructions_particulieres text,
-  moment_prise character varying DEFAULT 'matin'::character varying,
-  avec_repas boolean DEFAULT false,
-  urgent boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT lignes_ordonnance_pkey PRIMARY KEY (id),
-  CONSTRAINT lignes_ordonnance_ordonnance_id_fkey FOREIGN KEY (ordonnance_id) REFERENCES public.ordonnances(id),
-  CONSTRAINT lignes_ordonnance_medicament_id_fkey FOREIGN KEY (medicament_id) REFERENCES public.medicaments(id)
-);
-CREATE TABLE public.liste_maladies (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  nom character varying NOT NULL UNIQUE,
-  code_cim character varying,
-  description text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT liste_maladies_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.liste_periodes (
-  id bigint NOT NULL DEFAULT nextval('liste_periodes_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT liste_periodes_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.liste_produits (
-  id bigint NOT NULL DEFAULT nextval('liste_produits_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  code_atc character varying,
-  fabricant character varying,
-  prix numeric DEFAULT 0,
-  stock integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT liste_produits_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.liste_vaccins (
-  id bigint NOT NULL DEFAULT nextval('liste_vaccins_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  code_atc character varying,
-  fabricant character varying,
-  prix numeric DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT liste_vaccins_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.maladies (
-  id bigint NOT NULL DEFAULT nextval('maladies_id_seq'::regclass),
-  nom character varying NOT NULL,
-  code_cim character varying,
-  description text,
-  specialite_id bigint,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT maladies_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_maladies_specialite FOREIGN KEY (specialite_id) REFERENCES public.specialites(id)
-);
-CREATE TABLE public.manual_passwords (
-  id bigint NOT NULL DEFAULT nextval('manual_passwords_id_seq'::regclass),
-  user_email text NOT NULL UNIQUE,
-  password_hash text NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT manual_passwords_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.medecin_specialites (
-  id bigint NOT NULL DEFAULT nextval('medecin_specialites_id_seq'::regclass),
-  medecin_id bigint NOT NULL,
-  specialite_id bigint NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT medecin_specialites_pkey PRIMARY KEY (id),
-  CONSTRAINT medecin_specialites_medecin_id_fkey FOREIGN KEY (medecin_id) REFERENCES public.users(id),
-  CONSTRAINT medecin_specialites_specialite_id_fkey FOREIGN KEY (specialite_id) REFERENCES public.specialites(id)
-);
-CREATE TABLE public.medicaments (
-  id bigint NOT NULL DEFAULT nextval('medicaments_id_seq'::regclass),
-  nom character varying NOT NULL UNIQUE,
-  description text,
-  forme_pharmaceutique character varying,
-  dosage character varying,
-  posologie_defaut text,
-  contre_indications text,
-  interactions text,
-  specialite_id bigint,
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  dci character varying,
-  voie_administration character varying,
-  classe_therapeutique character varying,
-  effets_indesirables text,
-  posologie_adulte text,
-  posologie_enfant text,
-  CONSTRAINT medicaments_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_medicaments_specialite FOREIGN KEY (specialite_id) REFERENCES public.specialites(id),
-  CONSTRAINT fk_medicaments_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_medicaments_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.modeles_consultation (
-  id integer NOT NULL DEFAULT nextval('modeles_consultation_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  type_consultation character varying NOT NULL,
-  specialite_id integer,
-  elements_par_defaut jsonb,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT modeles_consultation_pkey PRIMARY KEY (id),
-  CONSTRAINT modeles_consultation_specialite_id_fkey FOREIGN KEY (specialite_id) REFERENCES public.specialites(id)
-);
-CREATE TABLE public.modeles_ia (
-  id bigint NOT NULL DEFAULT nextval('modeles_ia_id_seq'::regclass),
-  nom_modele character varying NOT NULL,
-  description text,
-  type_modele character varying NOT NULL CHECK (type_modele::text = ANY (ARRAY['prevision'::character varying, 'classification'::character varying, 'anomalie'::character varying, 'optimisation'::character varying]::text[])),
-  algorithme character varying NOT NULL,
-  version character varying NOT NULL,
-  parametres_modele jsonb,
-  metriques_performance jsonb,
-  statut character varying DEFAULT 'entraine'::character varying CHECK (statut::text = ANY (ARRAY['entraine'::character varying, 'entrainement'::character varying, 'test'::character varying, 'production'::character varying, 'archive'::character varying]::text[])),
-  precision_modele numeric,
-  date_entrainement timestamp with time zone,
-  date_mise_production timestamp with time zone,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT modeles_ia_pkey PRIMARY KEY (id),
-  CONSTRAINT modeles_ia_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.modeles_rapports (
-  id bigint NOT NULL DEFAULT nextval('modeles_rapports_id_seq'::regclass),
-  nom_modele character varying NOT NULL,
-  description text,
-  type_rapport character varying NOT NULL,
-  parametres_defaut jsonb,
-  colonnes_a_inclure jsonb,
-  filtres_defaut jsonb,
-  ordre_tri jsonb,
-  actif boolean DEFAULT true,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT modeles_rapports_pkey PRIMARY KEY (id),
-  CONSTRAINT modeles_rapports_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.notifications_consultation (
-  id integer NOT NULL DEFAULT nextval('notifications_consultation_id_seq'::regclass),
-  consultation_id integer,
-  destinataire_id bigint,
-  type_notification character varying NOT NULL,
-  titre character varying NOT NULL,
-  message text NOT NULL,
-  priorite character varying DEFAULT 'normale'::character varying CHECK (priorite::text = ANY (ARRAY['basse'::character varying, 'normale'::character varying, 'haute'::character varying, 'urgente'::character varying]::text[])),
-  lu boolean DEFAULT false,
-  action_url character varying,
-  expires_at timestamp with time zone,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT notifications_consultation_pkey PRIMARY KEY (id),
-  CONSTRAINT notifications_consultation_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT notifications_consultation_destinataire_id_fkey FOREIGN KEY (destinataire_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.notifications_medecin_secretaire (
-  id bigint NOT NULL DEFAULT nextval('notifications_medecin_secretaire_id_seq'::regclass),
-  type_notification character varying DEFAULT 'general'::character varying,
-  titre character varying,
-  message text NOT NULL,
-  medecin_id bigint NOT NULL,
-  secretaire_id bigint NOT NULL,
-  patient_id bigint,
-  waiting_queue_id bigint,
-  lu boolean DEFAULT false,
-  lu_at timestamp with time zone,
-  priorite character varying DEFAULT 'normale'::character varying CHECK (priorite::text = ANY (ARRAY['normale'::character varying, 'urgente'::character varying, 'importante'::character varying]::text[])),
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  type character varying DEFAULT 'general'::character varying,
-  consultation_id bigint,
-  CONSTRAINT notifications_medecin_secretaire_pkey PRIMARY KEY (id),
-  CONSTRAINT notifications_medecin_secretaire_medecin_id_fkey FOREIGN KEY (medecin_id) REFERENCES public.users(id),
-  CONSTRAINT notifications_medecin_secretaire_secretaire_id_fkey FOREIGN KEY (secretaire_id) REFERENCES public.users(id),
-  CONSTRAINT notifications_medecin_secretaire_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT notifications_medecin_secretaire_waiting_queue_id_fkey FOREIGN KEY (waiting_queue_id) REFERENCES public.waiting_queue(id),
-  CONSTRAINT notifications_medecin_secretaire_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id)
-);
-CREATE TABLE public.notifications_push (
-  id bigint NOT NULL DEFAULT nextval('notifications_push_id_seq'::regclass),
-  titre character varying NOT NULL,
-  message text NOT NULL,
-  type_notification character varying NOT NULL CHECK (type_notification::text = ANY (ARRAY['alerte'::character varying, 'rapport'::character varying, 'systeme'::character varying, 'utilisateur'::character varying]::text[])),
-  priorite character varying DEFAULT 'normale'::character varying CHECK (priorite::text = ANY (ARRAY['basse'::character varying, 'normale'::character varying, 'haute'::character varying, 'critique'::character varying]::text[])),
-  destinataires jsonb,
-  donnees_contexte jsonb,
-  statut character varying DEFAULT 'en_attente'::character varying CHECK (statut::text = ANY (ARRAY['en_attente'::character varying, 'envoyee'::character varying, 'lue'::character varying, 'traitee'::character varying]::text[])),
-  date_creation timestamp with time zone DEFAULT now(),
-  date_envoi timestamp with time zone,
-  date_lecture timestamp with time zone,
-  created_by bigint,
-  CONSTRAINT notifications_push_pkey PRIMARY KEY (id),
-  CONSTRAINT notifications_push_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.notifications_simple (
-  id bigint NOT NULL DEFAULT nextval('notifications_simple_id_seq'::regclass),
-  type_notification character varying NOT NULL CHECK (type_notification::text = ANY (ARRAY['medecin_disponible'::character varying, 'patient_autorise'::character varying, 'consultation_terminee'::character varying]::text[])),
-  medecin_id bigint NOT NULL,
-  secretaire_id bigint NOT NULL,
-  patient_id bigint NOT NULL,
-  waiting_queue_id bigint,
-  message text NOT NULL,
-  lu boolean DEFAULT false,
-  lu_at timestamp with time zone,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  expires_at timestamp with time zone NOT NULL DEFAULT (now() + '00:30:00'::interval),
-  CONSTRAINT notifications_simple_pkey PRIMARY KEY (id),
-  CONSTRAINT notifications_simple_medecin_id_fkey FOREIGN KEY (medecin_id) REFERENCES public.users(id),
-  CONSTRAINT notifications_simple_secretaire_id_fkey FOREIGN KEY (secretaire_id) REFERENCES public.users(id),
-  CONSTRAINT notifications_simple_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT notifications_simple_waiting_queue_id_fkey FOREIGN KEY (waiting_queue_id) REFERENCES public.waiting_queue(id)
-);
-CREATE TABLE public.ordonnances (
-  id bigint NOT NULL DEFAULT nextval('ordonnances_id_seq'::regclass),
-  consultation_id bigint NOT NULL,
-  numero_ordonnance character varying UNIQUE,
-  date_prescription date DEFAULT CURRENT_DATE,
-  statut character varying DEFAULT 'active'::character varying CHECK (statut::text = ANY (ARRAY['active'::character varying, 'terminee'::character varying, 'annulee'::character varying]::text[])),
-  instructions_generales text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  prochain_rdv text,
-  CONSTRAINT ordonnances_pkey PRIMARY KEY (id),
-  CONSTRAINT ordonnances_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id)
-);
-CREATE TABLE public.parametres_cabinet (
-  id bigint NOT NULL DEFAULT nextval('parametres_cabinet_id_seq'::regclass),
-  nom_cabinet character varying,
-  adresse text,
-  ville character varying,
-  code_postal character varying,
-  pays character varying DEFAULT 'Niger'::character varying,
-  telephone character varying,
-  email character varying,
-  site_web character varying,
-  numero_agrement character varying,
-  ninea character varying,
-  registre_commerce character varying,
-  tva numeric DEFAULT 0,
-  logo_url character varying,
-  devise character varying DEFAULT 'FCFA'::character varying,
-  fuseau_horaire character varying DEFAULT 'Africa/Niamey'::character varying,
-  langue character varying DEFAULT 'fr'::character varying,
-  format_date character varying DEFAULT 'DD/MM/YYYY'::character varying,
-  horaires_ouverture jsonb DEFAULT '{"jeudi": {"fin": "18:00", "debut": "08:00", "ouvert": true}, "lundi": {"fin": "18:00", "debut": "08:00", "ouvert": true}, "mardi": {"fin": "18:00", "debut": "08:00", "ouvert": true}, "samedi": {"fin": "12:00", "debut": "08:00", "ouvert": false}, "dimanche": {"fin": "", "debut": "", "ouvert": false}, "mercredi": {"fin": "18:00", "debut": "08:00", "ouvert": true}, "vendredi": {"fin": "18:00", "debut": "08:00", "ouvert": true}}'::jsonb,
-  mode_specialite_id bigint,
-  created_by bigint,
-  updated_by bigint,
-  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT parametres_cabinet_pkey PRIMARY KEY (id),
-  CONSTRAINT parametres_cabinet_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT parametres_cabinet_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id),
-  CONSTRAINT parametres_cabinet_mode_specialite_id_fkey FOREIGN KEY (mode_specialite_id) REFERENCES public.specialites(id)
-);
-CREATE TABLE public.patient_documents (
-  id bigint NOT NULL DEFAULT nextval('patient_documents_id_seq'::regclass),
-  patient_id bigint NOT NULL,
-  type_document character varying NOT NULL CHECK (type_document::text = ANY (ARRAY['analyse'::character varying, 'radio'::character varying, 'echographie'::character varying, 'scanner'::character varying, 'irm'::character varying, 'ordonnance_externe'::character varying, 'certificat_medical'::character varying, 'compte_rendu'::character varying, 'autre'::character varying]::text[])),
-  nom_fichier character varying NOT NULL,
-  fichier_url character varying NOT NULL,
-  date_document date NOT NULL,
-  uploaded_by uuid NOT NULL,
-  notes text,
-  taille_fichier bigint,
-  type_mime character varying,
-  consultation_id bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT patient_documents_pkey PRIMARY KEY (id),
-  CONSTRAINT patient_documents_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT patient_documents_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES auth.users(id),
-  CONSTRAINT patient_documents_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id)
-);
-CREATE TABLE public.patients (
-  id bigint NOT NULL DEFAULT nextval('patients_id_seq'::regclass),
-  nom character varying NOT NULL,
-  prenom character varying NOT NULL,
-  date_naissance date NOT NULL,
-  telephone character varying,
-  adresse character varying,
-  assurance character varying,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by uuid,
-  updated_by uuid,
-  numero_dossier character varying UNIQUE,
-  email character varying,
-  sexe character varying CHECK (sexe::text = ANY (ARRAY['M'::character varying, 'F'::character varying]::text[])),
-  lieu_naissance character varying,
-  nationalite character varying,
-  profession character varying,
-  situation_familiale character varying,
-  personne_contact character varying,
-  telephone_contact character varying,
-  lien_contact character varying,
-  medecin_traitant character varying,
-  numero_secu character varying,
-  mutuelle character varying,
-  numero_mutuelle character varying,
-  actif boolean DEFAULT true,
-  notes text,
-  numero_ipm character varying,
-  medecin_traitant_id bigint,
-  groupe_sanguin character varying,
-  assurance_id bigint,
-  CONSTRAINT patients_pkey PRIMARY KEY (id),
-  CONSTRAINT patients_medecin_traitant_id_fkey FOREIGN KEY (medecin_traitant_id) REFERENCES public.users(id),
-  CONSTRAINT patients_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
-  CONSTRAINT patients_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
-  CONSTRAINT fk_patients_assurance FOREIGN KEY (assurance_id) REFERENCES public.assurances(id)
-);
-CREATE TABLE public.periodes_comparaison (
-  id bigint NOT NULL DEFAULT nextval('periodes_comparaison_id_seq'::regclass),
-  nom_comparaison character varying NOT NULL,
-  description text,
-  periode_reference jsonb NOT NULL,
-  periode_comparaison jsonb NOT NULL,
-  metriques_a_comparer jsonb NOT NULL,
-  seuil_significatif numeric DEFAULT 5.0,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT periodes_comparaison_pkey PRIMARY KEY (id),
-  CONSTRAINT periodes_comparaison_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.permissions_tableau_bord (
-  id bigint NOT NULL DEFAULT nextval('permissions_tableau_bord_id_seq'::regclass),
-  tableau_bord_id bigint,
-  user_id bigint,
-  role_permission character varying NOT NULL CHECK (role_permission::text = ANY (ARRAY['lecture'::character varying, 'modification'::character varying, 'administration'::character varying]::text[])),
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT permissions_tableau_bord_pkey PRIMARY KEY (id),
-  CONSTRAINT permissions_tableau_bord_tableau_bord_id_fkey FOREIGN KEY (tableau_bord_id) REFERENCES public.tableaux_bord_personnalises(id),
-  CONSTRAINT permissions_tableau_bord_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.posologie_produits (
-  id bigint NOT NULL DEFAULT nextval('posologie_produits_id_seq'::regclass),
-  produit_id bigint NOT NULL,
-  posologie text NOT NULL,
-  duree_traitement character varying,
-  instructions text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT posologie_produits_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_posologie_produit FOREIGN KEY (produit_id) REFERENCES public.liste_produits(id)
-);
-CREATE TABLE public.predictions_ia (
-  id bigint NOT NULL DEFAULT nextval('predictions_ia_id_seq'::regclass),
-  modele_id bigint,
-  type_prediction character varying NOT NULL,
-  donnees_entree jsonb NOT NULL,
-  prediction jsonb NOT NULL,
-  confiance numeric,
-  intervalle_confiance jsonb,
-  date_prediction timestamp with time zone DEFAULT now(),
-  date_validation timestamp with time zone,
-  valide boolean,
-  commentaire_validation text,
-  CONSTRAINT predictions_ia_pkey PRIMARY KEY (id),
-  CONSTRAINT predictions_ia_modele_id_fkey FOREIGN KEY (modele_id) REFERENCES public.modeles_ia(id)
-);
-CREATE TABLE public.preferences_notifications (
-  id bigint NOT NULL DEFAULT nextval('preferences_notifications_id_seq'::regclass),
-  user_id bigint,
-  type_notification character varying NOT NULL,
-  canal_notification character varying NOT NULL CHECK (canal_notification::text = ANY (ARRAY['email'::character varying, 'push'::character varying, 'sms'::character varying, 'webhook'::character varying]::text[])),
-  actif boolean DEFAULT true,
-  frequence character varying DEFAULT 'immediate'::character varying CHECK (frequence::text = ANY (ARRAY['immediate'::character varying, 'quotidien'::character varying, 'hebdomadaire'::character varying]::text[])),
-  heures_autorisees jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT preferences_notifications_pkey PRIMARY KEY (id),
-  CONSTRAINT preferences_notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.prescriptions (
-  id bigint NOT NULL DEFAULT nextval('prescriptions_id_seq'::regclass),
-  medicaments text NOT NULL,
-  posologie text NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  patient_id bigint NOT NULL,
-  medecin_id bigint NOT NULL,
-  date_prescription date DEFAULT CURRENT_DATE,
-  statut character varying DEFAULT 'active'::character varying CHECK (statut::text = ANY (ARRAY['active'::character varying, 'terminee'::character varying, 'annulee'::character varying]::text[])),
-  CONSTRAINT prescriptions_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_prescriptions_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_prescriptions_medecin FOREIGN KEY (medecin_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.prescriptions_pharmacie (
-  id integer NOT NULL DEFAULT nextval('prescriptions_pharmacie_id_seq'::regclass),
-  consultation_id bigint,
-  patient_id bigint,
-  medicament_id bigint,
-  posologie text NOT NULL,
-  duree_traitement character varying,
-  quantite_prescrite integer,
-  unite character varying,
-  renouvellements integer DEFAULT 0,
-  urgence boolean DEFAULT false,
-  date_prescription date DEFAULT CURRENT_DATE,
-  date_debut_traitement date,
-  statut character varying DEFAULT 'prescrit'::character varying CHECK (statut::text = ANY (ARRAY['prescrit'::character varying, 'delivre'::character varying, 'termine'::character varying, 'annule'::character varying]::text[])),
-  notes text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT prescriptions_pharmacie_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_prescriptions_pharmacie_consultation FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT fk_prescriptions_pharmacie_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_prescriptions_pharmacie_medicament FOREIGN KEY (medicament_id) REFERENCES public.medicaments(id),
-  CONSTRAINT fk_prescriptions_pharmacie_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_prescriptions_pharmacie_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.previsions (
-  id bigint NOT NULL DEFAULT nextval('previsions_id_seq'::regclass),
-  nom_prevision character varying NOT NULL,
-  type_prevision character varying NOT NULL CHECK (type_prevision::text = ANY (ARRAY['consultations'::character varying, 'revenus'::character varying, 'patients'::character varying, 'charge_travail'::character varying]::text[])),
-  modele_utilise character varying NOT NULL CHECK (modele_utilise::text = ANY (ARRAY['lineaire'::character varying, 'saisonniere'::character varying, 'moyenne_mobile'::character varying, 'exponentielle'::character varying]::text[])),
-  horizon_prevision integer NOT NULL,
-  donnees_historiques jsonb NOT NULL,
-  resultats_prevision jsonb NOT NULL,
-  precision_modele numeric,
-  date_creation timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  CONSTRAINT previsions_pkey PRIMARY KEY (id),
-  CONSTRAINT previsions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.professions (
-  id bigint NOT NULL DEFAULT nextval('professions_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  code character varying,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT professions_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.rappels_sms (
-  id bigint NOT NULL DEFAULT nextval('rappels_sms_id_seq'::regclass),
-  appointment_id bigint NOT NULL,
-  patient_id bigint NOT NULL,
-  medecin_id bigint NOT NULL,
-  type_rappel character varying NOT NULL CHECK (type_rappel::text = ANY (ARRAY['veille'::character varying, 'jour_j'::character varying, 'annulation'::character varying, 'modification'::character varying]::text[])),
-  numero_telephone character varying NOT NULL,
-  message text NOT NULL,
-  statut character varying DEFAULT 'en_attente'::character varying CHECK (statut::text = ANY (ARRAY['en_attente'::character varying, 'envoye'::character varying, 'delivre'::character varying, 'erreur'::character varying]::text[])),
-  date_envoi timestamp with time zone,
-  reponse_sms text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT rappels_sms_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_rappels_sms_appointment FOREIGN KEY (appointment_id) REFERENCES public.appointments(id),
-  CONSTRAINT fk_rappels_sms_patient FOREIGN KEY (patient_id) REFERENCES public.patients(id),
-  CONSTRAINT fk_rappels_sms_medecin FOREIGN KEY (medecin_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.rapports_consultation (
-  id integer NOT NULL DEFAULT nextval('rapports_consultation_id_seq'::regclass),
-  consultation_id integer,
-  type_rapport character varying NOT NULL,
-  format_rapport character varying NOT NULL,
-  url_fichier character varying,
-  taille_fichier integer,
-  statut character varying DEFAULT 'en_cours'::character varying CHECK (statut::text = ANY (ARRAY['en_cours'::character varying, 'termine'::character varying, 'erreur'::character varying]::text[])),
-  parametres_generation jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT rapports_consultation_pkey PRIMARY KEY (id),
-  CONSTRAINT rapports_consultation_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id)
-);
-CREATE TABLE public.rapports_exportables (
-  id bigint NOT NULL DEFAULT nextval('rapports_exportables_id_seq'::regclass),
-  nom_rapport character varying NOT NULL,
-  type_rapport character varying NOT NULL CHECK (type_rapport::text = ANY (ARRAY['consultations'::character varying, 'finances'::character varying, 'actes'::character varying, 'patients'::character varying, 'medecins'::character varying, 'complet'::character varying]::text[])),
-  format_export character varying NOT NULL CHECK (format_export::text = ANY (ARRAY['pdf'::character varying, 'excel'::character varying, 'csv'::character varying, 'json'::character varying]::text[])),
-  parametres_filtres jsonb,
-  date_debut date,
-  date_fin date,
-  statut character varying DEFAULT 'en_cours'::character varying CHECK (statut::text = ANY (ARRAY['en_cours'::character varying, 'termine'::character varying, 'erreur'::character varying, 'annule'::character varying]::text[])),
-  url_fichier character varying,
-  taille_fichier bigint,
-  duree_generation integer,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  completed_at timestamp with time zone,
-  CONSTRAINT rapports_exportables_pkey PRIMARY KEY (id),
-  CONSTRAINT rapports_exportables_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.regles_alertes (
-  id bigint NOT NULL DEFAULT nextval('regles_alertes_id_seq'::regclass),
-  nom_regle character varying NOT NULL,
-  description text,
-  type_alerte character varying NOT NULL CHECK (type_alerte::text = ANY (ARRAY['seuil'::character varying, 'tendance'::character varying, 'anomalie'::character varying, 'absence'::character varying, 'retard'::character varying]::text[])),
-  condition_alerte jsonb NOT NULL,
-  seuil_valeur numeric,
-  periode_verification integer,
-  statut character varying DEFAULT 'active'::character varying CHECK (statut::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying, 'pause'::character varying]::text[])),
-  priorite character varying DEFAULT 'normale'::character varying CHECK (priorite::text = ANY (ARRAY['basse'::character varying, 'normale'::character varying, 'haute'::character varying, 'critique'::character varying]::text[])),
-  destinataires jsonb,
-  message_template text,
-  actif boolean DEFAULT true,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT regles_alertes_pkey PRIMARY KEY (id),
-  CONSTRAINT regles_alertes_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.regles_alertes_avancees (
-  id bigint NOT NULL DEFAULT nextval('regles_alertes_avancees_id_seq'::regclass),
-  nom_regle character varying NOT NULL,
-  description text,
-  type_alerte character varying NOT NULL CHECK (type_alerte::text = ANY (ARRAY['anomalie'::character varying, 'tendance'::character varying, 'seuil_dynamique'::character varying, 'correlation'::character varying]::text[])),
-  algorithme_detection character varying NOT NULL,
-  parametres_algorithme jsonb NOT NULL,
-  seuil_sensibilite numeric DEFAULT 0.8,
-  periode_analyse integer,
-  conditions_declenchement jsonb,
-  actions_automatiques jsonb,
-  actif boolean DEFAULT true,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT regles_alertes_avancees_pkey PRIMARY KEY (id),
-  CONSTRAINT regles_alertes_avancees_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.relances (
-  id bigint NOT NULL DEFAULT nextval('relances_id_seq'::regclass),
-  facture_id bigint NOT NULL,
-  date_relance date NOT NULL,
-  type_relance character varying NOT NULL,
-  montant_relance numeric NOT NULL,
-  notes text,
-  statut character varying DEFAULT 'envoyee'::character varying CHECK (statut::text = ANY (ARRAY['envoyee'::character varying, 'payee'::character varying, 'annulee'::character varying]::text[])),
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by uuid,
-  CONSTRAINT relances_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_relances_facture FOREIGN KEY (facture_id) REFERENCES public.factures_old(id),
-  CONSTRAINT relances_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
-);
-CREATE TABLE public.resultats_comparaison (
-  id bigint NOT NULL DEFAULT nextval('resultats_comparaison_id_seq'::regclass),
-  periode_comparaison_id bigint,
-  metrique character varying NOT NULL,
-  valeur_reference numeric NOT NULL,
-  valeur_comparaison numeric NOT NULL,
-  variation_absolue numeric NOT NULL,
-  variation_relative numeric NOT NULL,
-  significatif boolean DEFAULT false,
-  interpretation text,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT resultats_comparaison_pkey PRIMARY KEY (id),
-  CONSTRAINT resultats_comparaison_periode_comparaison_id_fkey FOREIGN KEY (periode_comparaison_id) REFERENCES public.periodes_comparaison(id)
-);
-CREATE TABLE public.signes_cliniques (
-  id bigint NOT NULL DEFAULT nextval('signes_cliniques_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  categorie character varying DEFAULT 'generale'::character varying,
-  type_signe character varying DEFAULT 'observation'::character varying CHECK (type_signe::text = ANY (ARRAY['observation'::character varying, 'palpation'::character varying, 'percussion'::character varying, 'auscultation'::character varying]::text[])),
-  localisation character varying,
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT signes_cliniques_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_signes_cliniques_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_signes_cliniques_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.signes_cliniques_consultation (
-  id bigint NOT NULL DEFAULT nextval('signes_cliniques_consultation_id_seq'::regclass),
-  consultation_id bigint NOT NULL,
-  signe_clinique_id bigint NOT NULL,
-  intensite character varying DEFAULT 'moderee'::character varying CHECK (intensite::text = ANY (ARRAY['faible'::character varying, 'moderee'::character varying, 'forte'::character varying]::text[])),
-  localisation character varying,
-  commentaires text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT signes_cliniques_consultation_pkey PRIMARY KEY (id),
-  CONSTRAINT signes_cliniques_consultation_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT signes_cliniques_consultation_signe_clinique_id_fkey FOREIGN KEY (signe_clinique_id) REFERENCES public.signes_cliniques(id)
-);
-CREATE TABLE public.soins (
-  id bigint NOT NULL DEFAULT nextval('soins_id_seq'::regclass),
-  acte_id bigint NOT NULL,
-  type_soin character varying NOT NULL,
-  description text,
-  duree integer,
-  materiel_utilise text,
-  notes text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT soins_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_soins_acte FOREIGN KEY (acte_id) REFERENCES public.actes(id)
-);
-CREATE TABLE public.specialites (
-  id bigint NOT NULL DEFAULT nextval('specialites_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  color character varying DEFAULT '#3b82f6'::character varying,
-  CONSTRAINT specialites_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.statistiques_consultations (
-  id bigint NOT NULL DEFAULT nextval('statistiques_consultations_id_seq'::regclass),
-  date_statistique date NOT NULL,
-  medecin_id bigint,
-  nombre_consultations integer DEFAULT 0,
-  nombre_patients integer DEFAULT 0,
-  duree_moyenne numeric,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT statistiques_consultations_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_statistiques_medecin FOREIGN KEY (medecin_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.syntheses_consultation (
-  id bigint NOT NULL DEFAULT nextval('syntheses_consultation_id_seq'::regclass),
-  consultation_id bigint NOT NULL,
-  element_synthese_id bigint NOT NULL,
-  commentaires text,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT syntheses_consultation_pkey PRIMARY KEY (id),
-  CONSTRAINT syntheses_consultation_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id),
-  CONSTRAINT syntheses_consultation_element_synthese_id_fkey FOREIGN KEY (element_synthese_id) REFERENCES public.elements_synthese(id)
-);
-CREATE TABLE public.tableau_bord_widgets (
-  id bigint NOT NULL DEFAULT nextval('tableau_bord_widgets_id_seq'::regclass),
-  tableau_bord_id bigint,
-  widget_id bigint,
-  position_x integer DEFAULT 0,
-  position_y integer DEFAULT 0,
-  largeur integer DEFAULT 1,
-  hauteur integer DEFAULT 1,
-  ordre_affichage integer DEFAULT 0,
-  CONSTRAINT tableau_bord_widgets_pkey PRIMARY KEY (id),
-  CONSTRAINT tableau_bord_widgets_tableau_bord_id_fkey FOREIGN KEY (tableau_bord_id) REFERENCES public.tableaux_bord_personnalises(id),
-  CONSTRAINT tableau_bord_widgets_widget_id_fkey FOREIGN KEY (widget_id) REFERENCES public.widgets_tableau_bord(id)
-);
-CREATE TABLE public.tableaux_bord_personnalises (
-  id bigint NOT NULL DEFAULT nextval('tableaux_bord_personnalises_id_seq'::regclass),
-  nom_tableau character varying NOT NULL,
-  description text,
-  configuration_layout jsonb,
-  parametres_rafraichissement jsonb,
-  actif boolean DEFAULT true,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT tableaux_bord_personnalises_pkey PRIMARY KEY (id),
-  CONSTRAINT tableaux_bord_personnalises_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.taches_automatisees (
-  id bigint NOT NULL DEFAULT nextval('taches_automatisees_id_seq'::regclass),
-  nom_tache character varying NOT NULL,
-  description text,
-  type_tache character varying NOT NULL CHECK (type_tache::text = ANY (ARRAY['rapport'::character varying, 'alerte'::character varying, 'nettoyage'::character varying, 'sauvegarde'::character varying, 'analyse'::character varying]::text[])),
-  frequence character varying NOT NULL CHECK (frequence::text = ANY (ARRAY['quotidien'::character varying, 'hebdomadaire'::character varying, 'mensuel'::character varying, 'trimestriel'::character varying, 'annuel'::character varying]::text[])),
-  parametres_execution jsonb,
-  derniere_execution timestamp with time zone,
-  prochaine_execution timestamp with time zone,
-  statut character varying DEFAULT 'actif'::character varying CHECK (statut::text = ANY (ARRAY['actif'::character varying, 'inactif'::character varying, 'pause'::character varying, 'erreur'::character varying]::text[])),
-  nombre_executions integer DEFAULT 0,
-  nombre_erreurs integer DEFAULT 0,
-  duree_moyenne_execution integer,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT taches_automatisees_pkey PRIMARY KEY (id),
-  CONSTRAINT taches_automatisees_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.tarifs_actes (
-  id integer NOT NULL DEFAULT nextval('tarifs_actes_id_seq'::regclass),
-  type_acte_id bigint,
-  specialite_id bigint,
-  tarif_base numeric NOT NULL,
-  tarif_secu numeric,
-  tarif_mutuelle numeric,
-  date_debut_validite date DEFAULT CURRENT_DATE,
-  date_fin_validite date,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT tarifs_actes_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_tarifs_type_acte FOREIGN KEY (type_acte_id) REFERENCES public.types_actes(id),
-  CONSTRAINT fk_tarifs_specialite FOREIGN KEY (specialite_id) REFERENCES public.specialites(id),
-  CONSTRAINT fk_tarifs_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_tarifs_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.templates_export (
-  id bigint NOT NULL DEFAULT nextval('templates_export_id_seq'::regclass),
-  nom_template character varying NOT NULL,
-  description text,
-  type_export character varying NOT NULL CHECK (type_export::text = ANY (ARRAY['pdf'::character varying, 'excel'::character varying, 'csv'::character varying, 'json'::character varying, 'xml'::character varying, 'api'::character varying]::text[])),
-  format_template jsonb NOT NULL,
-  parametres_defaut jsonb,
-  actif boolean DEFAULT true,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT templates_export_pkey PRIMARY KEY (id),
-  CONSTRAINT templates_export_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.themes_tableau_bord (
-  id bigint NOT NULL DEFAULT nextval('themes_tableau_bord_id_seq'::regclass),
-  nom_theme character varying NOT NULL,
-  description text,
-  configuration_theme jsonb NOT NULL,
-  actif boolean DEFAULT true,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT themes_tableau_bord_pkey PRIMARY KEY (id),
-  CONSTRAINT themes_tableau_bord_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.types_actes (
-  id bigint NOT NULL DEFAULT nextval('types_actes_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  tarif_defaut numeric,
-  specialite_id bigint,
-  duree_estimee integer,
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT types_actes_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_types_actes_specialite FOREIGN KEY (specialite_id) REFERENCES public.specialites(id),
-  CONSTRAINT fk_types_actes_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_types_actes_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.types_analyses_labo (
-  id integer NOT NULL DEFAULT nextval('types_analyses_labo_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  code_analyse character varying,
-  valeurs_normales text,
-  unite character varying,
-  delai_resultat integer,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT types_analyses_labo_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_types_analyses_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_types_analyses_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.types_archives (
-  id bigint NOT NULL DEFAULT nextval('types_archives_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT types_archives_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.types_certificats (
-  id bigint NOT NULL DEFAULT nextval('types_certificats_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  duree_defaut integer,
-  specialite_id bigint,
-  ordre_affichage integer DEFAULT 0,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT types_certificats_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_types_certificats_specialite FOREIGN KEY (specialite_id) REFERENCES public.specialites(id),
-  CONSTRAINT fk_types_certificats_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_types_certificats_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.types_examens (
-  id integer NOT NULL DEFAULT nextval('types_examens_id_seq'::regclass),
-  nom character varying NOT NULL,
-  description text,
-  specialite_id bigint,
-  duree_estimee integer,
-  preparation_requise text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  created_by bigint,
-  updated_by bigint,
-  CONSTRAINT types_examens_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_types_examens_specialite FOREIGN KEY (specialite_id) REFERENCES public.specialites(id),
-  CONSTRAINT fk_types_examens_created_by FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT fk_types_examens_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.users (
-  id bigint NOT NULL DEFAULT nextval('users_id_seq'::regclass),
-  email character varying NOT NULL UNIQUE,
-  role character varying NOT NULL CHECK (role::text = ANY (ARRAY['secretary'::character varying, 'doctor'::character varying, 'admin'::character varying]::text[])),
-  nom character varying NOT NULL,
-  prenom character varying NOT NULL,
-  specialite character varying,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  telephone character varying,
-  specialite_id bigint,
-  horaires_travail jsonb,
-  duree_consultation integer DEFAULT 30,
-  actif boolean DEFAULT true,
-  photo_url character varying,
-  auth_id uuid,
-  current_patient_id bigint,
-  selected_current_patient_id bigint,
-  username character varying NOT NULL,
-  CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT users_current_patient_id_fkey FOREIGN KEY (current_patient_id) REFERENCES public.waiting_queue(id),
-  CONSTRAINT fk_users_specialite FOREIGN KEY (specialite_id) REFERENCES public.specialites(id),
-  CONSTRAINT users_auth_id_fkey FOREIGN KEY (auth_id) REFERENCES auth.users(id)
-);
-CREATE TABLE public.vaccinations (
-  id bigint NOT NULL DEFAULT nextval('vaccinations_id_seq'::regclass),
-  acte_id bigint NOT NULL,
-  vaccin_id bigint NOT NULL,
-  dose character varying,
-  voie_administration character varying,
-  lot character varying,
-  date_expiration date,
-  notes text,
-  actif boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT vaccinations_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_vaccinations_acte FOREIGN KEY (acte_id) REFERENCES public.actes(id),
-  CONSTRAINT fk_vaccinations_vaccin FOREIGN KEY (vaccin_id) REFERENCES public.liste_vaccins(id)
-);
-CREATE TABLE public.waiting_queue (
-  id bigint NOT NULL DEFAULT nextval('waiting_queue_id_seq'::regclass),
-  patient_id bigint NOT NULL,
-  medecin_id bigint NOT NULL,
-  order_position integer NOT NULL,
-  status character varying NOT NULL DEFAULT 'en_attente'::character varying CHECK (status::text = ANY (ARRAY['waiting'::character varying, 'present'::character varying, 'in_consultation'::character varying, 'late'::character varying, 'emergency'::character varying, 'arrive'::character varying, 'appele'::character varying, 'entre'::character varying, 'termine'::character varying, 'absent'::character varying, 'reporte'::character varying, 'urgence'::character varying, 'en_attente'::character varying, 'authorized'::character varying, 'medecin_pret'::character varying, 'en_route'::character varying]::text[])),
-  arrived_at timestamp without time zone,
-  created_at timestamp without time zone DEFAULT now(),
-  updated_at timestamp without time zone DEFAULT now(),
-  added_by bigint,
-  documents_scannes text,
-  motif_consultation text,
-  temps_attente_estime integer,
-  notification_envoyee boolean DEFAULT false,
-  appointment_id bigint,
-  priority character varying DEFAULT 'normale'::character varying,
-  medecin_disponible boolean DEFAULT false,
-  medecin_pret_at timestamp with time zone,
-  secretaire_confirme_at timestamp with time zone,
-  temps_attente_reel integer,
-  position_originale bigint,
-  notes_secretaire text,
-  notes_medecin text,
-  secretaire_notifie_at timestamp with time zone,
-  patient_envoye_at timestamp with time zone,
-  consultation_terminee_at timestamp with time zone,
-  called_by_doctor_id bigint,
-  called_at timestamp with time zone,
-  authorized_at timestamp with time zone,
-  consultation_started_at timestamp with time zone,
-  consultation_ended_at timestamp with time zone,
-  current_location character varying,
-  secretary_notes text,
-  doctor_notes text,
-  CONSTRAINT waiting_queue_pkey PRIMARY KEY (id),
-  CONSTRAINT waiting_queue_appointment_id_fkey FOREIGN KEY (appointment_id) REFERENCES public.appointments(id)
-);
-CREATE TABLE public.widgets_tableau_bord (
-  id bigint NOT NULL DEFAULT nextval('widgets_tableau_bord_id_seq'::regclass),
-  nom_widget character varying NOT NULL,
-  type_widget character varying NOT NULL CHECK (type_widget::text = ANY (ARRAY['graphique'::character varying, 'metrique'::character varying, 'tableau'::character varying, 'calendrier'::character varying, 'liste'::character varying]::text[])),
-  titre character varying NOT NULL,
-  description text,
-  configuration jsonb NOT NULL,
-  position_x integer DEFAULT 0,
-  position_y integer DEFAULT 0,
-  largeur integer DEFAULT 1,
-  hauteur integer DEFAULT 1,
-  actif boolean DEFAULT true,
-  created_by bigint,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT widgets_tableau_bord_pkey PRIMARY KEY (id),
-  CONSTRAINT widgets_tableau_bord_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.workflow_notifications (
-  id bigint NOT NULL DEFAULT nextval('workflow_notifications_id_seq'::regclass),
-  type character varying NOT NULL CHECK (type::text = ANY (ARRAY['patient_present'::character varying, 'doctor_called_patient'::character varying, 'patient_called'::character varying, 'patient_authorized'::character varying, 'consultation_started'::character varying, 'consultation_ended'::character varying]::text[])),
-  from_user_id bigint NOT NULL,
-  to_user_id bigint NOT NULL,
-  patient_id bigint NOT NULL,
-  waiting_queue_id bigint,
-  appointment_id bigint,
-  message text NOT NULL,
-  data jsonb DEFAULT '{}'::jsonb,
-  read_at timestamp with time zone,
-  created_at timestamp with time zone DEFAULT now(),
-  expires_at timestamp with time zone DEFAULT (now() + '24:00:00'::interval),
-  CONSTRAINT workflow_notifications_pkey PRIMARY KEY (id)
-);
+
+-- ============================================================================
+-- SECTION 1 : EXTENSIONS
+-- ============================================================================
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+
+-- ============================================================================
+-- SECTION 2 : TABLES INDÉPENDANTES (sans clés étrangères vers d'autres tables)
+-- ============================================================================
+
+-- -------------------------------------------
+-- Table : specialites
+-- Description : Spécialités médicales
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.specialites (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    color character varying DEFAULT '#3b82f6'::character varying
+);
+
+-- -------------------------------------------
+-- Table : professions
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.professions (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    code character varying,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : employeurs
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.employeurs (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    adresse text,
+    telephone character varying,
+    email character varying,
+    siret character varying,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : canal_provenance
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.canal_provenance (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : liste_periodes
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.liste_periodes (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : liste_produits
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.liste_produits (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    code_atc character varying,
+    fabricant character varying,
+    prix numeric DEFAULT 0,
+    stock integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : liste_vaccins
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.liste_vaccins (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    code_atc character varying,
+    fabricant character varying,
+    prix numeric DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : liste_maladies (UUID-based)
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.liste_maladies (
+    id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    nom character varying NOT NULL UNIQUE,
+    code_cim character varying,
+    description text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : examens_diagnostic (UUID-based)
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.examens_diagnostic (
+    id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    nom character varying NOT NULL UNIQUE,
+    description text,
+    preparation text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : familles_archives
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.familles_archives (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : types_archives
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.types_archives (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : annuaire_actes_tarifs
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.annuaire_actes_tarifs (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    code_ccam character varying,
+    tarif_base numeric DEFAULT 0,
+    tarif_secu numeric DEFAULT 0,
+    tarif_mutuelle numeric DEFAULT 0,
+    categorie character varying,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : tooth_states (état dentaire)
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.tooth_states (
+    id SERIAL PRIMARY KEY,
+    code character varying(50) NOT NULL UNIQUE,
+    name character varying(100) NOT NULL,
+    color character varying(20) NOT NULL,
+    border_color character varying(20),
+    icon character varying(50),
+    is_system boolean DEFAULT false,
+    order_index integer DEFAULT 0,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : manual_passwords
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.manual_passwords (
+    id BIGSERIAL PRIMARY KEY,
+    user_email text NOT NULL UNIQUE,
+    password_hash text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+-- ============================================================================
+-- SECTION 3 : TABLES AVEC DÉPENDANCES (FK vers specialites)
+-- ============================================================================
+
+-- -------------------------------------------
+-- Table : maladies
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.maladies (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    code_cim character varying,
+    description text,
+    specialite_id bigint REFERENCES public.specialites(id),
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : assurances
+-- NOTA : created_by/updated_by seront ajoutées après création de users
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.assurances (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    type_assurance character varying DEFAULT 'mutuelle'::character varying 
+        CHECK (type_assurance::text = ANY (ARRAY['mutuelle','securite_sociale','privee','autre']::text[])),
+    taux_remboursement numeric,
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint,
+    updated_by bigint
+);
+
+
+-- ============================================================================
+-- SECTION 4 : TABLE USERS (central — beaucoup de tables en dépendent)
+-- ============================================================================
+
+-- Créer d'abord waiting_queue forward-declaration (car users a FK -> waiting_queue)
+-- On la crée sans contraintes FK pour résoudre la dépendance circulaire
+CREATE TABLE IF NOT EXISTS public.waiting_queue (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id bigint NOT NULL,
+    medecin_id bigint NOT NULL,
+    order_position integer NOT NULL,
+    status character varying NOT NULL DEFAULT 'en_attente'::character varying
+        CHECK (status::text = ANY (ARRAY[
+            'waiting','present','in_consultation','late','emergency',
+            'arrive','appele','entre','termine','absent','reporte',
+            'urgence','en_attente','authorized','medecin_pret','en_route'
+        ]::text[])),
+    arrived_at timestamp without time zone,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now(),
+    added_by bigint,
+    documents_scannes text,
+    motif_consultation text,
+    temps_attente_estime integer,
+    notification_envoyee boolean DEFAULT false,
+    appointment_id bigint,
+    priority character varying DEFAULT 'normale'::character varying,
+    medecin_disponible boolean DEFAULT false,
+    medecin_pret_at timestamp with time zone,
+    secretaire_confirme_at timestamp with time zone,
+    temps_attente_reel integer,
+    position_originale bigint,
+    notes_secretaire text,
+    notes_medecin text,
+    secretaire_notifie_at timestamp with time zone,
+    patient_envoye_at timestamp with time zone,
+    consultation_terminee_at timestamp with time zone,
+    called_by_doctor_id bigint,
+    called_at timestamp with time zone,
+    authorized_at timestamp with time zone,
+    consultation_started_at timestamp with time zone,
+    consultation_ended_at timestamp with time zone,
+    current_location character varying,
+    secretary_notes text,
+    doctor_notes text
+);
+
+-- -------------------------------------------
+-- Table : users
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.users (
+    id BIGSERIAL PRIMARY KEY,
+    email character varying NOT NULL UNIQUE,
+    role character varying NOT NULL 
+        CHECK (role::text = ANY (ARRAY['secretary','doctor','admin','accounting','caissier']::text[])),
+    nom character varying NOT NULL,
+    prenom character varying NOT NULL,
+    specialite character varying,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    telephone character varying,
+    specialite_id bigint REFERENCES public.specialites(id),
+    horaires_travail jsonb,
+    duree_consultation integer DEFAULT 30,
+    actif boolean DEFAULT true,
+    photo_url character varying,
+    auth_id uuid REFERENCES auth.users(id),
+    current_patient_id bigint REFERENCES public.waiting_queue(id),
+    selected_current_patient_id bigint,
+    username character varying NOT NULL
+);
+
+-- Index unique sur username
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON public.users(username);
+
+
+-- ============================================================================
+-- SECTION 5 : TABLE PATIENTS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.patients (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    prenom character varying NOT NULL,
+    date_naissance date NOT NULL,
+    telephone character varying,
+    adresse character varying,
+    assurance character varying,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id),
+    numero_dossier character varying UNIQUE,
+    email character varying,
+    sexe character varying CHECK (sexe::text = ANY (ARRAY['M','F']::text[])),
+    lieu_naissance character varying,
+    nationalite character varying,
+    profession character varying,
+    situation_familiale character varying,
+    personne_contact character varying,
+    telephone_contact character varying,
+    lien_contact character varying,
+    medecin_traitant character varying,
+    numero_secu character varying,
+    mutuelle character varying,
+    numero_mutuelle character varying,
+    actif boolean DEFAULT true,
+    notes text,
+    numero_ipm character varying,
+    medecin_traitant_id bigint REFERENCES public.users(id),
+    groupe_sanguin character varying,
+    assurance_id bigint REFERENCES public.assurances(id)
+);
+
+
+-- ============================================================================
+-- SECTION 6 : TABLE APPOINTMENTS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.appointments (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    date_heure timestamp with time zone NOT NULL,
+    motif character varying,
+    statut character varying DEFAULT 'confirme'::character varying 
+        CHECK (statut::text = ANY (ARRAY['confirme','en_attente','annule']::text[])),
+    duree integer,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id),
+    priorite character varying DEFAULT 'normale'::character varying 
+        CHECK (priorite::text = ANY (ARRAY['normale','urgente','tres_urgente']::text[])),
+    couleur character varying DEFAULT '#3b82f6'::character varying,
+    heure_fin timestamp with time zone,
+    type_rdv character varying DEFAULT 'consultation'::character varying 
+        CHECK (type_rdv::text = ANY (ARRAY['consultation','suivi','urgence','preventif']::text[])),
+    notes text,
+    rappel_envoye boolean DEFAULT false,
+    rappel_veille_envoye boolean DEFAULT false,
+    motif_detaille text
+);
+
+-- Ajouter FK retardée de waiting_queue vers appointments
+ALTER TABLE public.waiting_queue 
+    DROP CONSTRAINT IF EXISTS waiting_queue_appointment_id_fkey;
+ALTER TABLE public.waiting_queue 
+    ADD CONSTRAINT waiting_queue_appointment_id_fkey 
+    FOREIGN KEY (appointment_id) REFERENCES public.appointments(id);
+
+
+-- ============================================================================
+-- SECTION 7 : TABLE CONSULTATIONS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.consultations (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    date_consultation date NOT NULL,
+    motif character varying,
+    diagnostic text,
+    traitement text,
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    duree_consultation integer DEFAULT 0,
+    niveau_urgence character varying DEFAULT 'normale'::character varying 
+        CHECK (niveau_urgence::text = ANY (ARRAY['normale','urgente','tres_urgente']::text[])),
+    type_consultation character varying DEFAULT 'standard'::character varying 
+        CHECK (type_consultation::text = ANY (ARRAY['standard','suivi','urgence','preventive']::text[])),
+    notes_confidentielles text,
+    plan_suivi text,
+    prochaine_consultation date,
+    statut character varying DEFAULT 'en_cours'::character varying 
+        CHECK (statut::text = ANY (ARRAY['en_cours','terminee','annulee']::text[])),
+    appointment_id bigint REFERENCES public.appointments(id),
+    motif_consultation text,
+    notes_generales text,
+    dental_state jsonb DEFAULT '{}'::jsonb
+);
+
+COMMENT ON COLUMN public.consultations.dental_state IS 'Stocke l''état des dents (sain, carie, absent, etc.) au format JSON pour cette consultation.';
+
+
+-- ============================================================================
+-- SECTION 8 : TABLES DÉPENDANTES DE USERS (paramétrage médical)
+-- ============================================================================
+
+-- -------------------------------------------
+-- Table : constantes (référentiel vitales)
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.constantes (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL UNIQUE,
+    description text,
+    unite character varying,
+    valeur_min numeric,
+    valeur_max numeric,
+    valeur_normale_min numeric,
+    valeur_normale_max numeric,
+    categorie character varying DEFAULT 'generale'::character varying,
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : diagnostics (référentiel)
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.diagnostics (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    code_cim character varying,
+    specialite_id bigint REFERENCES public.specialites(id),
+    niveau_gravite character varying DEFAULT 'leger'::character varying 
+        CHECK (niveau_gravite::text = ANY (ARRAY['leger','modere','grave','critique']::text[])),
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : medicaments
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.medicaments (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL UNIQUE,
+    description text,
+    forme_pharmaceutique character varying,
+    dosage character varying,
+    posologie_defaut text,
+    contre_indications text,
+    interactions text,
+    specialite_id bigint REFERENCES public.specialites(id),
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id),
+    dci character varying,
+    voie_administration character varying,
+    classe_therapeutique character varying,
+    effets_indesirables text,
+    posologie_adulte text,
+    posologie_enfant text
+);
+
+-- -------------------------------------------
+-- Table : antecedents (référentiel)
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.antecedents (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    categorie character varying DEFAULT 'generale'::character varying,
+    code_cim character varying,
+    niveau_gravite character varying DEFAULT 'leger'::character varying 
+        CHECK (niveau_gravite::text = ANY (ARRAY['leger','modere','grave','critique']::text[])),
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : appareils
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.appareils (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    specialite_id bigint REFERENCES public.specialites(id),
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : signes_cliniques (référentiel)
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.signes_cliniques (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    categorie character varying DEFAULT 'generale'::character varying,
+    type_signe character varying DEFAULT 'observation'::character varying 
+        CHECK (type_signe::text = ANY (ARRAY['observation','palpation','percussion','auscultation']::text[])),
+    localisation character varying,
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id),
+    specialite_id bigint REFERENCES public.specialites(id)
+);
+
+-- -------------------------------------------
+-- Table : elements_synthese
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.elements_synthese (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    categorie character varying DEFAULT 'generale'::character varying,
+    type_element character varying DEFAULT 'observation'::character varying 
+        CHECK (type_element::text = ANY (ARRAY['observation','conclusion','recommandation','prescription']::text[])),
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : types_actes
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.types_actes (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    tarif_defaut numeric,
+    specialite_id bigint REFERENCES public.specialites(id),
+    duree_estimee integer,
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : types_certificats
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.types_certificats (
+    id BIGSERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    duree_defaut integer,
+    specialite_id bigint REFERENCES public.specialites(id),
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : types_examens
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.types_examens (
+    id SERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    specialite_id bigint REFERENCES public.specialites(id),
+    duree_estimee integer,
+    preparation_requise text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : types_analyses_labo
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.types_analyses_labo (
+    id SERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    code_analyse character varying,
+    valeurs_normales text,
+    unite character varying,
+    delai_resultat integer,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : constats_appareils
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.constats_appareils (
+    id BIGSERIAL PRIMARY KEY,
+    appareil_id bigint NOT NULL REFERENCES public.appareils(id),
+    nom character varying NOT NULL,
+    description text,
+    type_constat character varying DEFAULT 'normal'::character varying 
+        CHECK (type_constat::text = ANY (ARRAY['normal','anormal','pathologique']::text[])),
+    ordre_affichage integer DEFAULT 0,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : medecin_specialites
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.medecin_specialites (
+    id BIGSERIAL PRIMARY KEY,
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    specialite_id bigint NOT NULL REFERENCES public.specialites(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : disponibilites_medecins
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.disponibilites_medecins (
+    id BIGSERIAL PRIMARY KEY,
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    date_disponibilite date NOT NULL,
+    heure_debut time without time zone NOT NULL,
+    heure_fin time without time zone NOT NULL,
+    statut character varying DEFAULT 'disponible'::character varying 
+        CHECK (statut::text = ANY (ARRAY['disponible','indisponible','pause','conges']::text[])),
+    motif_indisponibilite text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : favoris_medecins
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.favoris_medecins (
+    id SERIAL PRIMARY KEY,
+    medecin_id bigint REFERENCES public.users(id),
+    type_favori character varying NOT NULL,
+    element_id integer NOT NULL,
+    ordre integer DEFAULT 0,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Ajouter FK retardées assurances -> users
+ALTER TABLE public.assurances 
+    DROP CONSTRAINT IF EXISTS fk_assurances_created_by;
+ALTER TABLE public.assurances 
+    ADD CONSTRAINT fk_assurances_created_by FOREIGN KEY (created_by) REFERENCES public.users(id);
+ALTER TABLE public.assurances 
+    DROP CONSTRAINT IF EXISTS fk_assurances_updated_by;
+ALTER TABLE public.assurances 
+    ADD CONSTRAINT fk_assurances_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id);
+
+
+-- ============================================================================
+-- SECTION 9 : TABLES DÉPENDANTES DE CONSULTATIONS
+-- ============================================================================
+
+-- -------------------------------------------
+-- Table : actes
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.actes (
+    id BIGSERIAL PRIMARY KEY,
+    consultation_id bigint REFERENCES public.consultations(id),
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    date_acte date NOT NULL,
+    type_acte character varying NOT NULL,
+    description text,
+    montant numeric DEFAULT 0,
+    statut character varying DEFAULT 'en_cours'::character varying 
+        CHECK (statut::text = ANY (ARRAY['en_cours','termine','annule']::text[])),
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id)
+);
+
+-- -------------------------------------------
+-- Table : actes_consultation
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.actes_consultation (
+    id SERIAL PRIMARY KEY,
+    consultation_id bigint REFERENCES public.consultations(id),
+    type_acte_id bigint REFERENCES public.types_actes(id),
+    quantite integer DEFAULT 1,
+    tarif_unitaire numeric NOT NULL,
+    montant_total numeric,
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : constantes_consultation
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.constantes_consultation (
+    id BIGSERIAL PRIMARY KEY,
+    consultation_id bigint NOT NULL REFERENCES public.consultations(id),
+    constante_id bigint NOT NULL REFERENCES public.constantes(id),
+    valeur_mesuree numeric NOT NULL,
+    unite character varying,
+    commentaires text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : diagnostics_consultation
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.diagnostics_consultation (
+    id BIGSERIAL PRIMARY KEY,
+    consultation_id bigint NOT NULL REFERENCES public.consultations(id),
+    diagnostic_id bigint NOT NULL REFERENCES public.diagnostics(id),
+    commentaires text,
+    certitude character varying DEFAULT 'probable'::character varying 
+        CHECK (certitude::text = ANY (ARRAY['certain','probable','possible']::text[])),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : signes_cliniques_consultation
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.signes_cliniques_consultation (
+    id BIGSERIAL PRIMARY KEY,
+    consultation_id bigint NOT NULL REFERENCES public.consultations(id),
+    signe_clinique_id bigint NOT NULL REFERENCES public.signes_cliniques(id),
+    intensite character varying DEFAULT 'moderee'::character varying 
+        CHECK (intensite::text = ANY (ARRAY['faible','moderee','forte']::text[])),
+    localisation character varying,
+    commentaires text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : examens_appareils
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.examens_appareils (
+    id BIGSERIAL PRIMARY KEY,
+    consultation_id bigint NOT NULL REFERENCES public.consultations(id),
+    appareil_id bigint NOT NULL REFERENCES public.appareils(id),
+    resultat_examen text,
+    anomalies_detectees text,
+    recommandations text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : syntheses_consultation
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.syntheses_consultation (
+    id BIGSERIAL PRIMARY KEY,
+    consultation_id bigint NOT NULL REFERENCES public.consultations(id),
+    element_synthese_id bigint NOT NULL REFERENCES public.elements_synthese(id),
+    commentaires text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : autres_signes_physiques
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.autres_signes_physiques (
+    id BIGSERIAL PRIMARY KEY,
+    consultation_id bigint NOT NULL REFERENCES public.consultations(id),
+    description text NOT NULL,
+    categorie character varying,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : antecedents_patients
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.antecedents_patients (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    antecedent_id bigint NOT NULL REFERENCES public.antecedents(id),
+    consultation_id bigint REFERENCES public.consultations(id),
+    date_decouverte date,
+    commentaires text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : ordonnances
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.ordonnances (
+    id BIGSERIAL PRIMARY KEY,
+    consultation_id bigint NOT NULL REFERENCES public.consultations(id),
+    numero_ordonnance character varying UNIQUE,
+    date_prescription date DEFAULT CURRENT_DATE,
+    statut character varying DEFAULT 'active'::character varying 
+        CHECK (statut::text = ANY (ARRAY['active','terminee','annulee']::text[])),
+    instructions_generales text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    prochain_rdv text
+);
+
+-- -------------------------------------------
+-- Table : lignes_ordonnance
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.lignes_ordonnance (
+    id BIGSERIAL PRIMARY KEY,
+    ordonnance_id bigint NOT NULL REFERENCES public.ordonnances(id),
+    medicament_id bigint NOT NULL REFERENCES public.medicaments(id),
+    posologie text NOT NULL,
+    quantite integer DEFAULT 1,
+    duree_traitement character varying,
+    instructions_particulieres text,
+    moment_prise character varying DEFAULT 'matin'::character varying,
+    avec_repas boolean DEFAULT false,
+    urgent boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : certificats_medicaux
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.certificats_medicaux (
+    id BIGSERIAL PRIMARY KEY,
+    consultation_id bigint NOT NULL REFERENCES public.consultations(id),
+    type_certificat_id bigint NOT NULL REFERENCES public.types_certificats(id),
+    duree_jours integer,
+    motif text,
+    restrictions text,
+    date_debut date DEFAULT CURRENT_DATE,
+    date_fin date,
+    statut character varying DEFAULT 'actif'::character varying 
+        CHECK (statut::text = ANY (ARRAY['actif','expire','annule']::text[])),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    patient_id bigint REFERENCES public.patients(id),
+    medecin_id bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : prescriptions
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.prescriptions (
+    id BIGSERIAL PRIMARY KEY,
+    medicaments text NOT NULL,
+    posologie text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    date_prescription date DEFAULT CURRENT_DATE,
+    statut character varying DEFAULT 'active'::character varying 
+        CHECK (statut::text = ANY (ARRAY['active','terminee','annulee']::text[]))
+);
+
+-- -------------------------------------------
+-- Table : prescriptions_pharmacie
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.prescriptions_pharmacie (
+    id SERIAL PRIMARY KEY,
+    consultation_id bigint REFERENCES public.consultations(id),
+    patient_id bigint REFERENCES public.patients(id),
+    medicament_id bigint REFERENCES public.medicaments(id),
+    posologie text NOT NULL,
+    duree_traitement character varying,
+    quantite_prescrite integer,
+    unite character varying,
+    renouvellements integer DEFAULT 0,
+    urgence boolean DEFAULT false,
+    date_prescription date DEFAULT CURRENT_DATE,
+    date_debut_traitement date,
+    statut character varying DEFAULT 'prescrit'::character varying 
+        CHECK (statut::text = ANY (ARRAY['prescrit','delivre','termine','annule']::text[])),
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : examens_medicaux
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.examens_medicaux (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    consultation_id bigint REFERENCES public.consultations(id),
+    type_examen character varying NOT NULL,
+    description text,
+    resultat text,
+    date_examen date NOT NULL,
+    statut character varying DEFAULT 'en_cours'::character varying 
+        CHECK (statut::text = ANY (ARRAY['en_cours','termine','annule']::text[])),
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id)
+);
+
+-- -------------------------------------------
+-- Table : examens_prescrits
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.examens_prescrits (
+    id SERIAL PRIMARY KEY,
+    consultation_id bigint REFERENCES public.consultations(id),
+    patient_id bigint REFERENCES public.patients(id),
+    type_examen character varying NOT NULL,
+    description text,
+    urgence boolean DEFAULT false,
+    date_prescription date DEFAULT CURRENT_DATE,
+    date_realisation date,
+    statut character varying DEFAULT 'prescrit'::character varying 
+        CHECK (statut::text = ANY (ARRAY['prescrit','en_cours','termine','annule']::text[])),
+    resultat text,
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : analyses_labo_prescrites
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.analyses_labo_prescrites (
+    id SERIAL PRIMARY KEY,
+    consultation_id bigint REFERENCES public.consultations(id),
+    patient_id bigint REFERENCES public.patients(id),
+    type_analyse character varying NOT NULL,
+    description text,
+    urgence boolean DEFAULT false,
+    date_prescription date DEFAULT CURRENT_DATE,
+    date_prelevement date,
+    date_resultat date,
+    statut character varying DEFAULT 'prescrit'::character varying 
+        CHECK (statut::text = ANY (ARRAY['prescrit','preleve','en_cours','termine','annule']::text[])),
+    resultat text,
+    valeurs_normales text,
+    interpretation text,
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : divers_instructions
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.divers_instructions (
+    id BIGSERIAL PRIMARY KEY,
+    consultation_id bigint NOT NULL REFERENCES public.consultations(id),
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    type_instruction character varying NOT NULL DEFAULT 'general'::character varying,
+    titre character varying NOT NULL,
+    description text NOT NULL,
+    priorite character varying DEFAULT 'normale'::character varying 
+        CHECK (priorite::text = ANY (ARRAY['basse','normale','haute','urgente']::text[])),
+    statut character varying DEFAULT 'en_attente'::character varying 
+        CHECK (statut::text = ANY (ARRAY['en_attente','en_cours','terminee','annulee']::text[])),
+    date_creation timestamp with time zone DEFAULT now(),
+    date_modification timestamp with time zone DEFAULT now(),
+    date_execution timestamp with time zone,
+    notes_execution text,
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : instructions_diverses
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.instructions_diverses (
+    id SERIAL PRIMARY KEY,
+    consultation_id bigint REFERENCES public.consultations(id),
+    patient_id bigint REFERENCES public.patients(id),
+    type_instruction character varying NOT NULL,
+    titre character varying NOT NULL,
+    description text NOT NULL,
+    urgence boolean DEFAULT false,
+    date_instruction date DEFAULT CURRENT_DATE,
+    date_execution date,
+    statut character varying DEFAULT 'en_attente'::character varying 
+        CHECK (statut::text = ANY (ARRAY['en_attente','en_cours','termine','annule']::text[])),
+    traite_par bigint REFERENCES public.users(id),
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : historique_consultations
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.historique_consultations (
+    id SERIAL PRIMARY KEY,
+    consultation_id integer REFERENCES public.consultations(id),
+    medecin_id bigint REFERENCES public.users(id),
+    action character varying NOT NULL,
+    section_modifiee character varying,
+    anciennes_valeurs jsonb,
+    nouvelles_valeurs jsonb,
+    commentaire text,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : modeles_consultation
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.modeles_consultation (
+    id SERIAL PRIMARY KEY,
+    nom character varying NOT NULL,
+    description text,
+    type_consultation character varying NOT NULL,
+    specialite_id integer REFERENCES public.specialites(id),
+    elements_par_defaut jsonb,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : rapports_consultation
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.rapports_consultation (
+    id SERIAL PRIMARY KEY,
+    consultation_id integer REFERENCES public.consultations(id),
+    type_rapport character varying NOT NULL,
+    format_rapport character varying NOT NULL,
+    url_fichier character varying,
+    taille_fichier integer,
+    statut character varying DEFAULT 'en_cours'::character varying 
+        CHECK (statut::text = ANY (ARRAY['en_cours','termine','erreur']::text[])),
+    parametres_generation jsonb,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+-- ============================================================================
+-- SECTION 10 : FACTURATION
+-- ============================================================================
+
+-- -------------------------------------------
+-- Table : factures
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.factures (
+    id SERIAL PRIMARY KEY,
+    consultation_id bigint REFERENCES public.consultations(id),
+    patient_id bigint REFERENCES public.patients(id),
+    numero_facture character varying NOT NULL UNIQUE,
+    date_facture date DEFAULT CURRENT_DATE,
+    montant_ht numeric DEFAULT 0,
+    tva numeric DEFAULT 0,
+    montant_ttc numeric DEFAULT 0,
+    montant_paye numeric DEFAULT 0,
+    montant_restant numeric DEFAULT 0,
+    statut_paiement character varying DEFAULT 'en_attente'::character varying 
+        CHECK (statut_paiement::text = ANY (ARRAY['en_attente','partiel','paye','impaye']::text[])),
+    mode_paiement character varying,
+    assurance_id bigint REFERENCES public.assurances(id),
+    numero_carte character varying,
+    emetteur_monnaie_electronique character varying,
+    date_paiement timestamp with time zone,
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : factures_old (legacy)
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.factures_old (
+    id BIGSERIAL PRIMARY KEY,
+    acte_id bigint REFERENCES public.actes(id),
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    numero_facture character varying NOT NULL UNIQUE,
+    montant_ht numeric NOT NULL,
+    tva numeric DEFAULT 0,
+    montant_ttc numeric NOT NULL,
+    mode_reglement character varying,
+    statut_paiement character varying DEFAULT 'en_attente'::character varying 
+        CHECK (statut_paiement::text = ANY (ARRAY['en_attente','paye','impaye','partiel']::text[])),
+    date_echeance date,
+    notes text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id)
+);
+
+-- -------------------------------------------
+-- Table : lignes_facture
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.lignes_facture (
+    id SERIAL PRIMARY KEY,
+    facture_id bigint REFERENCES public.factures(id) ON DELETE CASCADE,
+    acte_consultation_id bigint REFERENCES public.actes_consultation(id),
+    description character varying NOT NULL,
+    quantite integer DEFAULT 1,
+    prix_unitaire numeric NOT NULL,
+    montant_ligne numeric,
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : invoices (ancienne table legacy)
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.invoices (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    consultation_id bigint REFERENCES public.consultations(id),
+    montant numeric NOT NULL,
+    statut_paiement character varying NOT NULL 
+        CHECK (statut_paiement::text = ANY (ARRAY['paye','en_attente','impaye']::text[])),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : relances
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.relances (
+    id BIGSERIAL PRIMARY KEY,
+    facture_id bigint NOT NULL REFERENCES public.factures_old(id),
+    date_relance date NOT NULL,
+    type_relance character varying NOT NULL,
+    montant_relance numeric NOT NULL,
+    notes text,
+    statut character varying DEFAULT 'envoyee'::character varying 
+        CHECK (statut::text = ANY (ARRAY['envoyee','payee','annulee']::text[])),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by uuid REFERENCES auth.users(id)
+);
+
+-- -------------------------------------------
+-- Table : tarifs_actes
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.tarifs_actes (
+    id SERIAL PRIMARY KEY,
+    type_acte_id bigint REFERENCES public.types_actes(id),
+    specialite_id bigint REFERENCES public.specialites(id),
+    tarif_base numeric NOT NULL,
+    tarif_secu numeric,
+    tarif_mutuelle numeric,
+    date_debut_validite date DEFAULT CURRENT_DATE,
+    date_fin_validite date,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id)
+);
+
+-- -------------------------------------------
+-- Table : paiements
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.paiements (
+    id BIGSERIAL PRIMARY KEY,
+    facture_id bigint REFERENCES public.factures(id),
+    montant numeric NOT NULL DEFAULT 0,
+    mode_paiement character varying,
+    date_paiement timestamp with time zone DEFAULT now(),
+    reference character varying,
+    statut character varying DEFAULT 'effectue'::character varying,
+    caissier_id bigint REFERENCES public.users(id),
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- -------------------------------------------
+-- Table : sessions_caisse
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.sessions_caisse (
+    id BIGSERIAL PRIMARY KEY,
+    date_session date NOT NULL DEFAULT CURRENT_DATE,
+    heure_ouverture timestamp with time zone DEFAULT now(),
+    heure_fermeture timestamp with time zone,
+    montant_ouverture numeric DEFAULT 0,
+    montant_journalier numeric DEFAULT 0,
+    montant_fermeture numeric DEFAULT 0,
+    ecart numeric DEFAULT 0,
+    statut character varying DEFAULT 'ouverte'::character varying 
+        CHECK (statut::text = ANY (ARRAY['ouverte','fermee']::text[])),
+    caissier_id bigint REFERENCES public.users(id),
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Constraints sessions_caisse per cashier
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_caisse_unique_ouverte_caissier
+    ON public.sessions_caisse(date_session, caissier_id)
+    WHERE statut = 'ouverte' AND caissier_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_caisse_unique_ouverte_sans_caissier
+    ON public.sessions_caisse(date_session)
+    WHERE statut = 'ouverte' AND caissier_id IS NULL;
+
+-- -------------------------------------------
+-- Table : reversements_bancaires
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.reversements_bancaires (
+    id BIGSERIAL PRIMARY KEY,
+    session_caisse_id bigint REFERENCES public.sessions_caisse(id),
+    montant numeric NOT NULL DEFAULT 0,
+    banque character varying,
+    reference character varying,
+    date_reversement date DEFAULT CURRENT_DATE,
+    notes text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+-- ============================================================================
+-- SECTION 11 : DOCUMENTS & ARCHIVES
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.documents_patients (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    type_document character varying NOT NULL 
+        CHECK (type_document::text = ANY (ARRAY['analyse','imagerie','prescription','certificat','autre']::text[])),
+    nom_fichier character varying NOT NULL,
+    url_fichier character varying NOT NULL,
+    taille_fichier bigint,
+    format_fichier character varying,
+    description text,
+    date_scan timestamp with time zone DEFAULT now(),
+    scanned_by bigint NOT NULL REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    date_document date,
+    statut_validation character varying DEFAULT 'valide'::character varying 
+        CHECK (statut_validation::text = ANY (ARRAY['en_attente','valide','rejete','archive']::text[])),
+    apercu_url character varying,
+    apercu_genere boolean DEFAULT false,
+    hash_fichier character varying,
+    consultation_id bigint REFERENCES public.consultations(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.patient_documents (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    type_document character varying NOT NULL 
+        CHECK (type_document::text = ANY (ARRAY['analyse','radio','echographie','scanner','irm','ordonnance_externe','certificat_medical','compte_rendu','autre']::text[])),
+    nom_fichier character varying NOT NULL,
+    fichier_url character varying NOT NULL,
+    date_document date NOT NULL,
+    uploaded_by uuid NOT NULL REFERENCES auth.users(id),
+    notes text,
+    taille_fichier bigint,
+    type_mime character varying,
+    consultation_id bigint REFERENCES public.consultations(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.archives (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    famille_archive_id bigint NOT NULL REFERENCES public.familles_archives(id),
+    type_archive_id bigint NOT NULL REFERENCES public.types_archives(id),
+    titre character varying NOT NULL,
+    description text,
+    date_archivage date NOT NULL,
+    statut character varying DEFAULT 'actif'::character varying 
+        CHECK (statut::text = ANY (ARRAY['actif','inactif','supprime']::text[])),
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by uuid REFERENCES auth.users(id),
+    updated_by uuid REFERENCES auth.users(id)
+);
+
+
+-- ============================================================================
+-- SECTION 12 : NOTIFICATIONS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.notifications_consultation (
+    id SERIAL PRIMARY KEY,
+    consultation_id integer REFERENCES public.consultations(id),
+    destinataire_id bigint REFERENCES public.users(id),
+    type_notification character varying NOT NULL,
+    titre character varying NOT NULL,
+    message text NOT NULL,
+    priorite character varying DEFAULT 'normale'::character varying 
+        CHECK (priorite::text = ANY (ARRAY['basse','normale','haute','urgente']::text[])),
+    lu boolean DEFAULT false,
+    action_url character varying,
+    expires_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.notifications_medecin_secretaire (
+    id BIGSERIAL PRIMARY KEY,
+    type_notification character varying DEFAULT 'general'::character varying,
+    titre character varying,
+    message text NOT NULL,
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    secretaire_id bigint NOT NULL REFERENCES public.users(id),
+    patient_id bigint REFERENCES public.patients(id),
+    waiting_queue_id bigint REFERENCES public.waiting_queue(id),
+    lu boolean DEFAULT false,
+    lu_at timestamp with time zone,
+    priorite character varying DEFAULT 'normale'::character varying 
+        CHECK (priorite::text = ANY (ARRAY['normale','urgente','importante']::text[])),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    type character varying DEFAULT 'general'::character varying,
+    consultation_id bigint REFERENCES public.consultations(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.notifications_simple (
+    id BIGSERIAL PRIMARY KEY,
+    type_notification character varying NOT NULL 
+        CHECK (type_notification::text = ANY (ARRAY['medecin_disponible','patient_autorise','consultation_terminee']::text[])),
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    secretaire_id bigint NOT NULL REFERENCES public.users(id),
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    waiting_queue_id bigint REFERENCES public.waiting_queue(id),
+    message text NOT NULL,
+    lu boolean DEFAULT false,
+    lu_at timestamp with time zone,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    expires_at timestamp with time zone NOT NULL DEFAULT (now() + '00:30:00'::interval)
+);
+
+CREATE TABLE IF NOT EXISTS public.notifications_push (
+    id BIGSERIAL PRIMARY KEY,
+    titre character varying NOT NULL,
+    message text NOT NULL,
+    type_notification character varying NOT NULL 
+        CHECK (type_notification::text = ANY (ARRAY['alerte','rapport','systeme','utilisateur']::text[])),
+    priorite character varying DEFAULT 'normale'::character varying 
+        CHECK (priorite::text = ANY (ARRAY['basse','normale','haute','critique']::text[])),
+    destinataires jsonb,
+    donnees_contexte jsonb,
+    statut character varying DEFAULT 'en_attente'::character varying 
+        CHECK (statut::text = ANY (ARRAY['en_attente','envoyee','lue','traitee']::text[])),
+    date_creation timestamp with time zone DEFAULT now(),
+    date_envoi timestamp with time zone,
+    date_lecture timestamp with time zone,
+    created_by bigint REFERENCES public.users(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.workflow_notifications (
+    id BIGSERIAL PRIMARY KEY,
+    type character varying NOT NULL 
+        CHECK (type::text = ANY (ARRAY['patient_present','doctor_called_patient','patient_called','patient_authorized','consultation_started','consultation_ended']::text[])),
+    from_user_id bigint NOT NULL,
+    to_user_id bigint NOT NULL,
+    patient_id bigint NOT NULL,
+    waiting_queue_id bigint,
+    appointment_id bigint,
+    message text NOT NULL,
+    data jsonb DEFAULT '{}'::jsonb,
+    read_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    expires_at timestamp with time zone DEFAULT (now() + '24:00:00'::interval)
+);
+
+CREATE TABLE IF NOT EXISTS public.preferences_notifications (
+    id BIGSERIAL PRIMARY KEY,
+    user_id bigint REFERENCES public.users(id),
+    type_notification character varying NOT NULL,
+    canal_notification character varying NOT NULL 
+        CHECK (canal_notification::text = ANY (ARRAY['email','push','sms','webhook']::text[])),
+    actif boolean DEFAULT true,
+    frequence character varying DEFAULT 'immediate'::character varying 
+        CHECK (frequence::text = ANY (ARRAY['immediate','quotidien','hebdomadaire']::text[])),
+    heures_autorisees jsonb,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+-- ============================================================================
+-- SECTION 13 : RENDEZ-VOUS COMPLÉMENTS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.rappels_sms (
+    id BIGSERIAL PRIMARY KEY,
+    appointment_id bigint NOT NULL REFERENCES public.appointments(id),
+    patient_id bigint NOT NULL REFERENCES public.patients(id),
+    medecin_id bigint NOT NULL REFERENCES public.users(id),
+    type_rappel character varying NOT NULL 
+        CHECK (type_rappel::text = ANY (ARRAY['veille','jour_j','annulation','modification']::text[])),
+    numero_telephone character varying NOT NULL,
+    message text NOT NULL,
+    statut character varying DEFAULT 'en_attente'::character varying 
+        CHECK (statut::text = ANY (ARRAY['en_attente','envoye','delivre','erreur']::text[])),
+    date_envoi timestamp with time zone,
+    reponse_sms text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+-- ============================================================================
+-- SECTION 14 : CONFIGURATION CABINET & PLATEFORME
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.parametres_cabinet (
+    id BIGSERIAL PRIMARY KEY,
+    nom_cabinet character varying,
+    adresse text,
+    ville character varying,
+    code_postal character varying,
+    pays character varying DEFAULT 'Niger'::character varying,
+    telephone character varying,
+    email character varying,
+    site_web character varying,
+    numero_agrement character varying,
+    ninea character varying,
+    registre_commerce character varying,
+    tva numeric DEFAULT 0,
+    logo_url text,
+    devise character varying DEFAULT 'FCFA'::character varying,
+    fuseau_horaire character varying DEFAULT 'Africa/Niamey'::character varying,
+    langue character varying DEFAULT 'fr'::character varying,
+    format_date character varying DEFAULT 'DD/MM/YYYY'::character varying,
+    horaires_ouverture jsonb DEFAULT '{
+        "lundi": {"ouvert": true, "debut": "08:00", "fin": "18:00"},
+        "mardi": {"ouvert": true, "debut": "08:00", "fin": "18:00"},
+        "mercredi": {"ouvert": true, "debut": "08:00", "fin": "18:00"},
+        "jeudi": {"ouvert": true, "debut": "08:00", "fin": "18:00"},
+        "vendredi": {"ouvert": true, "debut": "08:00", "fin": "18:00"},
+        "samedi": {"ouvert": false, "debut": "08:00", "fin": "12:00"},
+        "dimanche": {"ouvert": false, "debut": "", "fin": ""}
+    }'::jsonb,
+    mode_specialite_id bigint REFERENCES public.specialites(id),
+    created_by bigint REFERENCES public.users(id),
+    updated_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+    -- Colonnes apparence (migration 20260121)
+    favicon_url character varying(500),
+    titre_page character varying(255),
+    couleur_principale character varying(50),
+    couleur_secondaire character varying(50),
+    couleur_accent character varying(50),
+    couleur_success character varying(50),
+    couleur_warning character varying(50),
+    couleur_danger character varying(50),
+    couleur_info character varying(50),
+    couleur_background character varying(50),
+    couleur_surface character varying(50),
+    couleur_texte character varying(50),
+    couleur_texte_secondaire character varying(50),
+    couleur_bordure character varying(50),
+    couleur_sidebar_fond character varying(50),
+    couleur_sidebar_texte character varying(50),
+    titre_sidebar character varying(255),
+    couleur_header_fond character varying(50),
+    couleur_header_texte character varying(50),
+    afficher_logo_header boolean DEFAULT true,
+    afficher_nom_cabinet_header boolean DEFAULT true,
+    couleur_login_gradient_debut character varying(50),
+    couleur_login_gradient_milieu character varying(50),
+    couleur_login_gradient_fin character varying(50),
+    police_famille character varying(100),
+    taille_police_base integer,
+    theme character varying(20) DEFAULT 'light',
+    -- Documents
+    document_logo_url character varying(500),
+    document_cachet_url character varying(500),
+    document_lieu_par_defaut character varying(100),
+    document_afficher_logo boolean DEFAULT true,
+    document_afficher_cachet boolean DEFAULT true,
+    document_afficher_adresse_complete boolean DEFAULT true,
+    document_couleur_principale character varying(50),
+    document_couleur_secondaire character varying(50),
+    document_couleur_bordure character varying(50),
+    certificat_titre character varying(255),
+    certificat_texte_introduction text,
+    certificat_texte_mention text,
+    certificat_footer_texte text,
+    certificat_afficher_numero_dossier boolean DEFAULT true,
+    certificat_afficher_date_emission boolean DEFAULT true,
+    ordonnance_titre character varying(255),
+    ordonnance_footer_texte text,
+    ordonnance_afficher_numero boolean DEFAULT true,
+    ordonnance_afficher_date_prescription boolean DEFAULT true,
+    ordonnance_afficher_prochain_rdv boolean DEFAULT true,
+    document_police character varying(100),
+    document_taille_police integer,
+    document_marge_haut integer,
+    document_marge_bas integer,
+    document_marge_gauche integer,
+    document_marge_droite integer,
+    document_largeur_max integer,
+    document_afficher_fond boolean DEFAULT true,
+    document_couleur_fond character varying(50),
+    document_texte_footer_general text,
+    document_afficher_telephone boolean DEFAULT true,
+    document_afficher_email boolean DEFAULT true,
+    document_afficher_site_web boolean DEFAULT false,
+    document_afficher_numero_agrement boolean DEFAULT false
+);
+
+COMMENT ON TABLE public.parametres_cabinet IS 'Table de configuration du cabinet médical';
+
+-- -------------------------------------------
+-- Table : parametres_plateforme
+-- -------------------------------------------
+CREATE TABLE IF NOT EXISTS public.parametres_plateforme (
+    id BIGSERIAL PRIMARY KEY,
+    configuration jsonb DEFAULT '{}'::jsonb,
+    created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+
+-- ============================================================================
+-- SECTION 15 : DIVERS (vaccinations, soins, posologie, statistiques)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.soins (
+    id BIGSERIAL PRIMARY KEY,
+    acte_id bigint NOT NULL REFERENCES public.actes(id),
+    type_soin character varying NOT NULL,
+    description text,
+    duree integer,
+    materiel_utilise text,
+    notes text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.vaccinations (
+    id BIGSERIAL PRIMARY KEY,
+    acte_id bigint NOT NULL REFERENCES public.actes(id),
+    vaccin_id bigint NOT NULL REFERENCES public.liste_vaccins(id),
+    dose character varying,
+    voie_administration character varying,
+    lot character varying,
+    date_expiration date,
+    notes text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.posologie_produits (
+    id BIGSERIAL PRIMARY KEY,
+    produit_id bigint NOT NULL REFERENCES public.liste_produits(id),
+    posologie text NOT NULL,
+    duree_traitement character varying,
+    instructions text,
+    actif boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.statistiques_consultations (
+    id BIGSERIAL PRIMARY KEY,
+    date_statistique date NOT NULL,
+    medecin_id bigint REFERENCES public.users(id),
+    nombre_consultations integer DEFAULT 0,
+    nombre_patients integer DEFAULT 0,
+    duree_moyenne numeric,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+-- ============================================================================
+-- SECTION 16 : REPORTING & ANALYTICS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.analyses_tendances (
+    id BIGSERIAL PRIMARY KEY,
+    nom_analyse character varying NOT NULL,
+    type_metrique character varying NOT NULL 
+        CHECK (type_metrique::text = ANY (ARRAY['consultations','revenus','patients','actes','duree']::text[])),
+    periode_analyse character varying NOT NULL 
+        CHECK (periode_analyse::text = ANY (ARRAY['jour','semaine','mois','trimestre','annee']::text[])),
+    date_debut_analyse date NOT NULL,
+    date_fin_analyse date NOT NULL,
+    donnees_tendance jsonb NOT NULL,
+    coefficient_tendance numeric,
+    r_squared numeric,
+    prediction_prochaine_periode numeric,
+    intervalle_confiance jsonb,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.rapports_exportables (
+    id BIGSERIAL PRIMARY KEY,
+    nom_rapport character varying NOT NULL,
+    type_rapport character varying NOT NULL 
+        CHECK (type_rapport::text = ANY (ARRAY['consultations','finances','actes','patients','medecins','complet']::text[])),
+    format_export character varying NOT NULL 
+        CHECK (format_export::text = ANY (ARRAY['pdf','excel','csv','json']::text[])),
+    parametres_filtres jsonb,
+    date_debut date,
+    date_fin date,
+    statut character varying DEFAULT 'en_cours'::character varying 
+        CHECK (statut::text = ANY (ARRAY['en_cours','termine','erreur','annule']::text[])),
+    url_fichier character varying,
+    taille_fichier bigint,
+    duree_generation integer,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now(),
+    completed_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.modeles_rapports (
+    id BIGSERIAL PRIMARY KEY,
+    nom_modele character varying NOT NULL,
+    description text,
+    type_rapport character varying NOT NULL,
+    parametres_defaut jsonb,
+    colonnes_a_inclure jsonb,
+    filtres_defaut jsonb,
+    ordre_tri jsonb,
+    actif boolean DEFAULT true,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.previsions (
+    id BIGSERIAL PRIMARY KEY,
+    nom_prevision character varying NOT NULL,
+    type_prevision character varying NOT NULL 
+        CHECK (type_prevision::text = ANY (ARRAY['consultations','revenus','patients','charge_travail']::text[])),
+    modele_utilise character varying NOT NULL 
+        CHECK (modele_utilise::text = ANY (ARRAY['lineaire','saisonniere','moyenne_mobile','exponentielle']::text[])),
+    horizon_prevision integer NOT NULL,
+    donnees_historiques jsonb NOT NULL,
+    resultats_prevision jsonb NOT NULL,
+    precision_modele numeric,
+    date_creation timestamp with time zone DEFAULT now(),
+    created_by bigint REFERENCES public.users(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.periodes_comparaison (
+    id BIGSERIAL PRIMARY KEY,
+    nom_comparaison character varying NOT NULL,
+    description text,
+    periode_reference jsonb NOT NULL,
+    periode_comparaison jsonb NOT NULL,
+    metriques_a_comparer jsonb NOT NULL,
+    seuil_significatif numeric DEFAULT 5.0,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.resultats_comparaison (
+    id BIGSERIAL PRIMARY KEY,
+    periode_comparaison_id bigint REFERENCES public.periodes_comparaison(id),
+    metrique character varying NOT NULL,
+    valeur_reference numeric NOT NULL,
+    valeur_comparaison numeric NOT NULL,
+    variation_absolue numeric NOT NULL,
+    variation_relative numeric NOT NULL,
+    significatif boolean DEFAULT false,
+    interpretation text,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.filtres_globaux (
+    id BIGSERIAL PRIMARY KEY,
+    nom_filtre character varying NOT NULL,
+    description text,
+    type_filtre character varying NOT NULL 
+        CHECK (type_filtre::text = ANY (ARRAY['date','utilisateur','specialite','statut','personnalise']::text[])),
+    configuration_filtre jsonb NOT NULL,
+    valeurs_defaut jsonb,
+    actif boolean DEFAULT true,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+-- ============================================================================
+-- SECTION 17 : IA & ALERTES
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.modeles_ia (
+    id BIGSERIAL PRIMARY KEY,
+    nom_modele character varying NOT NULL,
+    description text,
+    type_modele character varying NOT NULL 
+        CHECK (type_modele::text = ANY (ARRAY['prevision','classification','anomalie','optimisation']::text[])),
+    algorithme character varying NOT NULL,
+    version character varying NOT NULL,
+    parametres_modele jsonb,
+    metriques_performance jsonb,
+    statut character varying DEFAULT 'entraine'::character varying 
+        CHECK (statut::text = ANY (ARRAY['entraine','entrainement','test','production','archive']::text[])),
+    precision_modele numeric,
+    date_entrainement timestamp with time zone,
+    date_mise_production timestamp with time zone,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.predictions_ia (
+    id BIGSERIAL PRIMARY KEY,
+    modele_id bigint REFERENCES public.modeles_ia(id),
+    type_prediction character varying NOT NULL,
+    donnees_entree jsonb NOT NULL,
+    prediction jsonb NOT NULL,
+    confiance numeric,
+    intervalle_confiance jsonb,
+    date_prediction timestamp with time zone DEFAULT now(),
+    date_validation timestamp with time zone,
+    valide boolean,
+    commentaire_validation text
+);
+
+CREATE TABLE IF NOT EXISTS public.apprentissage_continu (
+    id BIGSERIAL PRIMARY KEY,
+    modele_id bigint REFERENCES public.modeles_ia(id),
+    type_action character varying NOT NULL 
+        CHECK (type_action::text = ANY (ARRAY['entrainement','evaluation','optimisation']::text[])),
+    donnees_utilisees jsonb,
+    parametres_entrainement jsonb,
+    resultats jsonb,
+    amelioration_performance numeric,
+    date_debut timestamp with time zone DEFAULT now(),
+    date_fin timestamp with time zone,
+    statut character varying DEFAULT 'en_cours'::character varying 
+        CHECK (statut::text = ANY (ARRAY['en_cours','termine','erreur']::text[]))
+);
+
+CREATE TABLE IF NOT EXISTS public.regles_alertes (
+    id BIGSERIAL PRIMARY KEY,
+    nom_regle character varying NOT NULL,
+    description text,
+    type_alerte character varying NOT NULL 
+        CHECK (type_alerte::text = ANY (ARRAY['seuil','tendance','anomalie','absence','retard']::text[])),
+    condition_alerte jsonb NOT NULL,
+    seuil_valeur numeric,
+    periode_verification integer,
+    statut character varying DEFAULT 'active'::character varying 
+        CHECK (statut::text = ANY (ARRAY['active','inactive','pause']::text[])),
+    priorite character varying DEFAULT 'normale'::character varying 
+        CHECK (priorite::text = ANY (ARRAY['basse','normale','haute','critique']::text[])),
+    destinataires jsonb,
+    message_template text,
+    actif boolean DEFAULT true,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.regles_alertes_avancees (
+    id BIGSERIAL PRIMARY KEY,
+    nom_regle character varying NOT NULL,
+    description text,
+    type_alerte character varying NOT NULL 
+        CHECK (type_alerte::text = ANY (ARRAY['anomalie','tendance','seuil_dynamique','correlation']::text[])),
+    algorithme_detection character varying NOT NULL,
+    parametres_algorithme jsonb NOT NULL,
+    seuil_sensibilite numeric DEFAULT 0.8,
+    periode_analyse integer,
+    conditions_declenchement jsonb,
+    actions_automatiques jsonb,
+    actif boolean DEFAULT true,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.historique_alertes (
+    id BIGSERIAL PRIMARY KEY,
+    regle_id bigint REFERENCES public.regles_alertes(id),
+    type_alerte character varying NOT NULL,
+    message text NOT NULL,
+    donnees_contexte jsonb,
+    statut character varying DEFAULT 'nouvelle'::character varying 
+        CHECK (statut::text = ANY (ARRAY['nouvelle','lue','traitee','ignoree']::text[])),
+    priorite character varying DEFAULT 'normale'::character varying,
+    date_declenchement timestamp with time zone DEFAULT now(),
+    date_traitement timestamp with time zone,
+    traite_par bigint REFERENCES public.users(id),
+    notes_traitement text
+);
+
+CREATE TABLE IF NOT EXISTS public.correlations_detectees (
+    id BIGSERIAL PRIMARY KEY,
+    regle_id bigint REFERENCES public.regles_alertes_avancees(id),
+    metrique_1 character varying NOT NULL,
+    metrique_2 character varying NOT NULL,
+    coefficient_correlation numeric NOT NULL,
+    significativite numeric,
+    periode_analyse jsonb,
+    interpretation text,
+    date_detection timestamp with time zone DEFAULT now()
+);
+
+
+-- ============================================================================
+-- SECTION 18 : TABLEAUX DE BORD & WIDGETS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.tableaux_bord_personnalises (
+    id BIGSERIAL PRIMARY KEY,
+    nom_tableau character varying NOT NULL,
+    description text,
+    configuration_layout jsonb,
+    parametres_rafraichissement jsonb,
+    actif boolean DEFAULT true,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.widgets_tableau_bord (
+    id BIGSERIAL PRIMARY KEY,
+    nom_widget character varying NOT NULL,
+    type_widget character varying NOT NULL 
+        CHECK (type_widget::text = ANY (ARRAY['graphique','metrique','tableau','calendrier','liste']::text[])),
+    titre character varying NOT NULL,
+    description text,
+    configuration jsonb NOT NULL,
+    position_x integer DEFAULT 0,
+    position_y integer DEFAULT 0,
+    largeur integer DEFAULT 1,
+    hauteur integer DEFAULT 1,
+    actif boolean DEFAULT true,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.tableau_bord_widgets (
+    id BIGSERIAL PRIMARY KEY,
+    tableau_bord_id bigint REFERENCES public.tableaux_bord_personnalises(id),
+    widget_id bigint REFERENCES public.widgets_tableau_bord(id),
+    position_x integer DEFAULT 0,
+    position_y integer DEFAULT 0,
+    largeur integer DEFAULT 1,
+    hauteur integer DEFAULT 1,
+    ordre_affichage integer DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS public.permissions_tableau_bord (
+    id BIGSERIAL PRIMARY KEY,
+    tableau_bord_id bigint REFERENCES public.tableaux_bord_personnalises(id),
+    user_id bigint REFERENCES public.users(id),
+    role_permission character varying NOT NULL 
+        CHECK (role_permission::text = ANY (ARRAY['lecture','modification','administration']::text[])),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.themes_tableau_bord (
+    id BIGSERIAL PRIMARY KEY,
+    nom_theme character varying NOT NULL,
+    description text,
+    configuration_theme jsonb NOT NULL,
+    actif boolean DEFAULT true,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+-- ============================================================================
+-- SECTION 19 : EXPORTS & AUTOMATISATION
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.templates_export (
+    id BIGSERIAL PRIMARY KEY,
+    nom_template character varying NOT NULL,
+    description text,
+    type_export character varying NOT NULL 
+        CHECK (type_export::text = ANY (ARRAY['pdf','excel','csv','json','xml','api']::text[])),
+    format_template jsonb NOT NULL,
+    parametres_defaut jsonb,
+    actif boolean DEFAULT true,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.exports_programmes (
+    id BIGSERIAL PRIMARY KEY,
+    nom_export character varying NOT NULL,
+    template_id bigint REFERENCES public.templates_export(id),
+    frequence character varying NOT NULL 
+        CHECK (frequence::text = ANY (ARRAY['unique','quotidien','hebdomadaire','mensuel']::text[])),
+    parametres_export jsonb,
+    destinataires jsonb,
+    derniere_execution timestamp with time zone,
+    prochaine_execution timestamp with time zone,
+    statut character varying DEFAULT 'actif'::character varying 
+        CHECK (statut::text = ANY (ARRAY['actif','inactif','pause']::text[])),
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.historique_exports (
+    id BIGSERIAL PRIMARY KEY,
+    export_programme_id bigint REFERENCES public.exports_programmes(id),
+    template_id bigint REFERENCES public.templates_export(id),
+    date_execution timestamp with time zone DEFAULT now(),
+    statut character varying NOT NULL 
+        CHECK (statut::text = ANY (ARRAY['en_cours','termine','erreur']::text[])),
+    url_fichier character varying,
+    taille_fichier bigint,
+    duree_generation integer,
+    nombre_lignes integer,
+    message_erreur text
+);
+
+CREATE TABLE IF NOT EXISTS public.taches_automatisees (
+    id BIGSERIAL PRIMARY KEY,
+    nom_tache character varying NOT NULL,
+    description text,
+    type_tache character varying NOT NULL 
+        CHECK (type_tache::text = ANY (ARRAY['rapport','alerte','nettoyage','sauvegarde','analyse']::text[])),
+    frequence character varying NOT NULL 
+        CHECK (frequence::text = ANY (ARRAY['quotidien','hebdomadaire','mensuel','trimestriel','annuel']::text[])),
+    parametres_execution jsonb,
+    derniere_execution timestamp with time zone,
+    prochaine_execution timestamp with time zone,
+    statut character varying DEFAULT 'actif'::character varying 
+        CHECK (statut::text = ANY (ARRAY['actif','inactif','pause','erreur']::text[])),
+    nombre_executions integer DEFAULT 0,
+    nombre_erreurs integer DEFAULT 0,
+    duree_moyenne_execution integer,
+    created_by bigint REFERENCES public.users(id),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.historique_taches_automatisees (
+    id BIGSERIAL PRIMARY KEY,
+    tache_id bigint REFERENCES public.taches_automatisees(id),
+    date_debut_execution timestamp with time zone DEFAULT now(),
+    date_fin_execution timestamp with time zone,
+    statut character varying NOT NULL 
+        CHECK (statut::text = ANY (ARRAY['en_cours','termine','erreur','annule']::text[])),
+    resultat jsonb,
+    message_erreur text,
+    duree_execution integer,
+    ressources_utilisees jsonb
+);
+
+
+-- ============================================================================
+-- SECTION 20 : TRANSFERTS DE DOSSIERS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.transferts_dossiers (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id bigint NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
+    consultation_id bigint REFERENCES public.consultations(id) ON DELETE SET NULL,
+    medecin_origine_id bigint NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    type_destinataire character varying(20) NOT NULL 
+        CHECK (type_destinataire IN ('cabinet','hopital','medecin')),
+    nom_destinataire character varying(255) NOT NULL,
+    adresse_destinataire text,
+    telephone_destinataire character varying(20),
+    email_destinataire character varying(255),
+    medecin_destinataire character varying(255),
+    motif_transfert text NOT NULL,
+    donnees_transferees jsonb NOT NULL DEFAULT '{}'::jsonb,
+    document_transfert_url character varying(500),
+    statut character varying(20) DEFAULT 'en_preparation' 
+        CHECK (statut IN ('en_preparation','envoye','recu','annule')),
+    date_transfert date DEFAULT CURRENT_DATE,
+    notes text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+COMMENT ON TABLE public.transferts_dossiers IS 'Table pour gérer les transferts de dossiers médicaux vers d''autres cabinets, hôpitaux ou médecins';
+
+
+-- ============================================================================
+-- SECTION 21 : FONCTIONS SQL
+-- ============================================================================
+
+-- Fonction générique updated_at trigger
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction updated_at pour parametres_cabinet
+CREATE OR REPLACE FUNCTION update_parametres_cabinet_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = timezone('utc'::text, now());
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction updated_at pour parametres_plateforme
+CREATE OR REPLACE FUNCTION update_parametres_plateforme_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = timezone('utc'::text, now());
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction updated_at pour transferts_dossiers
+CREATE OR REPLACE FUNCTION update_transferts_dossiers_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = timezone('utc'::text, now());
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction pour obtenir le rôle de l'utilisateur
+CREATE OR REPLACE FUNCTION get_user_role()
+RETURNS TEXT AS $$
+BEGIN
+    RETURN (
+        SELECT role FROM public.users WHERE auth_id = auth.uid()
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Fonction RPC : récupérer un utilisateur par username (pour login)
+CREATE OR REPLACE FUNCTION public.get_user_by_username(p_username TEXT)
+RETURNS TABLE (
+    id BIGINT,
+    email VARCHAR,
+    username VARCHAR,
+    auth_id UUID,
+    actif BOOLEAN,
+    role VARCHAR
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT u.id, u.email, u.username, u.auth_id, u.actif, u.role
+    FROM public.users u
+    WHERE u.username = p_username AND u.actif = true
+    LIMIT 1;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_user_by_username(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.get_user_by_username(TEXT) TO authenticated;
+
+-- Fonction RPC : rechercher des usernames
+CREATE OR REPLACE FUNCTION public.search_usernames(search_term TEXT)
+RETURNS TABLE (
+    id BIGINT,
+    username VARCHAR,
+    nom VARCHAR,
+    prenom VARCHAR,
+    role VARCHAR
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT u.id, u.username, u.nom, u.prenom, u.role
+    FROM public.users u
+    WHERE u.username ILIKE '%' || search_term || '%'
+    AND u.actif = true
+    ORDER BY u.username
+    LIMIT 10;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.search_usernames(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.search_usernames(TEXT) TO authenticated;
+
+-- Fonction : générer un username à partir de l'email
+CREATE OR REPLACE FUNCTION generate_username_from_email()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.username IS NULL OR NEW.username = '' THEN
+        NEW.username := LOWER(SPLIT_PART(NEW.email, '@', 1));
+        DECLARE
+            base_username VARCHAR(100);
+            counter INTEGER := 0;
+            final_username VARCHAR(100);
+        BEGIN
+            base_username := NEW.username;
+            final_username := base_username;
+            WHILE EXISTS (SELECT 1 FROM public.users WHERE username = final_username AND id != COALESCE(NEW.id, 0)) LOOP
+                counter := counter + 1;
+                final_username := base_username || counter::TEXT;
+            END LOOP;
+            NEW.username := final_username;
+        END;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction : hash password
+CREATE OR REPLACE FUNCTION public.hash_password(password_text TEXT)
+RETURNS TEXT AS $$
+BEGIN
+    RETURN crypt(password_text, gen_salt('bf'));
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Fonction : verify password
+CREATE OR REPLACE FUNCTION public.verify_password(password_text TEXT, password_hash TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN password_hash = crypt(password_text, password_hash);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Fonction : montant journalier par session
+CREATE OR REPLACE FUNCTION public.calculer_montant_journalier_session(p_session_id BIGINT)
+RETURNS NUMERIC(10,2) AS $$
+DECLARE
+    v_session RECORD;
+    v_total NUMERIC(10,2);
+BEGIN
+    SELECT date_session, caissier_id INTO v_session
+    FROM public.sessions_caisse WHERE id = p_session_id;
+    IF NOT FOUND THEN RETURN 0; END IF;
+    SELECT COALESCE(SUM(montant), 0) INTO v_total
+    FROM public.paiements
+    WHERE DATE(date_paiement) = v_session.date_session
+      AND statut = 'effectue'
+      AND ((v_session.caissier_id IS NULL AND paiements.caissier_id IS NULL)
+           OR (v_session.caissier_id IS NOT NULL AND paiements.caissier_id = v_session.caissier_id));
+    RETURN v_total;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction : montant journalier global
+CREATE OR REPLACE FUNCTION public.calculer_montant_journalier(p_date_session DATE)
+RETURNS NUMERIC(10,2) AS $$
+DECLARE v_total NUMERIC(10,2);
+BEGIN
+    SELECT COALESCE(SUM(montant), 0) INTO v_total
+    FROM public.paiements
+    WHERE DATE(date_paiement) = p_date_session AND statut = 'effectue';
+    RETURN v_total;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Fonction : fermer session caisse
+CREATE OR REPLACE FUNCTION public.fermer_session_caisse(p_session_id BIGINT)
+RETURNS public.sessions_caisse AS $$
+DECLARE
+    v_session public.sessions_caisse;
+    v_montant NUMERIC(10,2);
+BEGIN
+    SELECT * INTO v_session FROM public.sessions_caisse WHERE id = p_session_id;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Session non trouvée'; END IF;
+    IF v_session.statut = 'fermee' THEN RAISE EXCEPTION 'Session déjà fermée'; END IF;
+    v_montant := public.calculer_montant_journalier_session(p_session_id);
+    UPDATE public.sessions_caisse
+    SET heure_fermeture = NOW(), montant_journalier = v_montant, statut = 'fermee', updated_at = NOW()
+    WHERE id = p_session_id
+    RETURNING * INTO v_session;
+    RETURN v_session;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ============================================================================
+-- SECTION 22 : TRIGGERS
+-- ============================================================================
+
+-- Trigger : auto-generate username
+DROP TRIGGER IF EXISTS generate_username_trigger ON public.users;
+CREATE TRIGGER generate_username_trigger
+    BEFORE INSERT OR UPDATE ON public.users
+    FOR EACH ROW
+    WHEN (NEW.username IS NULL OR NEW.username = '')
+    EXECUTE FUNCTION generate_username_from_email();
+
+-- Trigger : updated_at parametres_cabinet
+DROP TRIGGER IF EXISTS trigger_update_parametres_cabinet_updated_at ON public.parametres_cabinet;
+CREATE TRIGGER trigger_update_parametres_cabinet_updated_at
+    BEFORE UPDATE ON public.parametres_cabinet
+    FOR EACH ROW
+    EXECUTE FUNCTION update_parametres_cabinet_updated_at();
+
+-- Trigger : updated_at parametres_plateforme
+DROP TRIGGER IF EXISTS trigger_update_parametres_plateforme_updated_at ON public.parametres_plateforme;
+CREATE TRIGGER trigger_update_parametres_plateforme_updated_at
+    BEFORE UPDATE ON public.parametres_plateforme
+    FOR EACH ROW
+    EXECUTE FUNCTION update_parametres_plateforme_updated_at();
+
+-- Trigger : updated_at transferts_dossiers
+DROP TRIGGER IF EXISTS trigger_update_transferts_dossiers_updated_at ON public.transferts_dossiers;
+CREATE TRIGGER trigger_update_transferts_dossiers_updated_at
+    BEFORE UPDATE ON public.transferts_dossiers
+    FOR EACH ROW
+    EXECUTE FUNCTION update_transferts_dossiers_updated_at();
+
+
+-- ============================================================================
+-- SECTION 23 : INDEX
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
+CREATE INDEX IF NOT EXISTS idx_users_specialite ON public.users(specialite_id);
+CREATE INDEX IF NOT EXISTS idx_users_auth_id ON public.users(auth_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+
+CREATE INDEX IF NOT EXISTS idx_patients_nom ON public.patients(nom);
+CREATE INDEX IF NOT EXISTS idx_patients_prenom ON public.patients(prenom);
+CREATE INDEX IF NOT EXISTS idx_patients_numero_dossier ON public.patients(numero_dossier);
+CREATE INDEX IF NOT EXISTS idx_patients_medecin_traitant_id ON public.patients(medecin_traitant_id);
+
+CREATE INDEX IF NOT EXISTS idx_consultations_patient ON public.consultations(patient_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_medecin ON public.consultations(medecin_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_date ON public.consultations(date_consultation);
+CREATE INDEX IF NOT EXISTS idx_consultations_statut ON public.consultations(statut);
+CREATE INDEX IF NOT EXISTS idx_consultations_appointment ON public.consultations(appointment_id);
+
+CREATE INDEX IF NOT EXISTS idx_appointments_patient ON public.appointments(patient_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_medecin ON public.appointments(medecin_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON public.appointments(date_heure);
+
+CREATE INDEX IF NOT EXISTS idx_actes_consultation ON public.actes(consultation_id);
+CREATE INDEX IF NOT EXISTS idx_actes_medecin ON public.actes(medecin_id);
+
+CREATE INDEX IF NOT EXISTS idx_factures_consultation ON public.factures(consultation_id);
+CREATE INDEX IF NOT EXISTS idx_factures_patient ON public.factures(patient_id);
+CREATE INDEX IF NOT EXISTS idx_factures_date ON public.factures(date_facture);
+
+CREATE INDEX IF NOT EXISTS idx_waiting_queue_patient ON public.waiting_queue(patient_id);
+CREATE INDEX IF NOT EXISTS idx_waiting_queue_medecin ON public.waiting_queue(medecin_id);
+CREATE INDEX IF NOT EXISTS idx_waiting_queue_status ON public.waiting_queue(status);
+
+CREATE INDEX IF NOT EXISTS idx_ordonnances_consultation ON public.ordonnances(consultation_id);
+CREATE INDEX IF NOT EXISTS idx_certificats_consultation ON public.certificats_medicaux(consultation_id);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_ms_medecin ON public.notifications_medecin_secretaire(medecin_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_ms_secretaire ON public.notifications_medecin_secretaire(secretaire_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_ms_consultation ON public.notifications_medecin_secretaire(consultation_id);
+
+CREATE INDEX IF NOT EXISTS idx_transferts_dossiers_patient_id ON public.transferts_dossiers(patient_id);
+CREATE INDEX IF NOT EXISTS idx_transferts_dossiers_medecin_origine_id ON public.transferts_dossiers(medecin_origine_id);
+CREATE INDEX IF NOT EXISTS idx_transferts_dossiers_date_transfert ON public.transferts_dossiers(date_transfert DESC);
+CREATE INDEX IF NOT EXISTS idx_transferts_dossiers_statut ON public.transferts_dossiers(statut);
+
+CREATE INDEX IF NOT EXISTS idx_parametres_cabinet_updated_at ON public.parametres_cabinet(updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_paiements_facture ON public.paiements(facture_id);
+CREATE INDEX IF NOT EXISTS idx_paiements_date ON public.paiements(date_paiement);
+CREATE INDEX IF NOT EXISTS idx_paiements_caissier ON public.paiements(caissier_id);
+
+
+-- ============================================================================
+-- SECTION 24 : ROW LEVEL SECURITY (RLS) — Politiques de base
+-- ============================================================================
+-- NOTE : RLS est désactivé dans l'état actuel du projet pour simplifier.
+-- Pour activer, décommenter les lignes ci-dessous et les policies.
+
+-- Désactiver RLS sur toutes les tables (état de production actuel)
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+        EXECUTE format('ALTER TABLE public.%I DISABLE ROW LEVEL SECURITY', r.tablename);
+    END LOOP;
+END $$;
+
+-- Si vous voulez activer RLS, exécutez les lignes suivantes et ajoutez des policies :
+-- ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Accès authentifié" ON public.users FOR ALL USING (auth.role() = 'authenticated');
+-- (Répéter pour chaque table selon besoin)
+
+
+-- ============================================================================
+-- SECTION 25 : DONNÉES DE BASE (SEED)
+-- ============================================================================
+
+-- États dentaires par défaut
+INSERT INTO public.tooth_states (code, name, color, border_color, is_system, order_index) VALUES
+    ('HEALTHY', 'Sain', '#FAFAFA', '#E5E7EB', true, 10),
+    ('SELECTED', 'Sélectionné', '#BFDBFE', '#3B82F6', true, 20),
+    ('CARIES', 'Carie', '#FECACA', '#EF4444', true, 30),
+    ('EXTRACTED', 'Extraite', '#E5E7EB', '#9CA3AF', true, 40),
+    ('IMPLANT', 'Implant', '#E0F2FE', '#0EA5E9', false, 50),
+    ('CROWN', 'Couronne', '#FEF08A', '#EAB308', false, 60),
+    ('ROOT_CANAL', 'Trait. Racine', '#E9D5FF', '#A855F7', false, 70),
+    ('BRIDGE', 'Bridge', '#FBCFE8', '#EC4899', false, 80)
+ON CONFLICT (code) DO UPDATE SET
+    name = EXCLUDED.name,
+    color = EXCLUDED.color,
+    border_color = EXCLUDED.border_color,
+    is_system = EXCLUDED.is_system;
+
+
+-- ============================================================================
+-- SECTION 26 : STORAGE BUCKETS
+-- ============================================================================
+-- NOTE : Les buckets Storage doivent être créés via le Dashboard Supabase
+-- ou via l'API admin. Les instructions SQL ci-dessous servent de documentation.
+
+-- Buckets nécessaires :
+-- 1. cabinet-assets  : Logos, cachets, images du cabinet
+-- 2. profiles        : Photos de profil utilisateurs
+-- 3. patient-docs    : Documents patients scannés
+
+
+-- ============================================================================
+-- FIN DU SCRIPT
+-- ============================================================================
+-- 
+-- ✅ Après exécution, n'oubliez pas de :
+--   1. Créer les buckets Storage dans le Dashboard Supabase
+--   2. Configurer les variables d'environnement dans .env
+--   3. Créer les comptes utilisateurs via Supabase Auth
+--   4. Insérer les données de paramétrage (parametres_cabinet)
+--
+-- 📅 Dernière mise à jour : 2026-04-18
+-- ============================================================================- -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ - -   M I G R A T I O N   :   A j o u t   c a b i n e t _ i d   +   N o r m a l i s a t i o n   d e s   r � � l e s  
+ - -   D a t e   :   2 0 2 6 - 0 4 - 1 8  
+ - -   D e s c r i p t i o n   :    
+ - -       1 .   C o r r i g e r   l a   c o n t r a i n t e   C H E C K   s u r   u s e r s . r o l e   ( a c c e p t e r   ' c a i s s i e r ' )  
+ - -       2 .   N o r m a l i s e r   l e s   d o n n � � e s   e x i s t a n t e s   c a s h i e r   �      c a i s s i e r  
+ - -       3 .   A j o u t e r   c a b i n e t _ i d   � �   t o u t e s   l e s   t a b l e s   c r i t i q u e s  
+ - -       4 .   B a c k f i l l   l e s   d o n n � � e s   e x i s t a n t e s   a v e c   l e   p r e m i e r   c a b i n e t _ i d  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ - -   � 0 T A P E   1   :   C o r r i g e r   l e   r � � l e   ' c a s h i e r '   �      ' c a i s s i e r '  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ - -   1 a .   S u p p r i m e r   l ' a n c i e n n e   c o n t r a i n t e   C H E C K   s u r   u s e r s . r o l e  
+ A L T E R   T A B L E   p u b l i c . u s e r s   D R O P   C O N S T R A I N T   I F   E X I S T S   u s e r s _ r o l e _ c h e c k ;  
+  
+ - -   1 b .   A j o u t e r   l a   n o u v e l l e   c o n t r a i n t e   a v e c   ' c a i s s i e r '   a u   l i e u   d e   ' c a s h i e r '  
+ A L T E R   T A B L E   p u b l i c . u s e r s   A D D   C O N S T R A I N T   u s e r s _ r o l e _ c h e c k    
+         C H E C K   ( r o l e : : t e x t   =   A N Y   ( A R R A Y [ ' s e c r e t a r y ' , ' d o c t o r ' , ' a d m i n ' , ' a c c o u n t i n g ' , ' c a i s s i e r ' ] : : t e x t [ ] ) ) ;  
+  
+ - -   1 c .   N o r m a l i s e r   l e s   d o n n � � e s   e x i s t a n t e s   :   c a s h i e r   �      c a i s s i e r  
+ U P D A T E   p u b l i c . u s e r s   S E T   r o l e   =   ' c a i s s i e r '   W H E R E   r o l e   =   ' c a s h i e r ' ;  
+  
+  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ - -   � 0 T A P E   2   :   A j o u t e r   c a b i n e t _ i d   a u x   t a b l e s   c r i t i q u e s  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   � �   l a   t a b l e   u s e r s  
+ A L T E R   T A B L E   p u b l i c . u s e r s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   � �   l a   t a b l e   p a t i e n t s  
+ A L T E R   T A B L E   p u b l i c . p a t i e n t s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   � �   l a   t a b l e   a p p o i n t m e n t s  
+ A L T E R   T A B L E   p u b l i c . a p p o i n t m e n t s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   � �   l a   t a b l e   c o n s u l t a t i o n s  
+ A L T E R   T A B L E   p u b l i c . c o n s u l t a t i o n s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   � �   l a   t a b l e   w a i t i n g _ q u e u e  
+ A L T E R   T A B L E   p u b l i c . w a i t i n g _ q u e u e    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   a u x   t a b l e s   d e   n o t i f i c a t i o n s  
+ A L T E R   T A B L E   p u b l i c . n o t i f i c a t i o n s _ m e d e c i n _ s e c r e t a i r e    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . n o t i f i c a t i o n s _ s i m p l e    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . w o r k f l o w _ n o t i f i c a t i o n s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . n o t i f i c a t i o n s _ c o n s u l t a t i o n    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   a u x   t a b l e s   d e   f a c t u r a t i o n  
+ A L T E R   T A B L E   p u b l i c . f a c t u r e s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . p a i e m e n t s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . s e s s i o n s _ c a i s s e    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . r e v e r s e m e n t s _ b a n c a i r e s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   a u x   t a b l e s   m � � d i c a l e s  
+ A L T E R   T A B L E   p u b l i c . o r d o n n a n c e s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . p r e s c r i p t i o n s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . p r e s c r i p t i o n s _ p h a r m a c i e    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . c e r t i f i c a t s _ m e d i c a u x    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . a c t e s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . a c t e s _ c o n s u l t a t i o n    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . e x a m e n s _ m e d i c a u x    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . e x a m e n s _ p r e s c r i t s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . a n a l y s e s _ l a b o _ p r e s c r i t e s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   a u x   t a b l e s   d e   d o c u m e n t s  
+ A L T E R   T A B L E   p u b l i c . d o c u m e n t s _ p a t i e n t s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . p a t i e n t _ d o c u m e n t s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   a u x   t a b l e s   d e   p a r a m � � t r a g e   m � � d i c a l  
+ A L T E R   T A B L E   p u b l i c . s p e c i a l i t e s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . c o n s t a n t e s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . d i a g n o s t i c s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . m e d i c a m e n t s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . a n t e c e d e n t s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . t y p e s _ a c t e s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . t y p e s _ c e r t i f i c a t s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ A L T E R   T A B L E   p u b l i c . a s s u r a n c e s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+ - -   A j o u t e r   c a b i n e t _ i d   a u x   t r a n s f e r t s  
+ A L T E R   T A B L E   p u b l i c . t r a n s f e r t s _ d o s s i e r s    
+         A D D   C O L U M N   I F   N O T   E X I S T S   c a b i n e t _ i d   b i g i n t   R E F E R E N C E S   p u b l i c . p a r a m e t r e s _ c a b i n e t ( i d ) ;  
+  
+  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ - -   � 0 T A P E   3   :   C r � � e r   l e s   i n d e x   s u r   c a b i n e t _ i d  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ u s e r s _ c a b i n e t _ i d   O N   p u b l i c . u s e r s ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ p a t i e n t s _ c a b i n e t _ i d   O N   p u b l i c . p a t i e n t s ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ a p p o i n t m e n t s _ c a b i n e t _ i d   O N   p u b l i c . a p p o i n t m e n t s ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ c o n s u l t a t i o n s _ c a b i n e t _ i d   O N   p u b l i c . c o n s u l t a t i o n s ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ w a i t i n g _ q u e u e _ c a b i n e t _ i d   O N   p u b l i c . w a i t i n g _ q u e u e ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ n o t i f i c a t i o n s _ m s _ c a b i n e t _ i d   O N   p u b l i c . n o t i f i c a t i o n s _ m e d e c i n _ s e c r e t a i r e ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ n o t i f i c a t i o n s _ s i m p l e _ c a b i n e t _ i d   O N   p u b l i c . n o t i f i c a t i o n s _ s i m p l e ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ f a c t u r e s _ c a b i n e t _ i d   O N   p u b l i c . f a c t u r e s ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ p a i e m e n t s _ c a b i n e t _ i d   O N   p u b l i c . p a i e m e n t s ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ s e s s i o n s _ c a i s s e _ c a b i n e t _ i d   O N   p u b l i c . s e s s i o n s _ c a i s s e ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ o r d o n n a n c e s _ c a b i n e t _ i d   O N   p u b l i c . o r d o n n a n c e s ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ a c t e s _ c a b i n e t _ i d   O N   p u b l i c . a c t e s ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ s p e c i a l i t e s _ c a b i n e t _ i d   O N   p u b l i c . s p e c i a l i t e s ( c a b i n e t _ i d ) ;  
+ C R E A T E   I N D E X   I F   N O T   E X I S T S   i d x _ t r a n s f e r t s _ d o s s i e r s _ c a b i n e t _ i d   O N   p u b l i c . t r a n s f e r t s _ d o s s i e r s ( c a b i n e t _ i d ) ;  
+  
+  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ - -   � 0 T A P E   4   :   M e t t r e   � �   j o u r   l a   f o n c t i o n   g e t _ u s e r _ b y _ u s e r n a m e  
+ - -   p o u r   r e t o u r n e r   c a b i n e t _ i d  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ C R E A T E   O R   R E P L A C E   F U N C T I O N   p u b l i c . g e t _ u s e r _ b y _ u s e r n a m e ( p _ u s e r n a m e   T E X T )  
+ R E T U R N S   T A B L E   (  
+         i d   B I G I N T ,  
+         e m a i l   V A R C H A R ,  
+         u s e r n a m e   V A R C H A R ,  
+         a u t h _ i d   U U I D ,  
+         a c t i f   B O O L E A N ,  
+         r o l e   V A R C H A R ,  
+         c a b i n e t _ i d   B I G I N T  
+ )  
+ L A N G U A G E   p l p g s q l  
+ S E C U R I T Y   D E F I N E R  
+ S E T   s e a r c h _ p a t h   =   p u b l i c  
+ A S   $ $  
+ B E G I N  
+         R E T U R N   Q U E R Y  
+         S E L E C T   u . i d ,   u . e m a i l ,   u . u s e r n a m e ,   u . a u t h _ i d ,   u . a c t i f ,   u . r o l e ,   u . c a b i n e t _ i d  
+         F R O M   p u b l i c . u s e r s   u  
+         W H E R E   u . u s e r n a m e   =   p _ u s e r n a m e   A N D   u . a c t i f   =   t r u e  
+         L I M I T   1 ;  
+ E N D ;  
+ $ $ ;  
+  
+ G R A N T   E X E C U T E   O N   F U N C T I O N   p u b l i c . g e t _ u s e r _ b y _ u s e r n a m e ( T E X T )   T O   a n o n ;  
+ G R A N T   E X E C U T E   O N   F U N C T I O N   p u b l i c . g e t _ u s e r _ b y _ u s e r n a m e ( T E X T )   T O   a u t h e n t i c a t e d ;  
+  
+  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ - -   � 0 T A P E   5   :   B A C K F I L L   � �    A f f e c t e r   l e s   d o n n � � e s   e x i s t a n t e s  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ - -   I M P O R T A N T :   E x � � c u t e r   c e t t e   p a r t i e   M A N U E L L E M E N T   a p r � � s   a v o i r   v � � r i f i � �    
+ - -   l a   c o r r e s p o n d a n c e   e n t r e   u t i l i s a t e u r s   e t   c a b i n e t s .  
+ - -    
+ - -   S i   v o u s   a v e z   u n   s e u l   c a b i n e t   e t   v o u l e z   t o u t   b a c k f i l l e r   :  
+ - -    
+ - -   D O   $ $  
+ - -   D E C L A R E  
+ - -           v _ c a b i n e t _ i d   B I G I N T ;  
+ - -   B E G I N  
+ - -           S E L E C T   i d   I N T O   v _ c a b i n e t _ i d   F R O M   p u b l i c . p a r a m e t r e s _ c a b i n e t   L I M I T   1 ;  
+ - -           I F   v _ c a b i n e t _ i d   I S   N O T   N U L L   T H E N  
+ - -                   U P D A T E   p u b l i c . u s e r s   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . p a t i e n t s   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . a p p o i n t m e n t s   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . c o n s u l t a t i o n s   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . w a i t i n g _ q u e u e   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . n o t i f i c a t i o n s _ m e d e c i n _ s e c r e t a i r e   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . f a c t u r e s   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . p a i e m e n t s   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . s e s s i o n s _ c a i s s e   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . o r d o n n a n c e s   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . a c t e s   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   U P D A T E   p u b l i c . s p e c i a l i t e s   S E T   c a b i n e t _ i d   =   v _ c a b i n e t _ i d   W H E R E   c a b i n e t _ i d   I S   N U L L ;  
+ - -                   R A I S E   N O T I C E   ' B a c k f i l l   t e r m i n � �   p o u r   c a b i n e t _ i d   =   % ' ,   v _ c a b i n e t _ i d ;  
+ - -           E N D   I F ;  
+ - -   E N D   $ $ ;  
+ - -  
+ - -   P o u r   p l u s i e u r s   c a b i n e t s ,   a d a p t e r   l e   b a c k f i l l   s e l o n   v o t r e   l o g i q u e   m � � t i e r .  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ - -   F I N   D E   L A   M I G R A T I O N  
+ - -   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ 

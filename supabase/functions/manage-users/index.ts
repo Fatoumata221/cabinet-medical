@@ -23,6 +23,7 @@ interface CreateUserRequest {
   telephone?: string
   horaires_travail?: any
   duree_consultation?: number
+  cabinet_id?: number
 }
 
 interface UpdatePasswordRequest {
@@ -135,7 +136,7 @@ serve(async (req) => {
 // Fonction pour créer un utilisateur
 async function createUser(body: any, supabaseAdmin: any) {
   try {
-    const { email, password, nom, prenom, username, role, specialite, specialite_id, telephone, horaires_travail, duree_consultation } = body as CreateUserRequest
+    const { email, password, nom, prenom, username, role, specialite, specialite_id, telephone, horaires_travail, duree_consultation, cabinet_id } = body as CreateUserRequest
 
     // Validation des données
     if (!email || !password || !nom || !prenom || !role || !username) {
@@ -145,12 +146,12 @@ async function createUser(body: any, supabaseAdmin: any) {
       )
     }
 
-    // Vérifier que le rôle est valide (accepte 'caissier' mais le normalise en 'cashier')
-    const normalizedRole = role === 'caissier' ? 'cashier' : role
+    // Vérifier que le rôle est valide (accepte 'cashier' mais le normalise en 'caissier')
+    const normalizedRole = role === 'cashier' ? 'caissier' : role
 
-    if (!['admin', 'doctor', 'secretary', 'accounting', 'cashier'].includes(normalizedRole)) {
+    if (!['admin', 'doctor', 'secretary', 'accounting', 'caissier'].includes(normalizedRole)) {
       return new Response(
-        JSON.stringify({ error: 'Rôle invalide. Utilisez "admin", "doctor", "secretary", "accounting", "cashier" (ou "caissier")' }),
+        JSON.stringify({ error: 'Rôle invalide. Utilisez "admin", "doctor", "secretary", "accounting", "caissier" (ou "cashier")' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -250,6 +251,7 @@ async function createUser(body: any, supabaseAdmin: any) {
     if (telephone) userData.telephone = telephone
     if (horaires_travail) userData.horaires_travail = horaires_travail
     if (duree_consultation) userData.duree_consultation = duree_consultation
+    if (cabinet_id) userData.cabinet_id = cabinet_id
 
     const { data: newUser, error: userError } = await supabaseAdmin
       .from('users')

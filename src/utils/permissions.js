@@ -4,14 +4,18 @@
  */
 
 // Définition des rôles disponibles
+// NOTE: 'caissier' est le rôle canonique. 'cashier' est un alias pour compatibilité.
 export const ROLES = {
   ADMIN: 'admin',
   DOCTOR: 'doctor',
   SECRETARY: 'secretary',
   ACCOUNTING: 'accounting',
-  CASHIER: 'cashier',
+  CASHIER: 'caissier',  // Normalisé vers 'caissier' (valeur canonique)
   CAISSIER: 'caissier'
 };
+
+// Helper: retourne true si le rôle est un rôle caissier (accepte les deux)
+export const isCaissierRole = (role) => role === 'caissier' || role === 'cashier';
 
 // Définition des permissions par rôle
 export const PERMISSIONS = {
@@ -72,20 +76,8 @@ export const PERMISSIONS = {
     canManageSecurity: false
   },
 
-  [ROLES.CASHIER]: {
-    canViewDashboard: true,
-    canManageAppointments: false,
-    canManagePatients: false,
-    canViewConsultations: true,
-    canManageBilling: true,
-    canViewReports: true,
-    canManageSettings: false,
-    canManageAdministration: false,
-    canManageUsers: false,
-    canManageSecurity: false
-  },
-  
-  // Permissions pour les administrateurs
+
+
   [ROLES.ADMIN]: {
     canViewDashboard: true,
     canManageAppointments: true,
@@ -109,7 +101,9 @@ export const PERMISSIONS = {
 export const hasPermission = (userRole, permission) => {
   if (!userRole || !permission) return false;
   
-  const rolePermissions = PERMISSIONS[userRole];
+  // Normaliser cashier → caissier pour la recherche
+  const normalizedRole = userRole === 'cashier' ? 'caissier' : userRole;
+  const rolePermissions = PERMISSIONS[normalizedRole];
   if (!rolePermissions) return false;
   
   return rolePermissions[permission] === true;
@@ -124,8 +118,10 @@ export const hasPermission = (userRole, permission) => {
 export const hasAnyRole = (userRole, allowedRoles) => {
   if (!userRole || !allowedRoles) return false;
   
+  // Normaliser cashier → caissier
+  const normalizedRole = userRole === 'cashier' ? 'caissier' : userRole;
   const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-  return roles.includes(userRole);
+  return roles.includes(normalizedRole) || roles.includes(userRole);
 };
 
 /**
@@ -134,16 +130,16 @@ export const hasAnyRole = (userRole, allowedRoles) => {
  * @returns {string} Le nom d'affichage du rôle
  */
 export const getRoleDisplayName = (role) => {
+  const normalizedRole = role === 'cashier' ? 'caissier' : role;
   const roleNames = {
     [ROLES.ADMIN]: 'Administrateur',
     [ROLES.DOCTOR]: 'Médecin',
     [ROLES.SECRETARY]: 'Secrétaire',
     [ROLES.ACCOUNTING]: 'Comptabilité',
-    [ROLES.CAISSIER]: 'Caissier',
-    [ROLES.CASHIER]: 'Caissier'
+    [ROLES.CAISSIER]: 'Caissier'
   };
   
-  return roleNames[role] || 'Utilisateur';
+  return roleNames[normalizedRole] || 'Utilisateur';
 };
 
 /**
@@ -152,16 +148,16 @@ export const getRoleDisplayName = (role) => {
  * @returns {string} La classe CSS de couleur
  */
 export const getRoleColor = (role) => {
+  const normalizedRole = role === 'cashier' ? 'caissier' : role;
   const roleColors = {
     [ROLES.ADMIN]: 'text-red-500',
     [ROLES.DOCTOR]: 'text-blue-500',
     [ROLES.SECRETARY]: 'text-green-500',
     [ROLES.ACCOUNTING]: 'text-purple-500',
-    [ROLES.CAISSIER]: 'text-orange-500',
-    [ROLES.CASHIER]: 'text-orange-500'
+    [ROLES.CAISSIER]: 'text-orange-500'
   };
   
-  return roleColors[role] || 'text-gray-500';
+  return roleColors[normalizedRole] || 'text-gray-500';
 };
 
 /**
@@ -170,16 +166,16 @@ export const getRoleColor = (role) => {
  * @returns {string} Le nom de l'icône Lucide
  */
 export const getRoleIcon = (role) => {
+  const normalizedRole = role === 'cashier' ? 'caissier' : role;
   const roleIcons = {
     [ROLES.ADMIN]: 'Shield',
     [ROLES.DOCTOR]: 'Stethoscope',
     [ROLES.SECRETARY]: 'Users',
     [ROLES.ACCOUNTING]: 'Award',
-    [ROLES.CAISSIER]: 'Calculator',
-    [ROLES.CASHIER]: 'Calculator'
+    [ROLES.CAISSIER]: 'Calculator'
   };
   
-  return roleIcons[role] || 'User';
+  return roleIcons[normalizedRole] || 'User';
 };
 
 /**
@@ -190,6 +186,9 @@ export const getRoleIcon = (role) => {
  */
 export const isPathAccessible = (path, userRole) => {
   if (!userRole) return false;
+  
+  // Normaliser cashier → caissier
+  const normalizedRole = userRole === 'cashier' ? 'caissier' : userRole;
   
   // Définition des chemins par rôle
   const accessiblePaths = {
@@ -232,7 +231,13 @@ export const isPathAccessible = (path, userRole) => {
     ],
     [ROLES.CAISSIER]: [
       '/caissier',
-      '/caissier/caisse'
+      '/caissier/caisse',
+      '/dashboard',
+      '/caisse',
+      '/facturation',
+      '/reports',
+      '/statistics',
+      '/consultations'
     ],
     [ROLES.ACCOUNTING]: [
       '/dashboard',
@@ -241,14 +246,6 @@ export const isPathAccessible = (path, userRole) => {
       '/reports',
       '/statistics',
       '/consultations' // Lecture seule pour données financières
-    ],
-    [ROLES.CASHIER]: [
-      '/dashboard',
-      '/caisse',
-      '/facturation',
-      '/reports',
-      '/statistics',
-      '/consultations'
     ],
     [ROLES.ADMIN]: [
       '/dashboard',
@@ -265,7 +262,7 @@ export const isPathAccessible = (path, userRole) => {
     ]
   };
   
-  const paths = accessiblePaths[userRole] || [];
+  const paths = accessiblePaths[normalizedRole] || [];
   
   // Vérifier si le chemin exact ou un chemin parent est accessible
   return paths.some(accessiblePath => 

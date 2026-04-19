@@ -30,11 +30,11 @@ import {
 import { ROLES, getRoleDisplayName } from '../../utils/permissions';
 import { useToast } from '../../hooks/useToast.jsx';
 
-const FormulaireUtilisateur = () => {
+const FormulaireUtilisateur = ({ preselectedRole = null }) => {
+  const { currentUser, cabinetId } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser } = useAuth();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
   
   const [utilisateur, setUtilisateur] = useState(null);
@@ -307,6 +307,7 @@ const FormulaireUtilisateur = () => {
             prenom: formData.prenom,
             username: formData.username, // Ajout du username
             role: formData.role,
+            cabinet_id: cabinetId, // Passer le cabinet_id actif
             specialite: formData.specialite || null,
             telephone: formData.telephone || null,
             specialite_id: formData.specialite_id || null

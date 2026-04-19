@@ -27,7 +27,7 @@ import { ROLES, getRoleDisplayName, getRoleColor, getRoleIcon } from '../../util
 import { useToast } from '../../hooks/useToast.jsx';
 
 const GestionUtilisateurs = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, cabinetId } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const [utilisateurs, setUtilisateurs] = useState([]);
@@ -52,14 +52,20 @@ const GestionUtilisateurs = () => {
 
   useEffect(() => {
     fetchUtilisateurs();
-  }, []);
+  }, [cabinetId]);
 
   const fetchUtilisateurs = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('users')
         .select('*')
         .order('nom');
+        
+      if (cabinetId) {
+        query = query.eq('cabinet_id', cabinetId);
+      }
+
+      const { data, error } = await query;
       
       if (error) throw error;
       setUtilisateurs(data || []);
@@ -78,7 +84,7 @@ const GestionUtilisateurs = () => {
       doctors: users.filter(u => u.role === ROLES.DOCTOR).length,
       secretaries: users.filter(u => u.role === ROLES.SECRETARY).length,
       accounting: users.filter(u => u.role === ROLES.ACCOUNTING).length,
-      cashiers: users.filter(u => u.role === ROLES.CASHIER).length,
+      cashiers: users.filter(u => u.role === ROLES.CASHIER || u.role === 'cashier').length,
       active: users.filter(u => u.actif).length,
       inactive: users.filter(u => !u.actif).length
     };

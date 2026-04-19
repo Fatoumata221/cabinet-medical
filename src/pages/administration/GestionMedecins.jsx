@@ -25,7 +25,7 @@ import { ROLES, getRoleDisplayName } from '../../utils/permissions';
 import { useToast } from '../../hooks/useToast.jsx';
 
 const GestionMedecins = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, cabinetId } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError, showWarning } = useToast();
   const [medecins, setMedecins] = useState([]);
@@ -49,16 +49,21 @@ const GestionMedecins = () => {
   useEffect(() => {
     fetchMedecins();
     fetchSpecialites();
-  }, []);
+  }, [cabinetId]);
 
   const fetchMedecins = async () => {
     try {
-      // Récupérer les médecins avec leurs spécialités associées
-      const { data: medecinsData, error: medecinsError } = await supabase
+      let query = supabase
         .from('users')
         .select('*, specialites:specialite_id(id, nom)')
         .eq('role', ROLES.DOCTOR)
         .order('nom');
+        
+      if (cabinetId) {
+        query = query.eq('cabinet_id', cabinetId);
+      }
+        
+      const { data: medecinsData, error: medecinsError } = await query;
       
       if (medecinsError) throw medecinsError;
       
