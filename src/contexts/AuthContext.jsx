@@ -30,7 +30,36 @@ export const AuthProvider = ({ children }) => {
     try {
       setProfileLoading(true);
 
-      let profileResult = await supabase
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const sessionData = await supabase.auth.getSession().catch(() => null);
+const token = sessionData?.data?.session?.access_token || SUPABASE_ANON_KEY;
+
+if (!token) {
+  setUserProfile(null);
+  return null;
+}
+
+let profileRes = await fetch(
+  `${SUPABASE_URL}/rest/v1/users?auth_id=eq.${user.id}&select=*`,
+  { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` } }
+);
+let profileData = await profileRes.json();
+let profile = Array.isArray(profileData) && profileData.length > 0 ? profileData[0] : null;
+
+if (!profile && user.email) {
+  const emailRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(user.email)}&select=*`,
+    { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` } }
+  );
+  const emailData = await emailRes.json();
+  profile = Array.isArray(emailData) && emailData.length > 0 ? emailData[0] : null;
+}
+
+const profileError = null;
+
+      /*let profileResult = await supabase
         .from('users')
         .select('*')
         .eq('auth_id', user.id)
@@ -44,7 +73,7 @@ export const AuthProvider = ({ children }) => {
           .maybeSingle();
       }
 
-      const { data: profile, error: profileError } = profileResult;
+      const { data: profile, error: profileError } = profileResult;*/
 
       if (profileError) {
         console.warn('⚠️ [AuthContext] Erreur profil:', profileError.message);
@@ -263,10 +292,8 @@ export const AuthProvider = ({ children }) => {
 
   // ─── HELPERS ─────────────────────────────────────────────────────────────────
   const hasRole = (role) => {
-<<<<<<< HEAD
-    if (userProfile?.role) return userProfile.role === role;
+    //if (userProfile?.role) return userProfile.role === role;
     if (currentUser?.profile?.role) return currentUser.profile.role === role;
-=======
     // Normaliser cashier → caissier
     const normalizedTarget = role === 'cashier' ? 'caissier' : role;
     
@@ -283,17 +310,14 @@ export const AuthProvider = ({ children }) => {
     }
     
     // Enfin les métadonnées utilisateur comme fallback
->>>>>>> 9761463554574bc8556959719b5973853c2edd70
     const userRole = currentUser?.user_metadata?.role || currentUser?.app_metadata?.role;
     const normalizedUserRole = userRole === 'cashier' ? 'caissier' : userRole;
     return normalizedUserRole === normalizedTarget;
   };
 
   const hasAnyRole = (roles) => {
-<<<<<<< HEAD
-    if (userProfile?.role) return roles.includes(userProfile.role);
+
     if (currentUser?.profile?.role) return roles.includes(currentUser.profile.role);
-=======
     const normalizedRoles = roles.map(r => r === 'cashier' ? 'caissier' : r);
     
     // Essayer d'abord le profil en cache
@@ -309,7 +333,6 @@ export const AuthProvider = ({ children }) => {
     }
     
     // Enfin les métadonnées utilisateur comme fallback
->>>>>>> 9761463554574bc8556959719b5973853c2edd70
     const userRole = currentUser?.user_metadata?.role || currentUser?.app_metadata?.role;
     const normalizedUserRole = userRole === 'cashier' ? 'caissier' : userRole;
     return normalizedRoles.includes(normalizedUserRole);

@@ -129,23 +129,39 @@ const Login = () => {
   useEffect(() => {
   if (!showQuickLogin) return;
 
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
   const loadUsers = async () => {
-    const { data: tenants } = await supabase
-      .from('tenants')
-      .select('id, name, logo_url')
-      .not('name', 'ilike', '%default%')
-      .order('name');
+    try {
+      const [tenantsRes, usersRes] = await Promise.all([
+        fetch(
+          `${SUPABASE_URL}/rest/v1/tenants?select=id,name,logo_url&name=not.ilike.*default*&order=name`,
+          { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
+        ),
+        fetch(
+          `${SUPABASE_URL}/rest/v1/rpc/search_usernames`,
+          {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ search_term: '' })
+          }
+        )
+      ]);
 
-    const { data: users } = await supabase
-      .rpc('search_usernames', { search_term: '' });
+      const tenants = await tenantsRes.json();
+      const users = await usersRes.json();
 
-    if (tenants && users) {
-      const grouped = tenants.map(tenant => ({
-        ...tenant,
-        users: users.filter(u => u.tenant_id === tenant.id)
-      })).filter(t => t.users.length > 0);
+      if (Array.isArray(tenants) && Array.isArray(users)) {
+        const grouped = tenants.map(tenant => ({
+          ...tenant,
+          users: users.filter(u => u.tenant_id === tenant.id && u.role === 'admin')
+        })).filter(t => t.users.length > 0);
 
-      setTestUsers(grouped);
+        setTestUsers(grouped);
+      }
+    } catch (err) {
+      console.error('Erreur loadUsers:', err);
     }
   };
 
@@ -294,7 +310,34 @@ const Login = () => {
             setSuccess('Connexion réussie ! Redirection...');
             
             // Récupérer le role de l'utilisateur
-            const { data: userData } = await supabase
+            const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const roleRes = await fetch(
+  `${SUPABASE_URL}/rest/v1/rpc/search_usernames`,
+  {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ search_term: username })
+  }
+);
+const roleData = await roleRes.json();
+const userRole = Array.isArray(roleData) && roleData.length > 0
+  ? roleData.find(u => u.username === username)?.role
+  : null;
+
+setTimeout(() => {
+  if (userRole === 'admin') {
+    navigate('/cabinet-welcome');
+  } else {
+    navigate('/dashboard');
+  }
+}, 1000);
+            /*const { data: userData } = await supabase
               .from('users')
               .select('role')
               .eq('username', username)
@@ -306,7 +349,7 @@ const Login = () => {
               } else {
                 navigate('/dashboard');
               }
-            }, 1000);
+            }, 1000);*/
           }
         /*} else {
           // Nettoyer un éventuel flag obsolète si l'on se connecte avec un mot de passe normal

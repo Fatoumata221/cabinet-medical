@@ -1,4 +1,5 @@
-import { supabase } from '../lib/supabase';
+//import { supabaseQuery as supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase'
 import { notificationService } from './notificationService';
 
 export const secretaryService = {

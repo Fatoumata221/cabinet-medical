@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { fetchParametres, saveParametres } from '../services/parametrageService';
 import { useToast } from '../hooks/useToast.jsx';
+import { useAuth } from '../contexts/AuthContext';
+
 
 const PersonnalisationContext = createContext();
 
@@ -145,12 +147,17 @@ export const PersonnalisationProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const { currentUser } = useAuth();
   
   const [settings, setSettings] = useState(INITIAL_SETTINGS);
 
-  useEffect(() => {
+ useEffect(() => {
+  if (currentUser) {
     loadSettings();
-  }, []);
+  } else {
+    setLoading(false);
+  }
+}, [currentUser]);
 
   const loadSettings = async () => {
     try {

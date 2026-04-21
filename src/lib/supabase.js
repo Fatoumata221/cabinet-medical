@@ -12,11 +12,69 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    storageKey: 'sb-auth',
+    detectSessionInUrl: true,
+  },
+  global: {
+    fetch: (url, options = {}) => {
+      const { signal, ...rest } = options;
+      return fetch(url, rest);
+    }
+  }
+})
+
+/*export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    storageKey: 'sb-auth',
+    detectSessionInUrl: true,
+  },
+})*/
+export const supabaseQuery = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+  global: {
+    fetch: async (url, options = {}) => {
+      const { signal, ...rest } = options;
+      const session = await supabase.auth.getSession();
+      const token = session?.data?.session?.access_token;
+      if (token && rest.headers) {
+        rest.headers['Authorization'] = `Bearer ${token}`;
+      }
+      return fetch(url, rest);
+    }
+  }
+})
+
+/*export const supabaseQuery = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+  global: {
+    fetch: (url, options = {}) => {
+      const { signal, ...rest } = options;
+      return fetch(url, rest);
+    }
+  }
+})*/
+
+/*export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
     storage: typeof window !== 'undefined' ? window.localStorage : undefined, // Utiliser localStorage pour persistance au rechargement
     storageKey: 'sb-auth',
     detectSessionInUrl: true,
   },
-})
+})*/
 
 // Client admin pour les opérations sensibles (nécessite la clé de service)
 export const supabaseAdmin = supabaseServiceKey 
@@ -34,7 +92,29 @@ export const signIn = async (username, password) => {
     console.log('🔐 [signIn] Tentative de connexion:', { username });
 
     // 1. Trouver l'utilisateur par username via RPC (contourne RLS)
-    const { data: userData, error: userError } = await supabase
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_user_by_username`, {
+  method: 'POST',
+  headers: {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ p_username: username })
+});
+
+const userData = await rpcRes.json();
+
+if (!rpcRes.ok) {
+  console.log('❌ [signIn] Erreur recherche utilisateur:', userData);
+  return {
+    data: null,
+    error: { message: 'Nom d\'utilisateur ou mot de passe incorrect' }
+  };
+}
+    /*const { data: userData, error: userError } = await supabase
       .rpc('get_user_by_username', { p_username: username });
 
     if (userError) {
@@ -43,7 +123,7 @@ export const signIn = async (username, password) => {
         data: null,
         error: { message: 'Nom d\'utilisateur ou mot de passe incorrect' }
       };
-    }
+    }*/
 
     // La fonction RPC retourne un tableau, on prend le premier résultat
     const user = userData && userData.length > 0 ? userData[0] : null;

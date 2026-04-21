@@ -9,14 +9,13 @@ export const fetchParametres = async () => {
   try {
     // Récupérer les paramètres du cabinet
     const { data: cabinetData, error: cabinetError } = await supabase
-      .from('parametres_cabinet')
-      .select('*')
-      .single();
+  .from('parametres_cabinet')
+  .select('*')
+  .maybeSingle();
 
-    if (cabinetError && cabinetError.code !== 'PGRST116') {
-      console.error('Erreur paramètres cabinet:', cabinetError);
-      throw new Error('Impossible de charger les paramètres du cabinet.');
-    }
+if (cabinetError) {
+  console.warn('Paramètres cabinet non disponibles, utilisation des valeurs par défaut.');
+}
 
     // Récupérer les paramètres de la plateforme
     const { data: platformData, error: platformError } = await supabase

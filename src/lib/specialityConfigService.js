@@ -1,8 +1,7 @@
 // Service pour gérer la configuration du mode spécialité du cabinet
 // Récupère la configuration depuis parametres_cabinet et fournit des helpers pour le filtrage
-
+//import { supabase } from './supabase.js'
 import { supabase } from './supabase.js'
-
 // Cache pour éviter de multiples requêtes
 let cachedConfig = null
 let cacheTimestamp = null

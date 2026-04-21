@@ -5,6 +5,7 @@ import { Calendar, Plus, Save, X } from 'lucide-react';
 import PropTypes from 'prop-types';
 
 import { supabase } from '../../lib/supabase';
+//import { supabaseQuery as supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import SearchableSelect from '../common/SearchableSelect';
@@ -351,6 +352,8 @@ const RdvCreationModal = ({
         .eq('actif', true)
         .order('nom', { ascending: true });
 
+        console.log("SPECIALITES FETCH:", data);
+
       if (error) throw error;
       setSpecialites(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -396,6 +399,10 @@ const RdvCreationModal = ({
     const all = Array.from(new Set([...fromTable, ...fromDoctors]));
     return all.sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'accent' }));
   }, [doctors, specialites]);
+
+  useEffect(() => {
+  console.log("SPECIALITES DISPONIBLES:", specialitesDisponibles);
+}, [specialitesDisponibles]);
 
   const isSameDay = (dateA, dateB) => {
     if (!dateA || !dateB) return false;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabaseQuery as supabase } from '../../lib/supabase';
 import { useAlert } from '../../contexts/AlertContext';
 import SearchableSelect from '../common/SearchableSelect';
 import { 

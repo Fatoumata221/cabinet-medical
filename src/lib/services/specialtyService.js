@@ -1,5 +1,6 @@
-import { supabase } from '../supabase';
-
+//import { supabase } from '../supabase';
+//import { supabaseQuery as supabase } from '../supabase';
+import { supabase } from '../supabase'
 export const specialtyService = {
   async getAll() {
     try {

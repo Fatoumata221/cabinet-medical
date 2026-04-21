@@ -409,6 +409,22 @@ const Header = () => {
     }
   };*/
   const handleLogout = async () => {
+  try {
+    const tenantId = userProfile?.tenant_id;
+    const isAdmin = userProfile?.role === 'admin';
+    
+    await logout();
+    
+    if (isAdmin || !tenantId) {
+      navigate('/login');
+    } else {
+      navigate('/cabinet-welcome-public/' + tenantId);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error);
+  }
+};
+  /*const handleLogout = async () => {
     try {
       await logout();
       const lastTenantId = localStorage.getItem('lastTenantId');
@@ -420,7 +436,7 @@ const Header = () => {
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     }
-  };
+  };*/
 
   // Gestion des raccourcis clavier pour la recherche
   useEffect(() => {

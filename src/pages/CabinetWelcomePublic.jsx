@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Stethoscope, Shield, Calculator, Award, Lock } from 'lucide-react';
 
-const CabinetWelcome = () => {
-  const { currentUser, userProfile, login } = useAuth();
+const CabinetWelcomePublic = () => {
+  const { tenantId } = useParams();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [cabinet, setCabinet] = useState(null);
@@ -15,52 +16,21 @@ const CabinetWelcome = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (userProfile?.tenant_id) {
-      loadCabinetAndUsers();
-    }
-  }, [userProfile?.tenant_id]);
+    if (tenantId) loadCabinetAndUsers();
+  }, [tenantId]);
 
   const loadCabinetAndUsers = async () => {
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    const sessionData = await supabase.auth.getSession().catch(() => null);
-    const token = sessionData?.data?.session?.access_token || SUPABASE_ANON_KEY;
-
-    const headers = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${token}`
-    };
-
-    const [cabinetRes, usersRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${userProfile.tenant_id}&select=*`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/users?tenant_id=eq.${userProfile.tenant_id}&actif=eq.true&select=id,username,nom,prenom,role,photo_url&order=role`, { headers })
-    ]);
-
-    const cabinetData = await cabinetRes.json();
-    const usersData = await usersRes.json();
-
-    setCabinet(Array.isArray(cabinetData) ? cabinetData[0] : null);
-    setUsers(Array.isArray(usersData) ? usersData : []);
-  };
-  /*const loadCabinetAndUsers = async () => {
-
-    // Charger le cabinet
     const { data: cabinetData } = await supabase
       .from('tenants')
       .select('*')
-      .eq('id', userProfile.tenant_id)
+      .eq('id', tenantId)
       .single();
     setCabinet(cabinetData);
 
-    // Charger les utilisateurs du cabinet
     const { data: usersData } = await supabase
-      .from('users')
-      .select('id, username, nom, prenom, role, photo_url')
-      .eq('tenant_id', userProfile.tenant_id)
-      .eq('actif', true)
-      .order('role');
+      .rpc('get_quick_login_users', { p_tenant_id: tenantId });
     setUsers(usersData || []);
-  };*/
+  };
 
   const getRoleIcon = (role) => {
     switch (role) {
@@ -94,12 +64,6 @@ const CabinetWelcome = () => {
     }
   };
 
-  const handleUserClick = (user) => {
-    setSelectedUser(user);
-    setPassword('');
-    setError('');
-  };
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -119,51 +83,34 @@ const CabinetWelcome = () => {
   };
 
   return (
-    
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col items-center justify-center p-6">
-      {/* Bouton retour */}
-        <button
-        onClick={() => navigate('/login')}
-        className="absolute top-4 left-4 flex items-center space-x-2 text-gray-500 hover:text-gray-700 transition-colors"
-        >
-        <span>←</span>
-        <span className="text-sm">Changer de cabinet</span>
-        </button>
-      {/* Logo et nom du cabinet */}
+      
       <div className="text-center mb-8">
         {cabinet?.logo_url && (
-          <img
-            src={cabinet.logo_url}
-            alt="Logo cabinet"
-            className="h-24 object-contain mx-auto mb-4"
-          />
+          <img src={cabinet.logo_url} alt="Logo" className="h-24 object-contain mx-auto mb-4" />
         )}
         <h1 className="text-3xl font-bold text-gray-800">{cabinet?.name}</h1>
         <p className="text-gray-500 mt-1">Connectez-vous en tant que...</p>
       </div>
 
-      {/* Liste des utilisateurs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-4xl w-full mb-8">
         {users.map((user) => (
           <button
-            key={user.id}
-            onClick={() => handleUserClick(user)}
+            key={user.username}
+            onClick={() => { setSelectedUser(user); setPassword(''); setError(''); }}
             className={`flex flex-col items-center p-4 bg-white rounded-xl shadow hover:shadow-md transition-all border-2 ${
-              selectedUser?.id === user.id ? 'border-blue-500' : 'border-transparent'
+              selectedUser?.username === user.username ? 'border-blue-500' : 'border-transparent'
             }`}
           >
             <div className={`w-14 h-14 rounded-full ${getRoleColor(user.role)} text-white flex items-center justify-center mb-2`}>
               {getRoleIcon(user.role)}
             </div>
-            <p className="font-medium text-gray-800 text-sm text-center">
-              {user.prenom} {user.nom}
-            </p>
+            <p className="font-medium text-gray-800 text-sm text-center">{user.prenom} {user.nom}</p>
             <p className="text-xs text-gray-500">{getRoleLabel(user.role)}</p>
           </button>
         ))}
       </div>
 
-      {/* Popup mot de passe */}
       {selectedUser && (
         <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm">
           <div className="flex items-center space-x-3 mb-4">
@@ -175,7 +122,6 @@ const CabinetWelcome = () => {
               <p className="text-xs text-gray-500">{getRoleLabel(selectedUser.role)}</p>
             </div>
           </div>
-
           <form onSubmit={handleLogin}>
             <div className="relative mb-3">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -199,8 +145,15 @@ const CabinetWelcome = () => {
           </form>
         </div>
       )}
+
+      <button
+        onClick={() => navigate('/login')}
+        className="mt-6 text-sm text-gray-400 hover:text-gray-600"
+      >
+        ← Retour à la page de connexion
+      </button>
     </div>
   );
 };
 
-export default CabinetWelcome;
+export default CabinetWelcomePublic;

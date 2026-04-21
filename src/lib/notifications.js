@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+//import { supabaseQuery as supabase } from './supabase';
+import { supabase } from './supabase'
 
 // Types de notifications
 export const NOTIFICATION_TYPES = {
@@ -20,14 +21,14 @@ export const sendNotification = async (type, senderId, receiverId, consultationI
   try {
     console.log('📤 [Notifications] Envoi notification:', { type, senderId, receiverId, patientName });
     
-    // 1. Récupérer le cabinet_id de l'expéditeur
+    // 1. Récupérer le tenant_id de l'expéditeur
     const { data: senderInfos } = await supabase
       .from('users')
-      .select('cabinet_id')
+      .select('tenant_id')
       .eq('id', senderId)
       .single();
     
-    const cabinetId = senderInfos?.cabinet_id;
+    const cabinetId = senderInfos?.tenant_id;
     
     const message = generateNotificationMessage(type, patientName, additionalData.medecinName);
     const titre = generateNotificationTitle(type);
@@ -43,7 +44,7 @@ export const sendNotification = async (type, senderId, receiverId, consultationI
         .eq('actif', true);
         
       if (cabinetId) {
-        query = query.eq('cabinet_id', cabinetId);
+        query = query.eq('tenant_id', cabinetId);
       }
       
       let { data: secretaires, error: secretairesError } = await query;
@@ -68,7 +69,7 @@ export const sendNotification = async (type, senderId, receiverId, consultationI
         titre: titre,
         message: message,
         medecin_id: senderId,
-        cabinet_id: cabinetId, // Ajouter cabinet_id
+        tenant_id: cabinetId, // Ajouter tenant_id
         waiting_queue_id: additionalData.waitingQueueId || null,
         patient_id: additionalData.patientId || null,
         lu: false,
@@ -138,7 +139,7 @@ export const sendNotification = async (type, senderId, receiverId, consultationI
       message: message,
       medecin_id: type === NOTIFICATION_TYPES.PATIENT_ON_WAY ? receiverId : senderId,
       secretaire_id: type === NOTIFICATION_TYPES.PATIENT_ON_WAY ? senderId : receiverId,
-      cabinet_id: cabinetId, // Ajouter cabinet_id
+      tenant_id: cabinetId, // Ajouter tenant_id
       waiting_queue_id: additionalData.waitingQueueId || null,
       patient_id: additionalData.patientId || null,
       lu: false,
@@ -255,8 +256,8 @@ export const markAsRead = async (notificationId) => {
  */
 export const getUnreadNotifications = async (userId, userRole) => {
   try {
-    const { data: user } = await supabase.from('users').select('cabinet_id').eq('id', userId).single();
-    const cabinetId = user?.cabinet_id;
+    const { data: user } = await supabase.from('users').select('tenant_id').eq('id', userId).single();
+    const cabinetId = user?.tenant_id;
 
     let query = supabase
       .from('notifications_medecin_secretaire')
@@ -270,7 +271,7 @@ export const getUnreadNotifications = async (userId, userRole) => {
       .order('created_at', { ascending: false });
 
     if (cabinetId) {
-      query = query.eq('cabinet_id', cabinetId);
+      query = query.eq('tenant_id', cabinetId);
     }
 
     // Filtrer selon le rôle
@@ -280,11 +281,10 @@ export const getUnreadNotifications = async (userId, userRole) => {
         .eq('medecin_id', userId)
         .in('type_notification', ['patient_on_way', 'doctor_request', 'demande_autorisation']);
     } else if (userRole === 'secretary') {
-      // TOUTES les secrétaires voient TOUTES les notifications destinées aux secrétaires
-      // IMPORTANT: On ne filtre PAS par secretaire_id pour que toutes les secrétaires voient toutes les notifications
-      // On ne filtre PAS non plus par type_notification côté serveur - on filtrera côté client
-      console.log('🔵 [Notifications] Filtre secrétaire (getUnreadNotifications): AUCUN filtre côté serveur - récupération de TOUTES les notifications non lues');
-      // Pas de filtre - on récupère tout et on filtre côté client
+      query = query
+        //.not('secretaire_id', 'is', null) // uniquement les notifications destinées aux secrétaires
+        .neq('type_notification', 'patient_on_way') // exclure celles pour médecins
+        .neq('type_notification', 'doctor_request');
     }
 
     const { data, error } = await query;
@@ -300,10 +300,10 @@ export const getUnreadNotifications = async (userId, userRole) => {
     let filteredData = data || [];
     if (userRole === 'secretary' && data && data.length > 0) {
       // Exclure uniquement les notifications destinées aux médecins
-      filteredData = data.filter(n => 
+      /*filteredData = data.filter(n => 
         n.type_notification !== 'patient_on_way' && 
         n.type_notification !== 'doctor_request'
-      );
+      );*/
       console.log('🔵 [Notifications] Notifications non lues filtrées côté client (secrétaire):', filteredData.length, 'sur', data.length);
       if (filteredData.length > 0) {
         console.log('📊 [Notifications] Types de notifications trouvées pour secrétaire:', filteredData.map(n => n.type_notification));
@@ -325,8 +325,8 @@ export const getUnreadNotifications = async (userId, userRole) => {
  */
 export const getAllNotifications = async (userId, userRole, limit = 50) => {
   try {
-    const { data: user } = await supabase.from('users').select('cabinet_id').eq('id', userId).single();
-    const cabinetId = user?.cabinet_id;
+    const { data: user } = await supabase.from('users').select('tenant_id').eq('id', userId).single();
+    const cabinetId = user?.tenant_id;
 
     let query = supabase
       .from('notifications_medecin_secretaire')
@@ -340,7 +340,7 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
       .limit(limit * 2);
 
     if (cabinetId) {
-      query = query.eq('cabinet_id', cabinetId);
+      query = query.eq('tenant_id', cabinetId);
     }
 
     // Filtrer selon le rôle
@@ -349,7 +349,13 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
       query = query
         .eq('medecin_id', userId)
         .in('type_notification', ['patient_on_way', 'doctor_request', 'demande_autorisation']);
-    } else if (userRole === 'secretary') {
+    }else if (userRole === 'secretary') {
+  query = query
+   // .not('secretaire_id', 'is', null)
+    .neq('type_notification', 'patient_on_way')
+    .neq('type_notification', 'doctor_request');
+} 
+    /*else if (userRole === 'secretary') {
       // TOUTES les secrétaires voient TOUTES les notifications destinées aux secrétaires
       // IMPORTANT: On ne filtre PAS par secretaire_id pour que toutes les secrétaires voient toutes les notifications
       // On ne filtre PAS non plus par type_notification côté serveur - on filtrera côté client
@@ -357,7 +363,7 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
       console.log('🔵 [Notifications] Filtre secrétaire (getAllNotifications): AUCUN filtre côté serveur - récupération de TOUTES les notifications');
       console.log('🔵 [Notifications] User ID passé:', userId, '- Ce paramètre n\'est PAS utilisé pour filtrer les notifications secrétaire');
       // Pas de filtre - on récupère tout et on filtre côté client
-    }
+    }*/
 
     console.log('🔍 [Notifications] Exécution de la requête getAllNotifications...');
     const { data, error } = await query;
@@ -374,10 +380,10 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
     let filteredData = data || [];
     if (userRole === 'secretary' && data && data.length > 0) {
       // Exclure uniquement les notifications destinées aux médecins
-      filteredData = data.filter(n => 
+      /*filteredData = data.filter(n => 
         n.type_notification !== 'patient_on_way' && 
         n.type_notification !== 'doctor_request'
-      );
+      );*/
       console.log('🔵 [Notifications] Notifications filtrées côté client (secrétaire):', filteredData.length, 'sur', data.length);
       console.log('📊 [Notifications] Types de notifications trouvées pour secrétaire:', filteredData.map(n => n.type_notification));
       console.log('📊 [Notifications] IDs des notifications avec secretaire_id:', filteredData.map(n => ({ id: n.id, type: n.type_notification, secretaire_id: n.secretaire_id })));
@@ -407,8 +413,8 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
  */
 export const markAllAsRead = async (userId, userRole) => {
   try {
-    const { data: user } = await supabase.from('users').select('cabinet_id').eq('id', userId).single();
-    const cabinetId = user?.cabinet_id;
+    const { data: user } = await supabase.from('users').select('tenant_id').eq('id', userId).single();
+    const cabinetId = user?.tenant_id;
 
     let query = supabase
       .from('notifications_medecin_secretaire')
@@ -419,7 +425,7 @@ export const markAllAsRead = async (userId, userRole) => {
       .eq('lu', false);
 
     if (cabinetId) {
-      query = query.eq('cabinet_id', cabinetId);
+      query = query.eq('tenant_id', cabinetId);
     }
 
     // Filtrer selon le rôle
@@ -496,15 +502,16 @@ export const subscribeToNotifications = (userId, userRole, callback) => {
         });
       return channel;
     } else if (userRole === 'secretary') {
-        // Filtrer par cabinet_id via getUnreadNotifications callback logic ou au moment de récupérer les events.
-      // Pour une vraie isolation RLS, la souscription doit être associée au filtre eq.cabinet_id ou via supabase.auth
+        // Filtrer par tenant_id via getUnreadNotifications callback logic ou au moment de récupérer les events.
+      // Pour une vraie isolation RLS, la souscription doit être associée au filtre eq.tenant_id ou via supabase.auth
       // Etant donné la limitation du channel public, nous filtrons toutes les notifications sauf celles des médecins
       const channel = supabase
         .channel(`notifications_secretaires_shared`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
-          table: 'notifications_medecin_secretaire'
+          table: 'notifications_medecin_secretaire',
+          //filter: 'secretaire_id=not.is.null'
           // Pas de filtre strict sur cabinet ici pour ne pas avoir de problème d'async dans setup, on gèrera via db view/rls
         }, (payload) => {
           console.log('🔔 [Notifications] Changement détecté:', payload);

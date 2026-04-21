@@ -79,6 +79,7 @@ const TestSimple = lazy(() => import('./pages/TestSimple'));
 const TestAuth = lazy(() => import('./pages/TestAuth'));
 const TestSpecialityFilter = lazy(() => import('./pages/test/TestSpecialityFilter'));
 const CabinetWelcome = lazy(() => import('./pages/CabinetWelcome'));
+const CabinetWelcomePublic = lazy(() => import('./pages/CabinetWelcomePublic'));
 
 // Pages de paramétrage (chargement à la demande)
 const ParametragePage = lazy(() => import('./pages/parametrage/ParametragePage'));
@@ -323,6 +324,7 @@ const AppContent = () => {
     }, [hasRole]);
     return null;
   };
+
 
   // Composant pour initialiser la configuration de spécialité au démarrage
   const SpecialityConfigInitializer = () => {
@@ -1104,6 +1106,12 @@ const AppContent = () => {
           <ProtectedRoute allowedRoles={['admin']}>
             <LazyPageWrapper Component={CabinetWelcome} message="Chargement..." />
           </ProtectedRoute>
+        } />
+
+        <Route path="/cabinet-welcome-public/:tenantId" element={
+          <Suspense fallback={<LoadingSpinner message="Chargement..." />}>
+            <CabinetWelcomePublic />
+          </Suspense>
         } />
 
         {/* Page d'accès refusé */}
