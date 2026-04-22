@@ -413,6 +413,27 @@ const Header = () => {
     const tenantId = userProfile?.tenant_id;
     const isAdmin = userProfile?.role === 'admin';
     
+    // Naviguer D'ABORD, déconnecter ensuite
+    if (isAdmin || !tenantId) {
+      navigate('/login');
+    } else {
+      navigate('/cabinet-welcome-public/' + tenantId);
+    }
+    
+    // Petit délai pour que la navigation se fasse avant la déconnexion
+    setTimeout(async () => {
+      await logout();
+    }, 100);
+    
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error);
+  }
+};
+  /*const handleLogout = async () => {
+  try {
+    const tenantId = userProfile?.tenant_id;
+    const isAdmin = userProfile?.role === 'admin';
+    
     await logout();
     
     if (isAdmin || !tenantId) {
@@ -423,7 +444,7 @@ const Header = () => {
   } catch (error) {
     console.error('Erreur lors de la déconnexion:', error);
   }
-};
+};*/
   /*const handleLogout = async () => {
     try {
       await logout();

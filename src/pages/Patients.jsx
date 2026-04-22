@@ -273,9 +273,15 @@ const PatientsPage = () => {
         alert('Patient modifié avec succès');
       } else {
         // Ajout
+        const { data: userProfile } = await supabase
+          .from('users')
+          .select('tenant_id')
+          .eq('auth_id', (await supabase.auth.getUser()).data.user?.id)
+          .single();
+
         const { error } = await supabase
           .from('patients')
-          .insert([formData]);
+          .insert([{ ...formData, tenant_id: userProfile?.tenant_id }]);
         
         if (error) throw error;
         alert('Patient ajouté avec succès');

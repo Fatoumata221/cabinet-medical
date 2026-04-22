@@ -375,6 +375,7 @@ const AppContent = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/cabinet-welcome-public/:tenantId" element={<CabinetWelcome />} />
         {/* Routes de test */}
         <Route path="/test-simple" element={
           <LazyComponentWrapper Component={TestSimple} message="Chargement du test..." />

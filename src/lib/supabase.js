@@ -24,16 +24,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-/*export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'sb-auth',
-    detectSessionInUrl: true,
-  },
-})*/
-export const supabaseQuery = createClient(supabaseUrl, supabaseAnonKey, {
+/*export const supabaseQuery = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
@@ -50,32 +41,10 @@ export const supabaseQuery = createClient(supabaseUrl, supabaseAnonKey, {
       return fetch(url, rest);
     }
   }
-})
-
-/*export const supabaseQuery = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
-  },
-  global: {
-    fetch: (url, options = {}) => {
-      const { signal, ...rest } = options;
-      return fetch(url, rest);
-    }
-  }
 })*/
 
-/*export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined, // Utiliser localStorage pour persistance au rechargement
-    storageKey: 'sb-auth',
-    detectSessionInUrl: true,
-  },
-})*/
-
+// Alias pour compatibilité
+export const supabaseQuery = supabase;
 // Client admin pour les opérations sensibles (nécessite la clé de service)
 export const supabaseAdmin = supabaseServiceKey 
   ? createClient(supabaseUrl, supabaseServiceKey, {
@@ -114,16 +83,7 @@ if (!rpcRes.ok) {
     error: { message: 'Nom d\'utilisateur ou mot de passe incorrect' }
   };
 }
-    /*const { data: userData, error: userError } = await supabase
-      .rpc('get_user_by_username', { p_username: username });
-
-    if (userError) {
-      console.log('❌ [signIn] Erreur recherche utilisateur:', userError.message);
-      return {
-        data: null,
-        error: { message: 'Nom d\'utilisateur ou mot de passe incorrect' }
-      };
-    }*/
+    
 
     // La fonction RPC retourne un tableau, on prend le premier résultat
     const user = userData && userData.length > 0 ? userData[0] : null;

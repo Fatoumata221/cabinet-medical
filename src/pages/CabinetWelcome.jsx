@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Stethoscope, Shield, Calculator, Award, Lock } from 'lucide-react';
 
+
 const CabinetWelcome = () => {
   const { currentUser, userProfile, login } = useAuth();
+  const { tenantId: tenantIdFromUrl } = useParams(); // ← ajoute ça
   const navigate = useNavigate();
+  const tenantId = tenantIdFromUrl || userProfile?.tenant_id;
   const [users, setUsers] = useState([]);
   const [cabinet, setCabinet] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -14,13 +17,19 @@ const CabinetWelcome = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
+  /*useEffect(() => {
     if (userProfile?.tenant_id) {
       loadCabinetAndUsers();
     }
-  }, [userProfile?.tenant_id]);
+  }, [userProfile?.tenant_id]);*/
 
-  const loadCabinetAndUsers = async () => {
+  useEffect(() => {
+    if (tenantId) {
+      loadCabinetAndUsers();
+    }
+  }, [tenantId]);
+
+  /*const loadCabinetAndUsers = async () => {
     const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
     const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
     const sessionData = await supabase.auth.getSession().catch(() => null);
@@ -28,7 +37,9 @@ const CabinetWelcome = () => {
 
     const headers = {
       'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${token}`
+      //'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+
     };
 
     const [cabinetRes, usersRes] = await Promise.all([
@@ -41,7 +52,7 @@ const CabinetWelcome = () => {
 
     setCabinet(Array.isArray(cabinetData) ? cabinetData[0] : null);
     setUsers(Array.isArray(usersData) ? usersData : []);
-  };
+  };*/
   /*const loadCabinetAndUsers = async () => {
 
     // Charger le cabinet
@@ -61,6 +72,28 @@ const CabinetWelcome = () => {
       .order('role');
     setUsers(usersData || []);
   };*/
+
+  const loadCabinetAndUsers = async () => {
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    // Mode public : pas besoin de token
+    const headers = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    };
+
+    const [cabinetRes, usersRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${tenantId}&select=*`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/users?tenant_id=eq.${tenantId}&actif=eq.true&select=id,username,nom,prenom,role,photo_url&order=role`, { headers })
+    ]);
+
+    const cabinetData = await cabinetRes.json();
+    const usersData = await usersRes.json();
+
+    setCabinet(Array.isArray(cabinetData) ? cabinetData[0] : null);
+    setUsers(Array.isArray(usersData) ? usersData : []);
+};
 
   const getRoleIcon = (role) => {
     switch (role) {

@@ -1,4 +1,3 @@
-//import { supabaseQuery as supabase } from './supabase';
 import { supabase } from './supabase'
 
 // Types de notifications
