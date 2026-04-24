@@ -1,4 +1,7 @@
-export const generateSynthesisPDF = (
+import { fetchParametres } from '../parametrageService.js';
+
+export const generateSynthesisPDF = async (
+    supabase,
     patient,
     consultation,
     antecedents,
@@ -7,10 +10,19 @@ export const generateSynthesisPDF = (
     examensAppareils,
     diagnostics,
     ordonnances,
-    certificats
+    certificats,
+    tenantId = null
 ) => {
     try {
+        const settings = await fetchParametres(tenantId);
+        
         let syntheseContent = '';
+      
+        syntheseContent += `${settings.nom_cabinet || 'Cabinet Médical'}\n`;
+        syntheseContent += `${settings.adresse || ''}\n`;
+        syntheseContent += `${settings.code_postal || ''} ${settings.ville || ''}\n`;
+        syntheseContent += `Tél: ${settings.telephone || ''} | Email: ${settings.email || ''}\n`;
+        syntheseContent += `\n${'='.repeat(50)}\n\n`;
       
         syntheseContent += `SYNTHÈSE DE CONSULTATION\n`;
         syntheseContent += `Date: ${new Date().toLocaleDateString('fr-FR')}\n`;

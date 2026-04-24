@@ -1,18 +1,11 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { fetchParametres } from '../parametrageService.js';
 
-export const generateFacturePDF = async (supabase, facture, forPrint = false) => {
+export const generateFacturePDF = async (supabase, facture, forPrint = false, tenantId = null) => {
   try {
-    // Récupérer les informations du cabinet
-    const { data: cabinetData, error: cabinetError } = await supabase
-      .from('parametres_cabinet')
-      .select('nom_cabinet, adresse, ville, code_postal, pays, telephone, email, logo_url')
-      .single();
-
-    if (cabinetError) {
-      console.error("Erreur lors de la récupération des informations du cabinet:", cabinetError);
-      // Fallback with default data or handle error
-    }
+    // Récupérer les paramètres du cabinet avec tenantId
+    const settings = await fetchParametres(tenantId);
 
     // Récupérer les informations du médecin depuis la consultation si disponible
     let medecinData = null;

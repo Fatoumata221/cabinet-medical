@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Stethoscope, 
   Clock, 
@@ -17,6 +18,8 @@ import {
 import PatientDocumentUploader from './PatientDocumentUploader';
 
 const GlobalWaitingQueue = ({ doctors, searchTerm, filterStatus, onDoctorSelect }) => {
+  const { userProfile } = useAuth();
+  const tenantId = userProfile?.tenant_id || null;
   const [waitingQueues, setWaitingQueues] = useState({});
   const [appointmentsByDoctor, setAppointmentsByDoctor] = useState({});
   const [loading, setLoading] = useState(true);

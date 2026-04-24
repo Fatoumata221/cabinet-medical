@@ -27,7 +27,7 @@ import { ROLES, getRoleDisplayName, getRoleColor, getRoleIcon } from '../../util
 import { useToast } from '../../hooks/useToast.jsx';
 
 const GestionUtilisateurs = () => {
-  const { currentUser, cabinetId } = useAuth();
+  const { currentUser, tenantId } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const [utilisateurs, setUtilisateurs] = useState([]);
@@ -52,7 +52,7 @@ const GestionUtilisateurs = () => {
 
   useEffect(() => {
     fetchUtilisateurs();
-  }, [cabinetId]);
+  }, [tenantId]);
 
   const fetchUtilisateurs = async () => {
     try {
@@ -61,8 +61,8 @@ const GestionUtilisateurs = () => {
         .select('*')
         .order('nom');
         
-      if (cabinetId) {
-        query = query.eq('cabinet_id', cabinetId);
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
       }
 
       const { data, error } = await query;

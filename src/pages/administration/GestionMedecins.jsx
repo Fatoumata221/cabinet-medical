@@ -25,7 +25,7 @@ import { ROLES, getRoleDisplayName } from '../../utils/permissions';
 import { useToast } from '../../hooks/useToast.jsx';
 
 const GestionMedecins = () => {
-  const { currentUser, cabinetId } = useAuth();
+  const { currentUser, tenantId } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError, showWarning } = useToast();
   const [medecins, setMedecins] = useState([]);
@@ -48,8 +48,7 @@ const GestionMedecins = () => {
 
   useEffect(() => {
     fetchMedecins();
-    fetchSpecialites();
-  }, [cabinetId]);
+  }, [tenantId]);
 
   const fetchMedecins = async () => {
     try {
@@ -59,8 +58,8 @@ const GestionMedecins = () => {
         .eq('role', ROLES.DOCTOR)
         .order('nom');
         
-      if (cabinetId) {
-        query = query.eq('cabinet_id', cabinetId);
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
       }
         
       const { data: medecinsData, error: medecinsError } = await query;

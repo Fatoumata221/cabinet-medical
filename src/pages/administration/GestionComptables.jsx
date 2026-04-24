@@ -23,7 +23,7 @@ import { ROLES, getRoleDisplayName, getRoleColor } from '../../utils/permissions
 import { useToast } from '../../hooks/useToast.jsx';
 
 const GestionComptables = () => {
-  const { currentUser, cabinetId } = useAuth();
+  const { currentUser, tenantId } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const [comptables, setComptables] = useState([]);
@@ -42,7 +42,7 @@ const GestionComptables = () => {
 
   useEffect(() => {
     fetchComptables();
-  }, [cabinetId]);
+  }, [tenantId]);
 
   const fetchComptables = async () => {
     try {
@@ -52,8 +52,8 @@ const GestionComptables = () => {
         .eq('role', ROLES.ACCOUNTING)
         .order('nom');
         
-      if (cabinetId) {
-        query = query.eq('cabinet_id', cabinetId);
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
       }
 
       const { data, error } = await query;

@@ -15,15 +15,20 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     storageKey: 'sb-auth',
     detectSessionInUrl: true,
+    lock: (name, acquireTimeout, fn) => fn(), // ← désactive les locks
   },
   global: {
     fetch: (url, options = {}) => {
       const { signal, ...rest } = options;
-      return fetch(url, rest);
+      return fetch(url, rest).catch(err => {
+        if (err?.name === 'AbortError') return new Response('{}', { status: 200 });
+        throw err;
+      });
     }
   }
 })
 
+//export const supabaseQuery = supabase;
 /*export const supabaseQuery = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false,

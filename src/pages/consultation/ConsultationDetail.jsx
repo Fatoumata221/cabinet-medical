@@ -53,7 +53,7 @@ const ConsultationDetail = () => {
 
   const { dialogState, showConfirm, showSuccess: showSuccessDialog, closeDialog } = useConfirmDialog();
   const { showError, showWarning } = useAlert();
-  const { userProfile, hasRole } = useAuth();
+  const { userProfile, hasRole, tenantId } = useAuth();
 
   const id = paramId || searchParams.get('id');
 
@@ -287,8 +287,9 @@ const ConsultationDetail = () => {
     }
   };
 
-  const handlePrintReport = () => {
-    printConsultationReport(
+  const handlePrintReport = async () => {
+    await printConsultationReport(
+      supabase,
       patient,
       consultation,
       antecedents,
@@ -298,7 +299,8 @@ const ConsultationDetail = () => {
       syntheses,
       diagnostics,
       ordonnances,
-      certificats
+      certificats,
+      tenantId
     );
   };
 
@@ -628,8 +630,8 @@ const ConsultationDetail = () => {
             typesCertificatsRef={referenceData.typesCertificatsRef}
             id={consultation.id}
             consultation={consultation}
-            generateCertificatsPDF={() => generateCertificatsPDF(certificats, patient, medecinInfo)}
-            generateSingleCertificatPDF={(certificat) => generateSingleCertificatPDF(certificat, patient, medecinInfo)}
+            generateCertificatsPDF={() => generateCertificatsPDF(supabase, certificats, patient, medecinInfo, tenantId)}
+            generateSingleCertificatPDF={(certificat) => generateSingleCertificatPDF(supabase, certificat, patient, medecinInfo, tenantId)}
           />
         )}
         {activeTab === 'synthese' && (

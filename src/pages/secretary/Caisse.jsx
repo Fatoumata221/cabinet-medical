@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROLES } from '../../utils/permissions';
+import { notificationService } from '../../services/notificationService';
 import { useReactToPrint } from 'react-to-print';
 import {
   CheckCircleIcon,
@@ -1080,12 +1081,18 @@ const Caisse = () => {
   }, [viewMode, supervisionPeriod, selectedCaissier]);
 
   useEffect(() => {
+    const tenantId = userProfile?.tenant_id;
+    if (!tenantId) {
+      setCabinet(null);
+      return;
+    }
     supabase
       .from('parametres_cabinet')
       .select('nom_cabinet, adresse, ville, code_postal, telephone, email, logo_url')
+      .eq('tenant_id', tenantId)
       .maybeSingle()
       .then((r) => setCabinet(r.data || null));
-  }, []);
+  }, [userProfile?.tenant_id]);
 
   // Ouvrir la caisse (réinitialisation matinale + fond de caisse)
   const handleOpenCaisse = async () => {
@@ -1402,7 +1409,7 @@ const Caisse = () => {
       }
 
       // 3) Enregistrement du paiement à la caisse
-      const { error: payErr } = await supabase.from('paiements').insert({
+      const { data: paiementDataResult, error: payErr } = await supabase.from('paiements').insert({
         facture_id: selectedFacture.id,
         montant: montantPaye,
         mode_paiement: paiementData.mode_paiement,
@@ -1410,9 +1417,21 @@ const Caisse = () => {
         caissier_id: caissierId,
         notes: paiementData.notes,
         statut: 'effectue',
-      });
+      }).select().single();
 
       if (payErr) throw payErr;
+
+      // Notifier les caissiers du paiement effectué
+      const patient = selectedFacture.consultations?.patients;
+      const patientName = patient ? `${patient.prenom} ${patient.nom}` : 'Patient';
+      const cashierName = userProfile ? `${userProfile.prenom} ${userProfile.nom}` : 'Caissier';
+      await notificationService.notifyCashierPaymentMade(
+        paiementDataResult.id,
+        patientName,
+        montantPaye,
+        cashierName,
+        userProfile?.tenant_id || null
+      );
 
       // Générer la facture pour ce paiement (même modèle que Récapitulatif)
       const facturePaiementHtml = buildFacturePaiementHtml(

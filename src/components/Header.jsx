@@ -287,7 +287,17 @@ const Header = () => {
         // Rediriger vers la page Introduction Patient
         navigate('/introduction-patient');
       } else if (notification.type_notification === 'consultation_ended' || notification.type_notification === 'consultation_terminee') {
-        console.log('✅ [Header] Type consultation_ended détecté - Redirection vers page de completion');
+        console.log('✅ [Header] Type consultation_ended détecté');
+        
+        // Les caissiers ne sont pas redirigés vers la page de completion
+        const userRole = userProfile?.role;
+        if (userRole === 'caissier' || userRole === 'cashier') {
+          console.log('🚫 [Header] Caissier - Pas de redirection pour consultation_ended');
+          setShowNotifications(false);
+          return;
+        }
+        
+        console.log('✅ [Header] Redirection vers page de completion');
         // Fermer le panneau de notifications
         setShowNotifications(false);
         

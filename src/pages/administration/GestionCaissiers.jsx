@@ -18,7 +18,7 @@ import { ROLES } from '../../utils/permissions';
 import { useToast } from '../../hooks/useToast.jsx';
 
 const GestionCaissiers = () => {
-  const { currentUser, cabinetId } = useAuth();
+  const { currentUser, tenantId } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const [caissiers, setCaissiers] = useState([]);
@@ -37,7 +37,7 @@ const GestionCaissiers = () => {
 
   useEffect(() => {
     fetchCaissiers();
-  }, [cabinetId]);
+  }, [tenantId]);
 
   const fetchCaissiers = async () => {
     try {
@@ -47,8 +47,8 @@ const GestionCaissiers = () => {
         .in('role', ['caissier', 'cashier'])
         .order('nom');
         
-      if (cabinetId) {
-        query = query.eq('cabinet_id', cabinetId);
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
       }
 
       const { data, error } = await query;

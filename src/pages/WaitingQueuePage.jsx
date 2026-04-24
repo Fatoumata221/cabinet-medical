@@ -456,6 +456,10 @@ const WaitingQueuePage = () => {
     try {
       console.log('➕ [WaitingQueue] Ajout d\'un nouveau patient:', patientData);
       
+      // Générer le numéro de dossier automatiquement
+      const { generateNumeroDossier } = await import('../services/patientService');
+      const numeroDossier = await generateNumeroDossier();
+      
       // Créer le patient dans la base de données
       console.log('👤 [WaitingQueue] Création du patient dans la base...');
       const { data: newPatient, error: patientError } = await supabase
@@ -464,7 +468,7 @@ const WaitingQueuePage = () => {
           nom: patientData.nom,
           prenom: patientData.prenom,
           telephone: patientData.telephone,
-          numero_dossier: `P${Date.now()}`
+          numero_dossier: numeroDossier
         }])
         .select()
         .single();

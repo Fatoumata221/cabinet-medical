@@ -11,6 +11,7 @@ import {
   X,
   CheckCircle
 } from 'lucide-react';
+import { generateNumeroDossier } from '../../services/patientService';
 
 const PatientForm = ({ 
   initialData = null,
@@ -63,6 +64,15 @@ const PatientForm = ({
   useEffect(() => {
     fetchAssurances();
   }, []);
+
+  // Générer automatiquement le numéro de dossier pour un nouveau patient
+  useEffect(() => {
+    if (!initialData) {
+      generateNumeroDossier().then(numero => {
+        setFormData(prev => ({ ...prev, numero_dossier: numero }));
+      });
+    }
+  }, [initialData]);
 
   // Initialiser avec les données existantes si fournies
   useEffect(() => {

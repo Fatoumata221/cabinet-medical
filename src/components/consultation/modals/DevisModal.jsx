@@ -3,6 +3,7 @@ import { useTypesActes } from '../../../hooks/useTypesActes';
 import { supabase } from '../../../lib/supabase';
 import { generateDevisPDF } from '../../../services/impression/devisPdf';
 import { useToast } from '../../../hooks/useToast';
+import { useAuth } from '../../../contexts/AuthContext';
 import { 
   X, 
   Plus, 
@@ -24,6 +25,7 @@ const DevisModal = ({
   medecinNom,
   onClose 
 }) => {
+  const { tenantId } = useAuth();
   const { typesActes, loading: loadingActes } = useTypesActes();
   const { showSuccess, showError, showWarning } = useToast();
   
@@ -122,7 +124,7 @@ const DevisModal = ({
         observations
       };
 
-      const result = await generateDevisPDF(supabase, devisData, false);
+      const result = await generateDevisPDF(supabase, devisData, false, tenantId);
       if (result.success) {
         showSuccess('Devis généré avec succès');
       } else {
@@ -166,7 +168,7 @@ const DevisModal = ({
         observations
       };
 
-      const result = await generateDevisPDF(supabase, devisData, true);
+      const result = await generateDevisPDF(supabase, devisData, true, tenantId);
       if (result.success) {
         showSuccess('Devis envoyé à l\'impression');
       } else {

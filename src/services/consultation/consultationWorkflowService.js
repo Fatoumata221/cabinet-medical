@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { notificationService } from '../notificationService';
 
 export const consultationWorkflowService = {
   // Récupère toutes les données liées à une consultation en parallèle
@@ -50,7 +51,7 @@ export const consultationWorkflowService = {
   },
   
   // Crée une nouvelle facture
-  createFacture: async (consultation, montantTotal) => {
+  createFacture: async (consultation, montantTotal, tenantId = null) => {
     const { data, error } = await supabase
       .from('factures')
       .insert({
@@ -69,6 +70,11 @@ export const consultationWorkflowService = {
       .single();
 
     if (error) throw error;
+
+    // Notifier les caissiers de la nouvelle facture
+    const patientName = consultation.patients ? `${consultation.patients.prenom} ${consultation.patients.nom}` : 'Patient';
+    await notificationService.notifyCashierNewInvoice(data.id, patientName, montantTotal, tenantId);
+
     return data;
   }
 };

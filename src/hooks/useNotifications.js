@@ -122,12 +122,27 @@ export const useNotifications = () => {
     if (!userProfile?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('notifications_medecin_secretaire')
-        .select('*')
-        .or(`medecin_id.eq.${userProfile.id},secretaire_id.eq.${userProfile.id}`)
-        .order('created_at', { ascending: false })
-        .limit(100);
+      let query;
+      
+      // Les caissiers reçoivent leurs notifications spécifiques
+      if (userProfile?.role === 'caissier' || userProfile?.role === 'cashier') {
+        query = supabase
+          .from('notifications_medecin_secretaire')
+          .select('*')
+          .eq('caissier_id', userProfile.id)
+          .order('created_at', { ascending: false })
+          .limit(100);
+      } else {
+        // Les médecins et secrétaires reçoivent les notifications médecin-secrétaire
+        query = supabase
+          .from('notifications_medecin_secretaire')
+          .select('*')
+          .or(`medecin_id.eq.${userProfile.id},secretaire_id.eq.${userProfile.id}`)
+          .order('created_at', { ascending: false })
+          .limit(100);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -168,7 +183,7 @@ export const useNotifications = () => {
     } catch (error) {
       console.error('Erreur récupération notifications:', error);
     }
-  }, [userProfile?.id, notifications, playNotificationSound, triggerVibration, showBrowserNotification]);
+  }, [userProfile?.id, userProfile?.role, notifications, playNotificationSound, triggerVibration, showBrowserNotification]);
 
   // Marquer comme lu
   const markAsRead = useCallback(async (notificationId) => {
@@ -253,7 +268,12 @@ export const useNotifications = () => {
         (payload) => {
           const newNotif = payload.new;
           // Vérifier si c'est pour cet utilisateur
-          if (newNotif.medecin_id === userProfile.id || newNotif.secretaire_id === userProfile.id) {
+          const isForMe = 
+            (userProfile?.role === 'caissier' || userProfile?.role === 'cashier')
+              ? newNotif.caissier_id === userProfile.id
+              : (newNotif.medecin_id === userProfile.id || newNotif.secretaire_id === userProfile.id);
+          
+          if (isForMe) {
             console.log('Nouvelle notification temps réel:', newNotif);
             fetchNotifications();
           }
@@ -274,7 +294,7 @@ export const useNotifications = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [userProfile?.id, fetchNotifications, requestNotificationPermission]);
+  }, [userProfile?.id, userProfile?.role, fetchNotifications, requestNotificationPermission]);
 
   return {
     notifications,

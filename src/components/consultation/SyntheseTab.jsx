@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { Activity, AlertCircle, Award, Brain, Calendar, Edit, Eye, FileText, Heart, Pill, Plus, Trash2, User } from 'lucide-react';
 import { generateSynthesisPDF } from '../../services/impression/synthesePdf';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
+import { useAuth } from '../../contexts/AuthContext';
 import SyntheseModal from './modals/SyntheseModal';
 export default function SyntheseTab(
   {
@@ -25,6 +26,7 @@ export default function SyntheseTab(
     setSyntheseMode
   }
 ) {
+  const { tenantId } = useAuth();
   // Handlers détectés et injectés 
     const { showError, showInfo, showSuccess, showWarning } = useConfirmDialog();
   
@@ -148,8 +150,9 @@ export default function SyntheseTab(
     }
   };
   
-  const handleGenerateSynthesisPDF = () => {
-    const { success, error } = generateSynthesisPDF(
+  const handleGenerateSynthesisPDF = async () => {
+    const { success, error } = await generateSynthesisPDF(
+      supabase,
       patient,
       consultation,
       antecedents,
@@ -158,7 +161,8 @@ export default function SyntheseTab(
       examensAppareils,
       diagnostics,
       ordonnances,
-      certificats
+      certificats,
+      tenantId
     );
     if (!success) {
       showError(`Erreur lors de la génération du PDF: ${error}`);

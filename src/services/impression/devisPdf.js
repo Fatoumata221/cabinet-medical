@@ -1,32 +1,74 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { fetchParametres } from '../parametrageService.js';
 
 /**
  * Génère un PDF pour un devis (similaire à facture mais avec statut "Devis")
  * @param {Object} supabase - Client Supabase
  * @param {Object} devisData - Données du devis
  * @param {boolean} print - Si true, ouvre la boîte de dialogue d'impression
+ * @param {string} tenantId - Tenant ID du cabinet
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export const generateDevisPDF = async (supabase, devisData, print = false) => {
+export const generateDevisPDF = async (supabase, devisData, print = false, tenantId = null) => {
   try {
-    // Récupérer les informations du cabinet si nécessaire
-    const { data: cabinetInfo } = await supabase
-      .from('parametres_cabinet')
-      .select('*')
-      .single();
+    // Récupérer les paramètres du cabinet avec tenantId
+    const settings = await fetchParametres(tenantId);
 
     const doc = new jsPDF();
-    
-    // En-tête
+    let yPos = 20;
+
+    // Logo et nom du cabinet
+    if (settings.document_afficher_logo && (settings.document_logo_url || settings.logo_url)) {
+      try {
+        const logoUrl = settings.document_logo_url || settings.logo_url;
+        const response = await fetch(logoUrl);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        await new Promise((resolve, reject) => {
+          reader.onload = resolve;
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        doc.addImage(reader.result, 'PNG', 15, 15, 30, 30);
+        yPos = 55;
+      } catch (e) {
+        console.warn('Impossible d\'ajouter le logo:', e);
+      }
+    }
+
+    // Nom du cabinet
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text(settings.nom_cabinet || 'Cabinet Médical', 105, yPos, { align: 'center' });
+    yPos += 10;
+
+    // Adresse et contact
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    const adresse = [settings.adresse, settings.ville, settings.code_postal, settings.pays].filter(Boolean).join(', ');
+    doc.text(adresse, 105, yPos, { align: 'center' });
+    yPos += 5;
+    const contact = [settings.telephone && `Tél: ${settings.telephone}`, settings.email].filter(Boolean).join(' | ');
+    doc.text(contact, 105, yPos, { align: 'center' });
+    yPos += 15;
+
+    // En-tête devis
     doc.setFontSize(20);
-    doc.text('DEVIS', 105, 20, { align: 'center' });
-    
+    doc.setFont(undefined, 'bold');
+    doc.text('DEVIS', 105, yPos, { align: 'center' });
+    yPos += 15;
+
     doc.setFontSize(12);
-    doc.text(`Numéro: ${devisData.numero}`, 20, 35);
-    doc.text(`Date: ${new Date(devisData.date).toLocaleDateString('fr-FR')}`, 20, 45);
-    doc.text(`Patient: ${devisData.patient.prenom} ${devisData.patient.nom}`, 20, 55);
-    doc.text(`Médecin: ${devisData.medecin}`, 20, 65);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Numéro: ${devisData.numero}`, 20, yPos);
+    yPos += 10;
+    doc.text(`Date: ${new Date(devisData.date).toLocaleDateString('fr-FR')}`, 20, yPos);
+    yPos += 10;
+    doc.text(`Patient: ${devisData.patient.prenom} ${devisData.patient.nom}`, 20, yPos);
+    yPos += 10;
+    doc.text(`Médecin: ${devisData.medecin}`, 20, yPos);
+    yPos += 10;
 
     // Informations du devis
     doc.setFontSize(10);

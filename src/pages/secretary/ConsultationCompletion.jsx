@@ -5,6 +5,7 @@ import { unifiedNotificationService } from '../../services/unifiedNotificationSe
 import { printOrdonnances } from '../../services/impression/ordonnancePrint.js';
 import { printFacture } from '../../services/impression/facturePrint.js';
 import { generateCertificatsPDF } from '../../services/impression/certificatPdf.js';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   ArrowLeft,
   User,
@@ -23,6 +24,7 @@ import {
 const ConsultationCompletion = () => {
   const { consultationId } = useParams();
   const navigate = useNavigate();
+  const { tenantId } = useAuth();
 
   // États principaux
   const [loading, setLoading] = useState(true);
@@ -414,21 +416,21 @@ const ConsultationCompletion = () => {
   };
 
   const handlePrintOrdonnances = async () => {
-    const { success, error } = await printOrdonnances(supabase, ordonnances, patient, medecin, consultation);
+    const { success, error } = await printOrdonnances(supabase, ordonnances, patient, medecin, consultation, tenantId);
     if (!success) {
       unifiedNotificationService.error(`Erreur lors de l'impression des ordonnances: ${error}`);
     }
   };
 
   const handlePrintCertificats = async () => {
-    const { success, error } = await generateCertificatsPDF(certificats, patient, medecin);
+    const { success, error } = await generateCertificatsPDF(supabase, certificats, patient, medecin, tenantId);
     if (!success) {
       unifiedNotificationService.error(`Erreur lors de l'impression des certificats: ${error}`);
     }
   };
 
   const handlePrintFacture = async () => {
-    const { success, error } = await printFacture(supabase, facture, patient, medecin);
+    const { success, error } = await printFacture(supabase, facture, patient, medecin, tenantId);
     if (!success) {
       unifiedNotificationService.error(`Erreur lors de l'impression de la facture: ${error}`);
     }

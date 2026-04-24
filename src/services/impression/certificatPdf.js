@@ -2,12 +2,12 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { fetchParametres } from '../parametrageService.js';
 
-const generatePDF = async (supabase, certificats, patient, medecin) => {
+const generatePDF = async (supabase, certificats, patient, medecin, tenantId = null) => {
   try {
     const doc = new jsPDF();
 
-    // Fetch cabinet info and settings via centralized service
-    const settings = await fetchParametres();
+    // Fetch cabinet info and settings via centralized service with tenantId
+    const settings = await fetchParametres(tenantId);
     
     // Extract styles
     const primaryColor = settings.document_couleur_principale || '#000000';
@@ -187,18 +187,18 @@ const generatePDF = async (supabase, certificats, patient, medecin) => {
   }
 };
 
-export const generateCertificatsPDF = async (supabase, certificats, patient, medecin) => {
+export const generateCertificatsPDF = async (supabase, certificats, patient, medecin, tenantId = null) => {
   if (!certificats || certificats.length === 0 || !patient || !medecin) {
     console.error("Données manquantes pour générer le PDF des certificats.");
     return { success: false, error: "Données manquantes" };
   }
-  return await generatePDF(supabase, certificats, patient, medecin);
+  return await generatePDF(supabase, certificats, patient, medecin, tenantId);
 };
 
-export const generateSingleCertificatPDF = async (supabase, certificat, patient, medecin) => {
+export const generateSingleCertificatPDF = async (supabase, certificat, patient, medecin, tenantId = null) => {
   if (!certificat || !patient || !medecin) {
     console.error("Données manquantes pour générer le PDF du certificat.");
     return { success: false, error: "Données manquantes" };
   }
-  return await generatePDF(supabase, [certificat], patient, medecin);
+  return await generatePDF(supabase, [certificat], patient, medecin, tenantId);
 };

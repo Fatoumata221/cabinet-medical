@@ -28,10 +28,12 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { generateFacturePDF } from '../../services/impression/facturePdf.js';
 import { useToast } from '../../hooks/useToast';
+import { useAuth } from '../../contexts/AuthContext';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 
 const FacturationActes = () => {
+  const { tenantId } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -407,7 +409,7 @@ const FacturationActes = () => {
 
   const handleDownload = async (facture) => {
     console.log('📄 Génération PDF pour téléchargement:', facture.numero);
-    const { success, error } = await generateFacturePDF(supabase, facture, false);
+    const { success, error } = await generateFacturePDF(supabase, facture, false, tenantId);
     if (!success) {
       showError(`Erreur lors du téléchargement: ${error}`);
     }
@@ -415,7 +417,7 @@ const FacturationActes = () => {
 
   const handlePrint = async (facture) => {
     console.log('🖨️ Génération PDF pour impression:', facture.numero);
-    const { success, error } = await generateFacturePDF(supabase, facture, true);
+    const { success, error } = await generateFacturePDF(supabase, facture, true, tenantId);
     if (!success) {
       showError(`Erreur lors de l'impression: ${error}`);
     }

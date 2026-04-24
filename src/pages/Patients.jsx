@@ -296,7 +296,11 @@ const PatientsPage = () => {
     }
   };
 
-  const handleAddPatient = () => {
+  const handleAddPatient = async () => {
+    // Générer automatiquement le numéro de dossier
+    const { generateNumeroDossier } = await import('../services/patientService');
+    const numeroDossier = await generateNumeroDossier();
+    
     setFormData({
       nom: '',
       prenom: '',
@@ -305,7 +309,7 @@ const PatientsPage = () => {
       telephone: '',
       email: '',
       adresse: '',
-      numero_dossier: '',
+      numero_dossier: numeroDossier,
       lieu_naissance: '',
       nationalite: '',
       profession: '',

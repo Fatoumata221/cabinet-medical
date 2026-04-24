@@ -1,6 +1,6 @@
 import { fetchParametres } from '../parametrageService.js';
 
-export const printFacture = async (supabase, facture, patient, medecin) => {
+export const printFacture = async (supabase, facture, patient, medecin, tenantId = null) => {
     if (!facture) return { success: false, error: "Facture non disponible" };
 
     try {
@@ -10,8 +10,8 @@ export const printFacture = async (supabase, facture, patient, medecin) => {
         .eq('id', medecin?.id)
         .single();
 
-      // Utiliser le service centralisé pour récupérer tous les paramètres (y compris styles)
-      const settings = await fetchParametres();
+      // Utiliser le service centralisé pour récupérer tous les paramètres (y compris styles) avec tenantId
+      const settings = await fetchParametres(tenantId);
 
       const win = window.open('', '_blank');
       win.document.open();

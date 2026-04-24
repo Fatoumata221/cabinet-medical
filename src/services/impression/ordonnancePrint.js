@@ -1,6 +1,6 @@
 import { fetchParametres } from '../parametrageService.js';
 
-export const printOrdonnances = async (supabase, ordonnances, patient, medecin, consultation) => {
+export const printOrdonnances = async (supabase, ordonnances, patient, medecin, consultation, tenantId = null) => {
     try {
       let medecinData = medecin;
       if (!medecinData || (!medecinData.nom && !medecinData.prenom)) {
@@ -16,13 +16,13 @@ export const printOrdonnances = async (supabase, ordonnances, patient, medecin, 
           }
         }
       }
-      
+
       if (!medecinData) {
         throw new Error('Impossible de récupérer les informations du médecin');
       }
 
-      // Utiliser le service centralisé
-      const settings = await fetchParametres();
+      // Utiliser le service centralisé avec tenantId
+      const settings = await fetchParametres(tenantId);
       
       // Préparation des styles dynamiques
       const fontFamily = settings.document_police || 'sans-serif';

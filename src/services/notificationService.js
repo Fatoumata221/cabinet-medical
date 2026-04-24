@@ -12,11 +12,16 @@ export const NOTIFICATION_TYPES = {
   DOCTOR_REQUEST: 'doctor_request',
   PATIENT_ADDED: 'patient_added',
   URGENCY: 'urgency',
-  PATIENT_STATUS_CHANGE: 'patient_status_change'
+  PATIENT_STATUS_CHANGE: 'patient_status_change',
+  // Notifications caissier
+  CASHIER_NEW_INVOICE: 'cashier_new_invoice',
+  CASHIER_CONSULTATION_FINISHED: 'cashier_consultation_finished',
+  CASHIER_PAYMENT_MADE: 'cashier_payment_made',
+  CASHIER_CASH_DISCREPANCY: 'cashier_cash_discrepancy'
 };
 
 // Fonction principale pour envoyer des notifications
-export const sendNotification = async (type, fromUserId, toUserId, consultationId = null, patientName = '', metadata = {}) => {
+export const sendNotification = async (type, fromUserId, toUserId, consultationId = null, patientName = '', metadata = {}, tenantId = null) => {
   try {
     console.log('📤 [sendNotification] Envoi notification:', {
       type,
@@ -24,7 +29,8 @@ export const sendNotification = async (type, fromUserId, toUserId, consultationI
       toUserId,
       consultationId,
       patientName,
-      metadata
+      metadata,
+      tenantId
     });
 
     // Construire le message selon le type
@@ -71,7 +77,8 @@ export const sendNotification = async (type, fromUserId, toUserId, consultationI
       message: message,
       priorite: priorite,
       metadata: JSON.stringify(metadata),
-      lu: false
+      lu: false,
+      tenant_id: tenantId // Inclure tenant_id pour le multi-tenant
     };
 
     const { data, error } = await supabase
@@ -92,7 +99,7 @@ export const sendNotification = async (type, fromUserId, toUserId, consultationI
 
 export const notificationService = {
   // Créer une notification pour la secrétaire
-  async notifySecretary(notificationData) {
+  async notifySecretary(notificationData, tenantId = null) {
     try {
       // Récupérer toutes les secrétaires actives
       const { data: secretaries, error: usersError } = await supabase
@@ -111,7 +118,8 @@ export const notificationService = {
         titre: notificationData.titre || 'Changement de statut patient',
         message: notificationData.message,
         priorite: notificationData.priorite || 'normale',
-        lu: false
+        lu: false,
+        tenant_id: tenantId // Inclure tenant_id pour le multi-tenant
       }));
 
       if (rows.length === 0) return [];
@@ -132,7 +140,7 @@ export const notificationService = {
   },
 
   // Notifier quand un patient est appelé
-  async notifyPatientCalled(patientId, medecinId, patientName, doctorName) {
+  async notifyPatientCalled(patientId, medecinId, patientName, doctorName, tenantId = null) {
     try {
       await this.notifySecretary({
         type: 'patient_called',
@@ -145,7 +153,7 @@ export const notificationService = {
           action: 'called',
           timestamp: new Date().toISOString()
         }
-      });
+      }, tenantId);
 
       // Notification toast locale
       if (window.notificationManager) {
@@ -164,7 +172,7 @@ export const notificationService = {
   },
 
   // Notifier quand un patient entre en consultation
-  async notifyPatientEntered(patientId, medecinId, patientName, doctorName) {
+  async notifyPatientEntered(patientId, medecinId, patientName, doctorName, tenantId = null) {
     try {
       await this.notifySecretary({
         type: 'patient_entered',
@@ -177,7 +185,7 @@ export const notificationService = {
           action: 'entered',
           timestamp: new Date().toISOString()
         }
-      });
+      }, tenantId);
 
       // Notification toast locale
       if (window.notificationManager) {
@@ -196,7 +204,7 @@ export const notificationService = {
   },
 
   // Notifier quand une consultation est terminée
-  async notifyConsultationFinished(patientId, medecinId, patientName, doctorName) {
+  async notifyConsultationFinished(patientId, medecinId, patientName, doctorName, tenantId = null) {
     try {
       await this.notifySecretary({
         type: 'consultation_finished',
@@ -209,7 +217,10 @@ export const notificationService = {
           action: 'finished',
           timestamp: new Date().toISOString()
         }
-      });
+      }, tenantId);
+
+      // Notifier également les caissiers
+      await this.notifyCashierConsultationFinished(patientId, patientName, doctorName, tenantId);
 
       // Notification toast locale
       if (window.notificationManager) {
@@ -228,7 +239,7 @@ export const notificationService = {
   },
 
   // Notifier quand un patient est ajouté à la file d'attente
-  async notifyPatientAdded(patientId, medecinId, patientName, doctorName) {
+  async notifyPatientAdded(patientId, medecinId, patientName, doctorName, tenantId = null) {
     try {
       await this.notifySecretary({
         type: 'patient_added',
@@ -241,7 +252,7 @@ export const notificationService = {
           action: 'added',
           timestamp: new Date().toISOString()
         }
-      });
+      }, tenantId);
 
       // Notification toast locale
       if (window.notificationManager) {
@@ -260,7 +271,7 @@ export const notificationService = {
   },
 
   // Notifier une urgence
-  async notifyUrgency(patientId, medecinId, patientName, urgencyLevel) {
+  async notifyUrgency(patientId, medecinId, patientName, urgencyLevel, tenantId = null) {
     try {
       await this.notifySecretary({
         type: 'urgency',
@@ -273,7 +284,7 @@ export const notificationService = {
           urgency_level: urgencyLevel,
           timestamp: new Date().toISOString()
         }
-      });
+      }, tenantId);
 
       // Notification toast locale
       if (window.notificationManager) {
@@ -292,7 +303,7 @@ export const notificationService = {
   },
 
   // Notifier qu'un médecin va recevoir un patient
-  async notifyDoctorRequest(doctorId, patientId, patientName, doctorName) {
+  async notifyDoctorRequest(doctorId, patientId, patientName, doctorName, tenantId = null) {
     try {
       // Récupérer le nom du médecin si non fourni
       let drName = doctorName;
@@ -321,7 +332,7 @@ export const notificationService = {
           action: 'doctor_request',
           timestamp: new Date().toISOString()
         }
-      });
+      }, tenantId);
 
       // Notification toast locale
       if (window.notificationManager) {
@@ -460,6 +471,177 @@ export const notificationService = {
       return stats;
     } catch (error) {
       console.error('Erreur lors du calcul des statistiques:', error);
+      throw error;
+    }
+  },
+
+  // ========== Notifications pour les caissiers ==========
+
+  // Notifier les caissiers quand une nouvelle facture est créée
+  async notifyCashierNewInvoice(invoiceId, patientName, amount, tenantId = null) {
+    try {
+      // Récupérer tous les caissiers actifs
+      const { data: cashiers, error: usersError } = await supabase
+        .from('users')
+        .select('id')
+        .or('role.eq.caissier,role.eq.cashier')
+        .eq('actif', true);
+
+      if (usersError) throw usersError;
+
+      const rows = (cashiers || []).map((u) => ({
+        caissier_id: u.id,
+        patient_id: null,
+        type_notification: NOTIFICATION_TYPES.CASHIER_NEW_INVOICE,
+        titre: 'Nouvelle Facture',
+        message: `Nouvelle facture de ${amount} FCFA pour ${patientName}`,
+        priorite: 'normale',
+        lu: false,
+        tenant_id: tenantId,
+        metadata: JSON.stringify({ invoiceId, patientName, amount })
+      }));
+
+      if (rows.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('notifications_medecin_secretaire')
+        .insert(rows)
+        .select();
+
+      if (error) throw error;
+      
+      console.log('✅ [NotificationService] Notifications caissier (nouvelle facture):', data);
+      return data;
+    } catch (error) {
+      console.error('❌ [NotificationService] Erreur notification caissier nouvelle facture:', error);
+      throw error;
+    }
+  },
+
+  // Notifier les caissiers quand une consultation est terminée
+  async notifyCashierConsultationFinished(patientId, patientName, doctorName, tenantId = null) {
+    try {
+      // Récupérer tous les caissiers actifs
+      const { data: cashiers, error: usersError } = await supabase
+        .from('users')
+        .select('id')
+        .or('role.eq.caissier,role.eq.cashier')
+        .eq('actif', true);
+
+      if (usersError) throw usersError;
+
+      const rows = (cashiers || []).map((u) => ({
+        caissier_id: u.id,
+        patient_id: patientId,
+        type_notification: NOTIFICATION_TYPES.CASHIER_CONSULTATION_FINISHED,
+        titre: 'Consultation Terminée',
+        message: `Consultation de ${patientName} avec Dr. ${doctorName} terminée. Préparez le paiement.`,
+        priorite: 'normale',
+        lu: false,
+        tenant_id: tenantId,
+        metadata: JSON.stringify({ patientId, patientName, doctorName })
+      }));
+
+      if (rows.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('notifications_medecin_secretaire')
+        .insert(rows)
+        .select();
+
+      if (error) throw error;
+      
+      console.log('✅ [NotificationService] Notifications caissier (consultation terminée):', data);
+      return data;
+    } catch (error) {
+      console.error('❌ [NotificationService] Erreur notification caissier consultation terminée:', error);
+      throw error;
+    }
+  },
+
+  // Notifier les caissiers quand un paiement est effectué
+  async notifyCashierPaymentMade(paymentId, patientName, amount, cashierName, tenantId = null) {
+    try {
+      // Récupérer tous les caissiers actifs
+      const { data: cashiers, error: usersError } = await supabase
+        .from('users')
+        .select('id')
+        .or('role.eq.caissier,role.eq.cashier')
+        .eq('actif', true);
+
+      if (usersError) throw usersError;
+
+      const rows = (cashiers || []).map((u) => ({
+        caissier_id: u.id,
+        patient_id: null,
+        type_notification: NOTIFICATION_TYPES.CASHIER_PAYMENT_MADE,
+        titre: 'Paiement Effectué',
+        message: `Paiement de ${amount} FCFA pour ${patientName} enregistré par ${cashierName}`,
+        priorite: 'normale',
+        lu: false,
+        tenant_id: tenantId,
+        metadata: JSON.stringify({ paymentId, patientName, amount, cashierName })
+      }));
+
+      if (rows.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('notifications_medecin_secretaire')
+        .insert(rows)
+        .select();
+
+      if (error) throw error;
+      
+      console.log('✅ [NotificationService] Notifications caissier (paiement effectué):', data);
+      return data;
+    } catch (error) {
+      console.error('❌ [NotificationService] Erreur notification caissier paiement effectué:', error);
+      throw error;
+    }
+  },
+
+  // Notifier les caissiers en cas d'écart de caisse
+  async notifyCashierCashDiscrepancy(discrepancyAmount, expectedAmount, actualAmount, tenantId = null) {
+    try {
+      // Récupérer tous les caissiers actifs
+      const { data: cashiers, error: usersError } = await supabase
+        .from('users')
+        .select('id')
+        .or('role.eq.caissier,role.eq.cashier')
+        .eq('actif', true);
+
+      if (usersError) throw usersError;
+
+      const isShortage = discrepancyAmount < 0;
+      const message = isShortage 
+        ? `Écart de caisse: Manque ${Math.abs(discrepancyAmount)} FCFA (Attendu: ${expectedAmount}, Réel: ${actualAmount})`
+        : `Écart de caisse: Excédent ${discrepancyAmount} FCFA (Attendu: ${expectedAmount}, Réel: ${actualAmount})`;
+
+      const rows = (cashiers || []).map((u) => ({
+        caissier_id: u.id,
+        patient_id: null,
+        type_notification: NOTIFICATION_TYPES.CASHIER_CASH_DISCREPANCY,
+        titre: 'Écart de Caisse',
+        message: message,
+        priorite: 'urgente',
+        lu: false,
+        tenant_id: tenantId,
+        metadata: JSON.stringify({ discrepancyAmount, expectedAmount, actualAmount })
+      }));
+
+      if (rows.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('notifications_medecin_secretaire')
+        .insert(rows)
+        .select();
+
+      if (error) throw error;
+      
+      console.log('✅ [NotificationService] Notifications caissier (écart caisse):', data);
+      return data;
+    } catch (error) {
+      console.error('❌ [NotificationService] Erreur notification caissier écart caisse:', error);
       throw error;
     }
   }

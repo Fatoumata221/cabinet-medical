@@ -3,15 +3,23 @@ import { supabase } from '../lib/supabase';
 /**
  * Récupère les paramètres du cabinet et de la plateforme.
  * Fusionne les deux jeux de paramètres en un seul objet.
+ * @param {string} tenantId - Le tenant_id du cabinet connecté
  * @returns {Promise<Object>} L'objet des paramètres fusionnés.
  */
-export const fetchParametres = async () => {
+export const fetchParametres = async (tenantId = null) => {
   try {
-    // Récupérer les paramètres du cabinet
-    const { data: cabinetData, error: cabinetError } = await supabase
-  .from('parametres_cabinet')
-  .select('*')
-  .maybeSingle();
+    // Récupérer les paramètres du cabinet filtrés par tenant_id
+    let cabinetQuery = supabase
+      .from('parametres_cabinet')
+      .select('*')
+      .maybeSingle();
+
+    // Si tenantId est fourni, filtrer par tenant_id
+    if (tenantId) {
+      cabinetQuery = cabinetQuery.eq('tenant_id', tenantId);
+    }
+
+    const { data: cabinetData, error: cabinetError } = await cabinetQuery;
 
 if (cabinetError) {
   console.warn('Paramètres cabinet non disponibles, utilisation des valeurs par défaut.');
@@ -27,10 +35,10 @@ if (cabinetError) {
       console.log('Table parametres_plateforme non trouvée, utilisation des valeurs par défaut');
     }
 
-    // Fusionner les données
+    // Fusionner les données - platformData d'abord, puis cabinetData pour écraser
     const settings = {
-      ...(cabinetData || {}),
       ...(platformData?.configuration || {}),
+      ...(cabinetData || {}),
     };
     
     // Assurer que les horaires d'ouverture sont bien un objet

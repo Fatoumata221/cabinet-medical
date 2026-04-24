@@ -24,7 +24,7 @@ import { ROLES, getRoleDisplayName } from '../../utils/permissions';
 import { useToast } from '../../hooks/useToast.jsx';
 
 const GestionAdmins = () => {
-  const { currentUser, cabinetId } = useAuth();
+  const { currentUser, tenantId } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError, showWarning } = useToast();
   const [admins, setAdmins] = useState([]);
@@ -45,7 +45,7 @@ const GestionAdmins = () => {
 
   useEffect(() => {
     fetchAdmins();
-  }, [cabinetId]);
+  }, [tenantId]);
 
   const fetchAdmins = async () => {
     try {
@@ -55,8 +55,8 @@ const GestionAdmins = () => {
         .eq('role', ROLES.ADMIN)
         .order('nom');
         
-      if (cabinetId) {
-        query = query.eq('cabinet_id', cabinetId);
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
       }
         
       const { data, error } = await query;

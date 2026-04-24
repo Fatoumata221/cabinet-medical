@@ -1,5 +1,6 @@
 //import { supabaseQuery as supabase } from '../lib/supabase';
-import { supabase } from '../lib/supabase'
+import { supabase } from '../lib/supabase';
+import { generateNumeroDossier } from './patientService';
 import { notificationService } from './notificationService';
 
 export const secretaryService = {
@@ -91,7 +92,7 @@ export const secretaryService = {
   },
 
   // Ajouter un patient à la file d'attente
-  async addPatientToQueue(patientData) {
+  async addPatientToQueue(patientData, tenantId = null) {
     try {
       // Récupérer la position actuelle dans la file d'attente
       const { data: currentQueue } = await supabase
@@ -117,7 +118,7 @@ export const secretaryService = {
 
       // Notification pour le médecin
       const patientName = `${patientData.patient?.prenom || 'Patient'} ${patientData.patient?.nom || ''}`;
-      await notificationService.notifyPatientAdded(data.id, patientData.medecin_id, patientName, 'Dr. ' + patientData.prenom);
+      await notificationService.notifyPatientAdded(data.id, patientData.medecin_id, patientName, 'Dr. ' + patientData.prenom, tenantId);
 
       return data;
     } catch (error) {
@@ -127,7 +128,7 @@ export const secretaryService = {
   },
 
   // Marquer un patient comme présent (depuis un rendez-vous)
-  async markPatientPresent(appointmentId, patientId, medecinId) {
+  async markPatientPresent(appointmentId, patientId, medecinId, tenantId = null) {
     try {
       // Vérifier si le patient n'est pas déjà en file d'attente
       const { data: existingPatient } = await supabase
@@ -178,7 +179,7 @@ export const secretaryService = {
       
       if (patient) {
         const patientName = `${patient.prenom} ${patient.nom}`;
-        await notificationService.notifyPatientAdded(data.id, medecinId, patientName, 'Dr. ' + patient.prenom);
+        await notificationService.notifyPatientAdded(data.id, medecinId, patientName, 'Dr. ' + patient.prenom, tenantId);
       }
 
       return data;
@@ -213,6 +214,11 @@ export const secretaryService = {
   // Créer un nouveau patient
   async createPatient(patientData) {
     try {
+      // Générer automatiquement le numéro de dossier s'il n'est pas fourni
+      if (!patientData.numero_dossier || patientData.numero_dossier.trim() === '') {
+        patientData.numero_dossier = await generateNumeroDossier();
+      }
+
       const { data, error } = await supabase
         .from('patients')
         .insert([patientData])

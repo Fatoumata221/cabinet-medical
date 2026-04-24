@@ -379,14 +379,14 @@ const profileError = null;
     return session.access_token;
   };
 
-  // Cabinet ID depuis le profil utilisateur
-  const cabinetId = userProfile?.cabinet_id || null;
+  // Tenant ID depuis le profil utilisateur
+  const tenantId = userProfile?.tenant_id || null;
 
   const value = {
     currentUser,
     session,
     userProfile,
-    cabinetId,
+    tenantId,
     login,
     logout,
     register,
