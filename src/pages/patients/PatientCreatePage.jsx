@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-//import { supabaseQuery as supabase } from '../lib/supabase';
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../lib/supabase'
 import SearchableSelect from '../../components/common/SearchableSelect';
 import { 
   ArrowLeft,
