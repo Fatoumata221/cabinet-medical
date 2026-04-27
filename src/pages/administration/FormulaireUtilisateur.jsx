@@ -198,6 +198,12 @@ const FormulaireUtilisateur = ({ preselectedRole = null }) => {
     }
   };
 
+  // Filtrer les spécialités dentaires
+  const getDentalSpecialites = () => {
+    const dentalSpecialiteIds = [12, 17, 16, 14, 15, 18, 19, 13]; // IDs des spécialités dentaires
+    return specialites.filter(s => dentalSpecialiteIds.includes(s.id));
+  };
+
   const fetchUtilisateur = async () => {
     try {
       const { data, error } = await supabase
@@ -484,8 +490,8 @@ const FormulaireUtilisateur = ({ preselectedRole = null }) => {
         const relatedSubs = subSpecialites.filter(s => s.parent_id === parentId);
         setFilteredSubSpecialites(relatedSubs);
         
-        // Find the parent object
-        const parentObj = parentSpecialites.find(p => p.id === parentId);
+        // Find the parent object in dental specialites
+        const parentObj = getDentalSpecialites().find(p => p.id === parentId);
         
         setFormData(prev => ({
             ...prev,
@@ -512,7 +518,7 @@ const FormulaireUtilisateur = ({ preselectedRole = null }) => {
             specialite: subObj ? subObj.nom : prev.specialite
         }));
     } else {
-        const parentObj = parentSpecialites.find(p => p.id === selectedParentId);
+        const parentObj = getDentalSpecialites().find(p => p.id === selectedParentId);
         setFormData(prev => ({
             ...prev,
             specialite_id: selectedParentId,
@@ -759,233 +765,260 @@ const FormulaireUtilisateur = ({ preselectedRole = null }) => {
               ) : (
                 // Mode édition
                 <form onSubmit={handleSubmit}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        required
-                        className="input-field"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                      <input
-                        type="text"
-                        value={formData.nom}
-                        onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                        required
-                        className="input-field"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
-                      <input
-                        type="text"
-                        value={formData.prenom}
-                        onChange={(e) => setFormData({...formData, prenom: e.target.value})}
-                        required
-                        className="input-field"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur *</label>
-                      <input
-                        type="text"
-                        value={formData.username}
-                        onChange={(e) => setFormData({...formData, username: e.target.value})}
-                        required
-                        placeholder="prenom.nom"
-                        className="input-field"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Format: prenom.nom (sera utilisé pour la connexion)
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Rôle *</label>
-                      <select
-                        id="role"
-                        value={formData.role}
-                        onChange={(e) => setFormData({...formData, role: e.target.value})}
-                        required
-                        className="form-select"
-                      >
-                        <option value={ROLES.SECRETARY}>Secrétaire</option>
-                        <option value={ROLES.DOCTOR}>Médecin</option>
-                        <option value={ROLES.ADMIN}>Administrateur</option>
-                        <option value={ROLES.CAISSIER}>Caissier</option>
-                        <option value={ROLES.ACCOUNTING}>Comptabilité</option>
-                        <option value={ROLES.CASHIER}>Caissier</option>
-                      </select>
-                    </div>
-                    
-                    {formData.role === ROLES.DOCTOR && (
-                      <>
+                  <div className="space-y-6">
+                    {/* Section 1: Informations Personnelles */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Informations Personnelles
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Spécialité Principale</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
+                          <input
+                            type="text"
+                            value={formData.prenom}
+                            onChange={(e) => setFormData({...formData, prenom: e.target.value})}
+                            required
+                            className="input-field"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+                          <input
+                            type="text"
+                            value={formData.nom}
+                            onChange={(e) => setFormData({...formData, nom: e.target.value})}
+                            required
+                            className="input-field"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                          <input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({...formData, email: e.target.value})}
+                            required
+                            className="input-field"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                          <input
+                            type="tel"
+                            value={formData.telephone}
+                            onChange={(e) => setFormData({...formData, telephone: e.target.value})}
+                            className="input-field"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 2: Informations de Compte */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        Informations de Compte
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur *</label>
+                          <input
+                            type="text"
+                            value={formData.username}
+                            onChange={(e) => setFormData({...formData, username: e.target.value})}
+                            required
+                            placeholder="prenom.nom"
+                            className="input-field"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Format: prenom.nom (sera utilisé pour la connexion)
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Rôle *</label>
                           <select
-                            value={selectedParentId || ''}
-                            onChange={handleParentChange}
-                            className="form-select" // Using existing class
+                            id="role"
+                            value={formData.role}
+                            onChange={(e) => setFormData({...formData, role: e.target.value})}
+                            required
+                            className="form-select"
                           >
-                            <option value="">Sélectionner une spécialité</option>
-                            {parentSpecialites.map((spec) => (
-                              <option key={spec.id} value={spec.id}>
-                                {spec.nom}
-                              </option>
-                            ))}
+                            <option value={ROLES.SECRETARY}>Secrétaire</option>
+                            <option value={ROLES.DOCTOR}>Médecin</option>
+                            <option value={ROLES.ADMIN}>Administrateur</option>
+                            <option value={ROLES.CAISSIER}>Caissier</option>
+                            <option value={ROLES.ACCOUNTING}>Comptabilité</option>
+                            <option value={ROLES.CASHIER}>Caissier</option>
                           </select>
                         </div>
                         
-                        {filteredSubSpecialites.length > 0 && (
+                        {/* Champ mot de passe pour les nouveaux utilisateurs */}
+                        {isNewUser && (
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Mot de passe *
+                            </label>
+                            <div className="flex gap-2">
+                              <div className="flex-1 relative">
+                                <input
+                                  type={showNewUserPassword ? "text" : "password"}
+                                  value={formData.password}
+                                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                  required
+                                  className="input-field pr-10"
+                                  placeholder="Saisir le mot de passe..."
+                                  minLength={6}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowNewUserPassword(!showNewUserPassword)}
+                                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                  {showNewUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={generatePasswordForNewUser}
+                                className="btn btn-secondary flex items-center gap-2 whitespace-nowrap"
+                                title="Générer un mot de passe"
+                              >
+                                <Key className="w-4 h-4" />
+                                Générer
+                              </button>
+                              {formData.password && (
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(formData.password)}
+                                  className="btn btn-secondary flex items-center gap-2"
+                                  title="Copier le mot de passe"
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Le mot de passe doit contenir au moins 6 caractères. L'utilisateur pourra le modifier après sa première connexion.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Section 3: Spécialités (uniquement pour médecins) */}
+                    {formData.role === ROLES.DOCTOR && (
+                      <div className="border border-gray-200 rounded-lg p-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <Award className="w-4 h-4" />
+                          Spécialités Dentaires
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Spécialité Principale</label>
+                            <select
+                              value={selectedParentId || ''}
+                              onChange={handleParentChange}
+                              className="form-select"
+                            >
+                              <option value="">Sélectionner une spécialité</option>
+                              {getDentalSpecialites().map((spec) => (
+                                <option key={spec.id} value={spec.id}>
+                                  {spec.nom}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          {filteredSubSpecialites.length > 0 && (
                             <div className="animate-fade-in">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Sous-spécialité</label>
-                                <select
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Sous-spécialité</label>
+                              <select
                                 value={formData.specialite_id || ''}
                                 onChange={handleSubChange}
                                 className="form-select bg-blue-50 border-blue-200"
-                                >
+                              >
                                 <option value={selectedParentId}>-- Générale --</option>
                                 {filteredSubSpecialites.map((sub) => (
-                                    <option key={sub.id} value={sub.id}>
+                                  <option key={sub.id} value={sub.id}>
                                     {sub.nom}
-                                    </option>
+                                  </option>
                                 ))}
-                                </select>
+                              </select>
                             </div>
-                        )}
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Spécialités (sélection multiple)
-                          </label>
-                          <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                            {specialites.map((specialite) => (
-                              <label key={specialite.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.specialite_ids.includes(specialite.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setFormData(prev => ({
-                                        ...prev,
-                                        specialite_ids: [...prev.specialite_ids, specialite.id]
-                                      }));
-                                    } else {
-                                      setFormData(prev => ({
-                                        ...prev,
-                                        specialite_ids: prev.specialite_ids.filter(id => id !== specialite.id)
-                                      }));
-                                    }
-                                  }}
-                                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                                />
-                                <span className="text-sm text-gray-700">{specialite.nom}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    
-                    {formData.role === ROLES.ACCOUNTING && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          <Award className="w-4 h-4 inline mr-1" />
-                          Permissions comptables
-                        </label>
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                          <p className="text-sm text-purple-800">
-                            Ce rôle donne accès à :
-                          </p>
-                          <ul className="text-xs text-purple-700 mt-2 space-y-1">
-                            <li>• Dashboard financier</li>
-                            <li>• Gestion des factures</li>
-                            <li>• Rapports et exports</li>
-                            <li>• Consultation des patients</li>
-                          </ul>
-                          <p className="text-xs text-purple-600 mt-2">
-                            Restrictions : Pas d'accès à l'administration, aux rendez-vous ou aux données médicales sensibles
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                      <input
-                        type="tel"
-                        value={formData.telephone}
-                        onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-                        className="input-field"
-                      />
-                    </div>
-                    
-                    {/* Champ mot de passe pour les nouveaux utilisateurs */}
-                    {isNewUser && (
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Mot de passe *
-                        </label>
-                        <div className="flex gap-2">
-                          <div className="flex-1 relative">
-                            <input
-                              type={showNewUserPassword ? "text" : "password"}
-                              value={formData.password}
-                              onChange={(e) => setFormData({...formData, password: e.target.value})}
-                              required
-                              className="input-field pr-10"
-                              placeholder="Saisir le mot de passe..."
-                              minLength={6}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowNewUserPassword(!showNewUserPassword)}
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            >
-                              {showNewUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={generatePasswordForNewUser}
-                            className="btn btn-secondary flex items-center gap-2 whitespace-nowrap"
-                            title="Générer un mot de passe"
-                          >
-                            <Key className="w-4 h-4" />
-                            Générer
-                          </button>
-                          {formData.password && (
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(formData.password)}
-                              className="btn btn-secondary flex items-center gap-2"
-                              title="Copier le mot de passe"
-                            >
-                              <Copy className="w-4 h-4" />
-                            </button>
                           )}
+                          
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Spécialités Additionnelles (sélection multiple)
+                            </label>
+                            <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
+                              {getDentalSpecialites().map((specialite) => {
+                                const isPrimarySpeciality = specialite.id === formData.specialite_id;
+                                return (
+                                  <label 
+                                    key={specialite.id} 
+                                    className={`flex items-center space-x-2 p-1 rounded ${
+                                      isPrimarySpeciality 
+                                        ? 'bg-gray-100 cursor-not-allowed opacity-60' 
+                                        : 'cursor-pointer hover:bg-gray-50'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={formData.specialite_ids.includes(specialite.id)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            specialite_ids: [...prev.specialite_ids, specialite.id]
+                                          }));
+                                        } else {
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            specialite_ids: prev.specialite_ids.filter(id => id !== specialite.id)
+                                          }));
+                                        }
+                                      }}
+                                      disabled={isPrimarySpeciality}
+                                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500 disabled:opacity-50"
+                                    />
+                                    <span className="text-sm text-gray-700">
+                                      {specialite.nom}
+                                      {isPrimarySpeciality && <span className="ml-2 text-xs text-gray-500">(Spécialité principale)</span>}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Sélectionnez toutes les spécialités dentaires additionnelles que ce médecin peut pratiquer. La spécialité principale ne peut pas être désélectionnée.
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Le mot de passe doit contenir au moins 6 caractères. L'utilisateur pourra le modifier après sa première connexion.
-                        </p>
                       </div>
                     )}
-                    
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.actif}
-                        onChange={(e) => setFormData({...formData, actif: e.target.checked})}
-                        className="mr-2 rounded"
-                      />
-                      <label className="text-sm text-gray-700">Utilisateur actif</label>
+
+                    {/* Section 4: Statut */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Statut
+                      </h3>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={formData.actif}
+                          onChange={(e) => setFormData({...formData, actif: e.target.checked})}
+                          className="mr-2 rounded"
+                        />
+                        <label className="text-sm text-gray-700">Utilisateur actif</label>
+                      </div>
                     </div>
                   </div>
                   
