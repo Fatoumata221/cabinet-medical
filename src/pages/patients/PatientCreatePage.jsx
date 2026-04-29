@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase'
 import SearchableSelect from '../../components/common/SearchableSelect';
+import { generateNumeroDossier } from '../../services/patientService';
 import { 
   ArrowLeft,
   Save,
@@ -94,6 +95,19 @@ const PatientCreatePage = () => {
     fetchAssurances();
   }, []);
 
+  // Générer automatiquement le numéro de dossier au montage du composant
+  useEffect(() => {
+    const generateNumeroDossierAuto = async () => {
+      try {
+        const numero = await generateNumeroDossier();
+        setFormData(prev => ({ ...prev, numero_dossier: numero }));
+      } catch (error) {
+        console.error('Erreur lors de la génération du numéro de dossier:', error);
+      }
+    };
+    generateNumeroDossierAuto();
+  }, []);
+
   const fetchAssurances = async () => {
     try {
       setLoadingAssurances(true);
@@ -136,15 +150,6 @@ const PatientCreatePage = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-  };
-
-  const generateNumerosDossier = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
-    return `PAT-${year}${month}${day}-${time}`;
   };
 
   const handleSubmit = async (e) => {
@@ -195,10 +200,10 @@ const PatientCreatePage = () => {
         }
       }
 
-      // Générer un numéro de dossier automatique si non fourni
+      // Utiliser le numéro de dossier généré automatiquement
       const finalFormData = {
         ...formData,
-        numero_dossier: formData.numero_dossier || generateNumerosDossier(),
+        numero_dossier: formData.numero_dossier,
         assurance_id: assuranceIdToUse
       };
 
