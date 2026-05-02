@@ -24,6 +24,7 @@ import {
   FileImage,
   Upload
 } from 'lucide-react';
+import { formatDoctorSpecialties, getDoctorInitials } from '../utils/doctorUtils';
 import PatientDocumentUploader from '../components/secretary/PatientDocumentUploader';
 
 const SalleAttentePage = () => {
@@ -374,7 +375,7 @@ const SalleAttentePage = () => {
                     <div className="mt-2 flex items-center space-x-6 text-sm text-gray-600">
                       <div className="flex items-center">
                         <Stethoscope className="w-4 h-4 mr-1" />
-                        Dr. {item.medecin?.prenom} {item.medecin?.nom}
+                        {formatDoctorSpecialties(item.medecin)}
                       </div>
                       <div className="flex items-center">
                         <Timer className="w-4 h-4 mr-1" />
@@ -492,12 +493,8 @@ const SalleAttentePage = () => {
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div>
-                      <span className="font-medium text-gray-500">Médecin:</span>
-                      <span className="ml-2">Dr. {selectedPatient.medecin?.prenom} {selectedPatient.medecin?.nom}</span>
-                    </div>
-                    <div>
                       <span className="font-medium text-gray-500">Spécialité:</span>
-                      <span className="ml-2">{selectedPatient.medecin?.specialite}</span>
+                      <span className="ml-2">{formatDoctorSpecialties(selectedPatient.medecin)}</span>
                     </div>
                     <div>
                       <span className="font-medium text-gray-500">Motif:</span>

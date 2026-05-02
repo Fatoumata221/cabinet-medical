@@ -10,6 +10,7 @@ import {
   User,
   Clock
 } from 'lucide-react';
+import { formatDoctorSpecialties } from '../../utils/doctorUtils';
 
 const formatISODate = (date) => date.toISOString().split('T')[0];
 

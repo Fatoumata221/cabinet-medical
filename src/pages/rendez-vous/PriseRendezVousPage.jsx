@@ -20,6 +20,7 @@ import {
   Save,
   X
 } from 'lucide-react';
+import { formatDoctorSpecialties } from '../../utils/doctorUtils';
 
 import { useAppointmentBookingData } from '../../hooks/useAppointmentBookingData';
 import { useAppointmentForm } from '../../hooks/useAppointmentForm';
@@ -284,6 +285,22 @@ const PriseRendezVousPage = () => {
           </div>
           
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Spécialité</label>
+            <select
+              value={selectedDoctorId}
+              onChange={(e) => setSelectedDoctorId(e.target.value)}
+              className="input-field"
+            >
+              <option value="">Toutes les spécialités</option>
+              {doctors.map((doctor) => (
+                <option key={doctor.id} value={doctor.id}>
+                  {formatDoctorSpecialties(doctor)} - Dr. {doctor.prenom} {doctor.nom}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Médecin</label>
             <select
               value={selectedDoctorFilter}
@@ -370,7 +387,7 @@ const PriseRendezVousPage = () => {
                     {appointment.patient?.prenom} {appointment.patient?.nom}
                   </div>
                   <div className="text-gray-600">
-                    Dr. {appointment.medecin?.prenom} {appointment.medecin?.nom}
+                    {formatDoctorSpecialties(appointment.medecin)}
                   </div>
                   {appointment.motif && (
                     <div className="text-gray-500 mt-1">

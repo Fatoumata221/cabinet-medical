@@ -21,11 +21,13 @@ const CreateRdvModal = ({
   const [patient, setPatient] = useState(null);
   const [medecin, setMedecin] = useState(null);
   const [patients, setPatients] = useState([]); // Liste des patients du médecin
+  const [motifs, setMotifs] = useState([]); // Liste des motifs de consultation
   
   const [formData, setFormData] = useState({
     patient_id: patientId || '', // Si patientId fourni, on le pré-remplit
     date_heure: '',
     motif: patientId ? 'Suivi post-consultation' : 'Consultation',
+    motif_autre: '', // Pour les motifs personnalisés
     duree: 30,
     type_rdv: patientId ? 'suivi' : 'consultation',
     priorite: 'normale',
@@ -40,8 +42,25 @@ const CreateRdvModal = ({
   useEffect(() => {
     if (isOpen && medecinId) {
       loadMedecinAndPatients();
+      loadMotifs();
     }
   }, [isOpen, medecinId]);
+
+  // Charger les motifs de consultation
+  const loadMotifs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('plaintes_principales')
+        .select('id, nom, description')
+        .eq('actif', true)
+        .order('nom');
+      
+      if (error) throw error;
+      setMotifs(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des motifs:', error);
+    }
+  };
 
   // Mettre à jour patient_id dans formData quand patientId change
   useEffect(() => {
@@ -131,7 +150,7 @@ const CreateRdvModal = ({
         patient_id: formData.patient_id,
         medecin_id: medecinId,
         date_heure: formData.date_heure,
-        motif: formData.motif || 'Suivi post-consultation',
+        motif: formData.motif === 'Autre' ? formData.motif_autre : formData.motif || 'Suivi post-consultation',
         duree: formData.duree || 30,
         statut: formData.statut || 'confirme',
         priorite: formData.priorite || 'normale',
@@ -209,6 +228,7 @@ const CreateRdvModal = ({
       patient_id: patientId || '',
       date_heure: '',
       motif: patientId ? 'Suivi post-consultation' : 'Consultation',
+      motif_autre: '',
       duree: 30,
       type_rdv: patientId ? 'suivi' : 'consultation',
       priorite: 'normale',
@@ -437,14 +457,34 @@ const CreateRdvModal = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Motif du rendez-vous *
             </label>
-            <input
-              type="text"
+            <select
               value={formData.motif}
-              onChange={(e) => setFormData({...formData, motif: e.target.value})}
-              placeholder="Ex: Suivi post-consultation, Contrôle des résultats..."
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData({...formData, motif: value, motif_autre: value === 'Autre' ? formData.motif_autre : ''});
+              }}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            >
+              <option value="">Sélectionner un motif...</option>
+              {motifs.map((motif) => (
+                <option key={motif.id} value={motif.nom}>
+                  {motif.nom}
+                </option>
+              ))}
+              <option value="Autre">Autre (personnalisé)</option>
+            </select>
+            
+            {formData.motif === 'Autre' && (
+              <input
+                type="text"
+                value={formData.motif_autre}
+                onChange={(e) => setFormData({...formData, motif_autre: e.target.value})}
+                placeholder="Précisez le motif..."
+                required
+                className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            )}
           </div>
 
           {/* Notes */}

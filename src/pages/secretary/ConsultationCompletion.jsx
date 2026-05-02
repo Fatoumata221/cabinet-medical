@@ -20,6 +20,7 @@ import {
   Loader,
   Plus
 } from 'lucide-react';
+import { formatDoctorSpecialties } from '../../utils/doctorUtils';
 
 const ConsultationCompletion = () => {
   const { consultationId } = useParams();
@@ -620,9 +621,8 @@ const ConsultationCompletion = () => {
                   )}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-700 mb-2">Médecin</h3>
-                  <p className="text-gray-900">Dr. {medecin?.prenom} {medecin?.nom}</p>
-                  <p className="text-sm text-gray-600">{medecin?.specialite}</p>
+                  <h3 className="font-semibold text-gray-700 mb-2">Spécialité</h3>
+                  <p className="text-gray-900">{formatDoctorSpecialties(medecin)}</p>
                 </div>
               </div>
             </div>

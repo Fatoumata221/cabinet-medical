@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { formatDoctorSpecialties } from '../../utils/doctorUtils';
 
 const SalleAttente = () => {
   const [waitingQueue, setWaitingQueue] = useState([]);
@@ -323,13 +324,8 @@ const SalleAttente = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        Dr. {item.medecins?.prenom} {item.medecins?.nom}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {item.medecins?.specialite}
-                      </div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {formatDoctorSpecialties(item.medecins)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -442,13 +438,8 @@ const SalleAttente = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          Dr. {appointment.medecins?.prenom} {appointment.medecins?.nom}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {appointment.medecins?.specialite}
-                        </div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {formatDoctorSpecialties(appointment.medecins)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
