@@ -198,7 +198,10 @@ const ConsultationDetail = () => {
       setActiveTab('examen');
       return;
     }
-    if (!consultation) return;
+    if (!consultation || !consultation.id) {
+      console.error('❌ [Consultation] Consultation ou ID invalide:', consultation);
+      return;
+    }
 
     try {
       console.log('🔵 [Consultation] Début de la terminaison de consultation');
@@ -244,6 +247,10 @@ const ConsultationDetail = () => {
       }
 
       console.log('📝 [Consultation] Mise à jour du statut de la consultation...');
+      if (!consultation || !consultation.id) {
+        console.error('❌ [Consultation] Consultation ou ID invalide pour mise à jour statut:', consultation);
+        return;
+      }
       const { data: updatedConsultation, error: cErr } = await supabase
         .from('consultations')
         .update({ statut: 'terminee', updated_at: new Date().toISOString() })
