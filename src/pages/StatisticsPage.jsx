@@ -196,18 +196,18 @@ const StatisticsPage = () => {
         </div>
       )}
 
-      {/* Graphiques */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Graphiques et tableaux combinés */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {!isAccounting && (
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Rendez-vous par mois</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900 mb-3">Rendez-vous par mois</h3>
+            <ResponsiveContainer width="100%" height={200}>
               <BarChart data={statsData.appointmentsByMonth}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis dataKey="month" tick={{fontSize: 11}} />
+                <YAxis tick={{fontSize: 11}} />
                 <Tooltip />
-                <Legend />
+                <Legend wrapperStyle={{fontSize: 11}} />
                 <Bar dataKey="consultations" fill="#3B82F6" name="Consultations" />
                 <Bar dataKey="emergency" fill="#EF4444" name="Urgences" />
               </BarChart>
@@ -216,15 +216,15 @@ const StatisticsPage = () => {
         )}
 
         {/* Revenus par mois */}
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Évolution financière</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">Évolution financière</h3>
+          <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={statsData.revenueByMonth}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
+              <XAxis dataKey="month" tick={{fontSize: 11}} />
+              <YAxis tick={{fontSize: 11}} />
               <Tooltip />
-              <Legend />
+              <Legend wrapperStyle={{fontSize: 11}} />
               <Area type="monotone" dataKey="revenue" stackId="1" stroke="#3B82F6" fill="#3B82F6" name="Revenus" />
               <Area type="monotone" dataKey="expenses" stackId="1" stroke="#EF4444" fill="#EF4444" name="Dépenses" />
             </AreaChart>
@@ -232,9 +232,9 @@ const StatisticsPage = () => {
         </div>
 
         {!isAccounting && (
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Répartition par âge</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900 mb-3">Répartition par âge</h3>
+            <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
                   data={statsData.patientsByAge}
@@ -242,7 +242,7 @@ const StatisticsPage = () => {
                   cy="50%"
                   labelLine={false}
                   label={({ age, percentage }) => `${age}: ${percentage}%`}
-                  outerRadius={80}
+                  outerRadius={60}
                   fill="#8884d8"
                   dataKey="count"
                 >
@@ -257,68 +257,65 @@ const StatisticsPage = () => {
         )}
 
         {!isAccounting && (
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Consultations par spécialité</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900 mb-3">Consultations par spécialité</h3>
+            <ResponsiveContainer width="100%" height={200}>
               <BarChart data={statsData.consultationsBySpecialty} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="specialty" type="category" width={120} />
+                <XAxis type="number" tick={{fontSize: 11}} />
+                <YAxis dataKey="specialty" type="category" width={100} tick={{fontSize: 11}} />
                 <Tooltip />
                 <Bar dataKey="count" fill="#10B981" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         )}
-      </div>
 
-      {/* Tableaux détaillés */}
-      {!isAccounting && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Performance des médecins */}
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance des médecins</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Médecin</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patients</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consultations</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satisfaction</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {statsData.doctorsPerformance.map((doctor, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{doctor.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doctor.patients}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doctor.consultations}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doctor.satisfaction}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {!isAccounting && (
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900 mb-3">Temps d'attente par jour</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={statsData.waitTimeByDay}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" tick={{fontSize: 11}} />
+                <YAxis tick={{fontSize: 11}} />
+                <Tooltip />
+                <Legend wrapperStyle={{fontSize: 11}} />
+                <Line type="monotone" dataKey="avgWait" stroke="#3B82F6" strokeWidth={2} name="Moyenne (min)" />
+                <Line type="monotone" dataKey="maxWait" stroke="#EF4444" strokeWidth={2} name="Maximum (min)" />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        </div>
+        )}
 
-        {/* Temps d'attente par jour */}
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Temps d'attente par jour</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={statsData.waitTimeByDay}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="avgWait" stroke="#3B82F6" strokeWidth={2} name="Moyenne (min)" />
-              <Line type="monotone" dataKey="maxWait" stroke="#EF4444" strokeWidth={2} name="Maximum (min)" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {!isAccounting && (
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900 mb-3">Performance des médecins</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Médecin</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patients</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consultations</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satisfaction</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {statsData.doctorsPerformance.map((doctor, index) => (
+                    <tr key={index}>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">{doctor.name}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{doctor.patients}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{doctor.consultations}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{doctor.satisfaction}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
-      )}
 
       {/* Métriques supplémentaires */}
       {!isAccounting && (
