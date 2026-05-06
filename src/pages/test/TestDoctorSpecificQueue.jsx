@@ -22,7 +22,7 @@ const TestDoctorSpecificQueue = () => {
 
   const fetchDoctors = async () => {
     try {
-      console.log('🔄 [TestDoctorSpecificQueue] Récupération des médecins...');
+      console.log('🔄 [TestDoctorSpecificQueue] Récupération des praticiens...');
       const { data: doctorsData, error: doctorsError } = await supabase
         .from('users')
         .select('id, nom, prenom, specialite')
@@ -30,7 +30,7 @@ const TestDoctorSpecificQueue = () => {
         .order('nom', { ascending: true });
 
       if (doctorsError) {
-        console.error('❌ [TestDoctorSpecificQueue] Erreur médecins:', doctorsError);
+        console.error('❌ [TestDoctorSpecificQueue] Erreur praticiens:', doctorsError);
         throw doctorsError;
       }
 

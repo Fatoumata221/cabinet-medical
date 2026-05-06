@@ -1,4 +1,7 @@
-import { toast } from 'react-toastify';
+import { supabase } from '../lib/supabase';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { getTitrePraticien } from '../utils/traductions';
 import { CheckCircle, XCircle, AlertTriangle, Info, Bell } from 'lucide-react';
 
 /**
@@ -261,8 +264,8 @@ export const unifiedNotificationService = {
   },
 
   // Notification médicale avec son pour workflow patient
-  medicalWorkflow: (type, patientName, doctorName = '', options = {}) => {
-    console.log('🔊 [medicalWorkflow] Déclenchement notification:', { type, patientName, doctorName });
+  medicalWorkflow: (type, patientName, doctorName = '', doctorSpecialite = '', options = {}) => {
+    console.log('🔊 [medicalWorkflow] Déclenchement notification:', { type, patientName, doctorName, doctorSpecialite });
     
     if (!areNotificationsEnabled()) {
       return null;
@@ -278,30 +281,27 @@ export const unifiedNotificationService = {
       }
     }
     
-    // Normaliser les alias de type pour compatibilité
-    const normalizedType = (() => {
-      if (type === 'consultation_finished') return 'consultation_terminee';
-      if (type === 'patient_on_way') return 'patient_en_route';
-      return type;
-    })();
+    const normalizedType = type?.toLowerCase() || '';
+    const titrePraticien = getTitrePraticien(doctorSpecialite);
     
     const getWorkflowIcon = () => {
       switch (normalizedType) {
-        case 'patient_en_route': return '🚶‍♂️';
-        case 'souhaite_recevoir': return '👨‍⚕️';
+        case 'patient_en_route': return '🚶';
+        case 'souhaite_recevoir': return '�';
         case 'consultation_terminee': return '✅';
-        default: return '🏥';
+        case 'urgence': return '🚨';
+        default: return '📋';
       }
     };
 
     const getWorkflowMessage = () => {
       switch (normalizedType) {
         case 'patient_en_route':
-          return `${patientName} se dirige vers le bureau${doctorName ? ` de Dr. ${doctorName}` : ''}`;
+          return `${patientName} se dirige vers le bureau${doctorName ? ` du ${titrePraticien} ${doctorName}` : ''}`;
         case 'souhaite_recevoir':
-          return `Dr. ${doctorName} va recevoir ${patientName}`;
+          return `${titrePraticien} ${doctorName} va recevoir ${patientName}`;
         case 'consultation_terminee':
-          return `Consultation de ${patientName} terminée${doctorName ? ` avec Dr. ${doctorName}` : ''}`;
+          return `Consultation de ${patientName} terminée${doctorName ? ` avec le ${titrePraticien} ${doctorName}` : ''}`;
         default:
           return `Notification concernant ${patientName}`;
       }

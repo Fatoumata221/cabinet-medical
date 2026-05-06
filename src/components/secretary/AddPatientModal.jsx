@@ -156,7 +156,10 @@ const AddPatientModal = ({ doctors, onClose, onPatientAdded }) => {
 
       if (error) throw error;
 
+      // Ajouter le patient et rafraîchir les données
       onPatientAdded();
+      // Ne pas fermer automatiquement la modal - laisser l'utilisateur décider
+      // onClose();
     } catch (error) {
       console.error('Erreur lors de l\'ajout du patient:', error);
       showError('Erreur lors de l\'ajout du patient à la file d\'attente');

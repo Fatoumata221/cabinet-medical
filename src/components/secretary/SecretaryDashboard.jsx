@@ -275,7 +275,7 @@ const SecretaryDashboard = () => {
           doctors={doctors}
           onClose={() => setShowAddPatientModal(false)}
           onPatientAdded={() => {
-            setShowAddPatientModal(false);
+            // Ne pas fermer automatiquement la modal - laisser l'utilisateur décider
             fetchData();
           }}
         />

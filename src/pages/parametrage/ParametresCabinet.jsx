@@ -1,16 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Building2, MapPin, Phone, Mail, Globe, FileText, Save, Upload, Image as ImageIcon, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Globe, FileText, Save, Upload, Image as ImageIcon, X, ChevronDown, ChevronUp, Users, Clock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../hooks/useToast';
+import patientInactivityService from '../../services/patientInactivityService';
 
 const ParametresCabinet = () => {
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
   const canManageSettings = hasPermission(currentUser?.role, 'canManageSettings');
+  const isAdmin = currentUser?.role === 'admin';
+
+  // Rediriger si l'utilisateur n'est pas administrateur
+  useEffect(() => {
+    if (!isAdmin) {
+      showError('Accès refusé. Seuls les administrateurs peuvent modifier les paramètres du cabinet.');
+      navigate('/dashboard');
+    }
+  }, [isAdmin, navigate, showError]);
   
   const [settings, setSettings] = useState({
     nom_cabinet: '',
@@ -27,6 +37,7 @@ const ParametresCabinet = () => {
     fuseau_horaire: 'Africa/Niamey',
     langue: 'fr',
     format_date: 'DD/MM/YYYY',
+    jours_inactivite: 365,
     horaires_ouverture: {
       lundi: { ouvert: true, debut: '08:00', fin: '22:00' },
       mardi: { ouvert: true, debut: '08:00', fin: '22:00' },
@@ -653,6 +664,38 @@ const ParametresCabinet = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Gestion des patients */}
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+            <Users className="w-5 h-5 mr-2 text-blue-600" />
+            Gestion des Patients
+          </h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Clock className="w-4 h-4 inline mr-1" />
+                Jours d'inactivité avant passage automatique en "Inactif"
+              </label>
+              <div className="flex items-center space-x-4">
+                <input
+                  type="number"
+                  min="30"
+                  max="1825"
+                  value={settings.jours_inactivite || 365}
+                  onChange={(e) => setSettings({...settings, jours_inactivite: parseInt(e.target.value) || 365})}
+                  className="w-32 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <span className="text-sm text-gray-600">jours</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Les patients sans consultation ni rendez-vous depuis ce nombre de jours seront automatiquement marqués comme "Inactif". 
+                Un nouveau rendez-vous ou consultation réactivera automatiquement le patient.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Horaires d'ouverture */}

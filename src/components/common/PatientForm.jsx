@@ -17,10 +17,13 @@ const PatientForm = ({
   initialData = null,
   onSubmit,
   onCancel,
+  onAddAnother,
   title = "Ajouter un nouveau patient",
-  submitText = "Ajouter le patient",
-  showCancel = true
+  submitText = "Terminer",
+  showCancel = true,
+  showAddAnother = false
 }) => {
+  console.log('🔍 [PatientForm] Props reçues - VERSION 2.0:', { showAddAnother, title, submitText });
   const { showError, showWarning } = useAlert();
   const [formData, setFormData] = useState({
     nom: '',
@@ -685,7 +688,14 @@ const PatientForm = ({
         </div>
         
         {/* Boutons */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-3 mt-6">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md transition-colors"
+          >
+            Annuler
+          </button>
           <button
             type="submit"
             className="flex-1 bg-medical-primary hover:bg-medical-primary-dark text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
@@ -693,13 +703,40 @@ const PatientForm = ({
             <CheckCircle className="w-4 h-4" />
             {submitText}
           </button>
-          {showCancel && (
+          {showAddAnother && (
             <button
               type="button"
-              onClick={onCancel}
-              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md transition-colors"
+              onClick={() => {
+                onAddAnother();
+                // Réinitialiser le formulaire pour le prochain patient
+                setFormData({
+                  nom: '',
+                  prenom: '',
+                  date_naissance: '',
+                  telephone: '',
+                  email: '',
+                  adresse: '',
+                  assurance_id: null,
+                  numero_dossier: '',
+                  sexe: 'M',
+                  lieu_naissance: '',
+                  nationalite: '',
+                  profession: '',
+                  situation_familiale: '',
+                  personne_contact: '',
+                  telephone_contact: '',
+                  lien_contact: '',
+                  medecin_traitant: '',
+                  numero_secu: '',
+                  actif: true,
+                  notes: ''
+                });
+                setErrors({});
+              }}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
             >
-              Annuler
+              <CheckCircle className="w-4 h-4" />
+              Ajouter un autre patient
             </button>
           )}
         </div>

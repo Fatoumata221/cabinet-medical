@@ -154,7 +154,8 @@ const CabinetWelcome = () => {
   return (
     
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col items-center justify-center p-6">
-      {/* Bouton retour */}
+      {/* Bouton retour - uniquement en développement */}
+      {import.meta.env.VITE_NODE_ENV !== 'production' && (
         <button
         onClick={() => navigate('/login')}
         className="absolute top-4 left-4 flex items-center space-x-2 text-gray-500 hover:text-gray-700 transition-colors"
@@ -162,6 +163,7 @@ const CabinetWelcome = () => {
         <span>←</span>
         <span className="text-sm">Changer de cabinet</span>
         </button>
+      )}
       {/* Logo et nom du cabinet */}
       <div className="text-center mb-8">
         {cabinet?.logo_url && (

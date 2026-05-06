@@ -447,7 +447,16 @@ const GlobalWaitingQueue = ({ doctors, searchTerm, filterStatus, onDoctorSelect 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredDoctors.map((doctor) => {
+        {filteredDoctors
+          .filter((doctor) => {
+            // Ne pas afficher les médecins sans patients correspondant aux critères
+            const queue = waitingQueues[doctor.id] || [];
+            const filteredQueue = filterPatients(queue);
+            const todaysAppointments = appointmentsByDoctor[doctor.id] || [];
+            // Afficher seulement si le médecin a des patients dans la file filtrée ou des RDV aujourd'hui
+            return filteredQueue.length > 0 || todaysAppointments.length > 0;
+          })
+          .map((doctor) => {
           const stats = getDoctorStats(doctor.id);
           const queue = waitingQueues[doctor.id] || [];
           const filteredQueue = filterPatients(queue);

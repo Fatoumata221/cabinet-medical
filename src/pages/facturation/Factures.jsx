@@ -13,6 +13,7 @@ import {
     ClockIcon,
     EyeIcon
 } from '@heroicons/react/24/outline';
+import { traduire } from '../../utils/traductions';
 
 const FacturesPage = () => {
     const [factures, setFactures] = useState([]);
@@ -145,8 +146,16 @@ const FacturesPage = () => {
         e.preventDefault();
         
         try {
+            // Concaténer les notes de paiement avec les notes existantes
+            const existingNotes = selectedFacture.notes || '';
+            const newNote = paiementData.notes ? paiementData.notes.trim() : '';
+            const combinedNotes = existingNotes && newNote 
+                ? `${existingNotes} | ${newNote}` 
+                : (existingNotes || newNote);
+
             const paiementUpdate = {
                 ...paiementData,
+                notes: combinedNotes,
                 date_paiement: new Date().toISOString(),
                 statut_paiement: paiementData.montant_paye >= selectedFacture.montant_ttc ? 'paye' : 'partiel',
                 updated_by: (await supabase.auth.getUser()).data.user?.id
@@ -494,7 +503,7 @@ const FacturesPage = () => {
                                                 <button
                                                     onClick={() => handleEdit(facture)}
                                                     className="text-blue-600 hover:text-blue-900"
-                                                    title="Modifier"
+                                                    title={traduire('edit')}
                                                 >
                                                     <PencilIcon className="h-4 w-4" />
                                                 </button>
@@ -510,7 +519,7 @@ const FacturesPage = () => {
                                                 <button
                                                     onClick={() => handleDelete(facture.id)}
                                                     className="text-red-600 hover:text-red-900"
-                                                    title="Supprimer"
+                                                    title={traduire('delete')}
                                                 >
                                                     <TrashIcon className="h-4 w-4" />
                                                 </button>

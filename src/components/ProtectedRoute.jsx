@@ -39,7 +39,8 @@ const ProtectedRoute = ({
     userProfile: userProfile?.role,
     userMetadataRole: currentUser?.user_metadata?.role,
     appMetadataRole: currentUser?.app_metadata?.role,
-    hasRole: roles.some(role => hasRole(role))
+    hasRole: roles.some(role => hasRole(role)),
+    pathname: location.pathname
   });
 
   // Vérifier si l'utilisateur a l'un des rôles autorisés

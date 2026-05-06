@@ -37,7 +37,7 @@ const FacturationExamens = () => {
   const [editingFacture, setEditingFacture] = useState(null);
   const [factureData, setFactureData] = useState({
     patientId: '',
-    examenId: '',
+    examensSelectionnes: [], // Tableau pour plusieurs examens
     quantite: 1,
     tarifUnitaire: '',
     remise: 0,
@@ -222,35 +222,43 @@ const FacturationExamens = () => {
     }
   };
 
-  // Fonction pour estimer le tarif selon le type d'examen
+  // Fonction pour estimer le tarif selon le type d'examen dentaire
   const getTarifEstime = (typeExamen) => {
     const tarifs = {
-      'radiographie': 25000,
-      'echographie': 35000,
-      'ecg': 12000,
-      'scanner': 85000,
-      'irm': 120000,
-      'biologie': 18000,
-      'analyse': 15000
+      'radiographie dentaire': 25000,
+      'radiographie panoramique': 25000,
+      'rétro-alvéolaire': 8000,
+      'céphalométrique': 35000,
+      'téléradiographie': 28000,
+      'cone beam': 85000,
+      'cbct': 85000,
+      'scanner dentaire': 120000,
+      'dentascan': 120000,
+      'bilan buccal': 18000,
+      'test pulpaire': 12000,
+      'prélèvement bactérien': 15000,
+      'échographie glandes salivaires': 30000,
+      'modélisation 3d': 45000,
+      'orthodontique': 45000,
+      'analyse occlusale': 22000
     };
 
     const type = typeExamen.toLowerCase();
     for (const [key, tarif] of Object.entries(tarifs)) {
       if (type.includes(key)) return tarif;
     }
-    return 20000; // Tarif par défaut
+    return 25000; // Tarif par défaut dentaire
   };
 
-  // Fonction pour déterminer la catégorie
+  // Fonction pour déterminer la catégorie dentaire
   const getCategorieExamen = (typeExamen) => {
     const type = typeExamen.toLowerCase();
-    if (type.includes('radio')) return 'Radiologie';
-    if (type.includes('echo') || type.includes('échographie')) return 'Échographie';
-    if (type.includes('ecg') || type.includes('cardio')) return 'Cardiologie';
-    if (type.includes('scan')) return 'Scanner';
-    if (type.includes('irm')) return 'IRM';
-    if (type.includes('bio') || type.includes('analyse') || type.includes('sang')) return 'Biologie';
-    return 'Autre';
+    if (type.includes('radio') || type.includes('radiographie')) return 'Radiologie dentaire';
+    if (type.includes('cone') || type.includes('cbct') || type.includes('scanner') || type.includes('3d') || type.includes('modélisation')) return 'Imagerie 3D dentaire';
+    if (type.includes('échographie') || type.includes('echo')) return 'Échographie dentaire';
+    if (type.includes('bilan') || type.includes('test') || type.includes('prélèvement') || type.includes('bactéri')) return 'Biologie dentaire';
+    if (type.includes('analyse') || type.includes('occlusale') || type.includes('sensibilité')) return 'Diagnostic dentaire';
+    return 'Diagnostic dentaire';
   };
 
   // Mapper le statut de la DB vers le statut d'affichage
@@ -264,20 +272,24 @@ const FacturationExamens = () => {
     return mapping[statutDB] || 'programme';
   };
 
-  // Examens disponibles
+  // Examens disponibles (uniquement dentaire)
   const examensDisponibles = [
-    { id: 1, code: 'RAD001', libelle: 'Radiographie thoracique', tarif: 25000, categorie: 'Radiologie', duree: 15 },
-    { id: 2, code: 'ECH001', libelle: 'Échographie abdominale', tarif: 35000, categorie: 'Échographie', duree: 30 },
-    { id: 3, code: 'ECH002', libelle: 'Échographie pelvienne', tarif: 30000, categorie: 'Échographie', duree: 25 },
-    { id: 4, code: 'ECG001', libelle: 'Électrocardiogramme', tarif: 12000, categorie: 'Cardiologie', duree: 10 },
-    { id: 5, code: 'BIO001', libelle: 'Bilan lipidique', tarif: 18000, categorie: 'Biologie', duree: 5 },
-    { id: 6, code: 'BIO002', libelle: 'Glycémie à jeun', tarif: 8000, categorie: 'Biologie', duree: 5 },
-    { id: 7, code: 'RAD002', libelle: 'Scanner abdominal', tarif: 85000, categorie: 'Scanner', duree: 45 },
-    { id: 8, code: 'IRM001', libelle: 'IRM cérébrale', tarif: 120000, categorie: 'IRM', duree: 60 }
+    { id: 1, code: 'RAD001', libelle: 'Radiographie dentaire panoramique', tarif: 25000, categorie: 'Radiologie dentaire', duree: 15 },
+    { id: 2, code: 'RAD002', libelle: 'Radiographie rétro-alvéolaire', tarif: 8000, categorie: 'Radiologie dentaire', duree: 5 },
+    { id: 3, code: 'RAD003', libelle: 'Radiographie céphalométrique', tarif: 35000, categorie: 'Radiologie dentaire', duree: 20 },
+    { id: 4, code: 'CONE001', libelle: 'Cone Beam (CBCT)', tarif: 85000, categorie: 'Imagerie 3D dentaire', duree: 30 },
+    { id: 5, code: 'BIO001', libelle: 'Bilan buccal pré-opératoire', tarif: 18000, categorie: 'Biologie dentaire', duree: 10 },
+    { id: 6, code: 'BIO002', libelle: 'Test de sensibilité pulpaire', tarif: 12000, categorie: 'Diagnostic dentaire', duree: 15 },
+    { id: 7, code: 'BIO003', libelle: 'Prélèvement bactérien', tarif: 15000, categorie: 'Biologie dentaire', duree: 10 },
+    { id: 8, code: 'SCAN001', libelle: 'Scanner dentaire (Dentascan)', tarif: 120000, categorie: 'Imagerie 3D dentaire', duree: 45 },
+    { id: 9, code: 'ECHO001', libelle: 'Échographie glandes salivaires', tarif: 30000, categorie: 'Échographie dentaire', duree: 20 },
+    { id: 10, code: 'DOC001', libelle: 'Modélisation 3D orthodontique', tarif: 45000, categorie: 'Imagerie 3D dentaire', duree: 25 },
+    { id: 11, code: 'DOC002', libelle: 'Analyse occlusale', tarif: 22000, categorie: 'Diagnostic dentaire', duree: 30 },
+    { id: 12, code: 'DOC003', libelle: 'Téléradiographie', tarif: 28000, categorie: 'Radiologie dentaire', duree: 10 }
   ];
 
 
-  const categories = ['Radiologie', 'Échographie', 'Cardiologie', 'Biologie', 'Scanner', 'IRM'];
+  const categories = ['Radiologie dentaire', 'Imagerie 3D dentaire', 'Biologie dentaire', 'Diagnostic dentaire', 'Échographie dentaire'];
 
   const filteredFacturations = facturationExamens.filter(facture => {
     const matchesSearch = facture.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -306,12 +318,11 @@ const FacturationExamens = () => {
       showSuccess('Facturation examen modifiée avec succès!');
       setEditingFacture(null);
     } else {
-        console.log('🔄 Programmation nouvel examen...');
+        console.log('🔄 Programmation de nouveaux examens...');
         
-        // Récupérer l'examen sélectionné
-        const examenSelectionne = examensDisponibles.find(e => e.id === parseInt(factureData.examenId));
-        if (!examenSelectionne) {
-          showWarning('Veuillez sélectionner un examen valide');
+        // Vérifier qu'au moins un examen est sélectionné
+        if (!factureData.examensSelectionnes || factureData.examensSelectionnes.length === 0) {
+          showWarning('Veuillez sélectionner au moins un examen');
           return;
         }
 
@@ -375,7 +386,7 @@ const FacturationExamens = () => {
             patient_id: factureData.patientId,
             medecin_id: medecinId,
             date_consultation: new Date().toISOString().split('T')[0],
-            motif: `Examen: ${examenSelectionne.libelle}`,
+            motif: `Examens: ${factureData.examensSelectionnes.map(e => e.libelle).join(', ')}`,
             statut: 'terminee'
           })
           .select()
@@ -384,26 +395,29 @@ const FacturationExamens = () => {
         if (consultationError) throw consultationError;
         console.log('✅ Consultation créée:', consultationData.id);
 
-        // 2. Créer l'examen prescrit
-        const { data: examenData, error: examenError } = await supabase
+        // 3. Créer les examens prescrits (plusieurs examens possibles)
+        const examensToInsert = factureData.examensSelectionnes.map(examen => ({
+          consultation_id: consultationData.id,
+          patient_id: factureData.patientId,
+          type_examen: examen.libelle,
+          description: factureData.observations,
+          date_prescription: new Date().toISOString().split('T')[0],
+          date_realisation: factureData.dateRealisation,
+          statut: 'prescrit',
+          notes: factureData.observations
+        }));
+
+        console.log('🔄 Insertion des examens:', examensToInsert);
+
+        const { data: examensData, error: examensError } = await supabase
           .from('examens_prescrits')
-          .insert({
-            consultation_id: consultationData.id,
-            patient_id: factureData.patientId,
-            type_examen: examenSelectionne.libelle,
-            description: factureData.observations,
-            date_prescription: new Date().toISOString().split('T')[0],
-            date_realisation: factureData.dateRealisation,
-            statut: 'prescrit',
-            notes: factureData.observations
-          })
-          .select()
-          .single();
+          .insert(examensToInsert)
+          .select();
 
-        if (examenError) throw examenError;
-        console.log('✅ Examen prescrit créé:', examenData.id);
+        if (examensError) throw examensError;
+        console.log('✅ Examens prescrits créés:', examensData?.length || 0, 'examens');
 
-      showSuccess('Nouvel examen programmé avec succès!');
+      showSuccess('Nouveaux examens programmés avec succès!');
         
         // Recharger les examens
         await fetchExamens();
@@ -411,7 +425,7 @@ const FacturationExamens = () => {
       
     setShowForm(false);
     setFactureData({
-      patientId: '', examenId: '', quantite: 1, tarifUnitaire: '', remise: 0, 
+      patientId: '', examensSelectionnes: [], quantite: 1, tarifUnitaire: '', remise: 0, 
       dateRealisation: '', observations: ''
     });
     } catch (error) {
@@ -422,11 +436,18 @@ const FacturationExamens = () => {
 
   const handleEdit = (facture) => {
     setEditingFacture(facture);
+    // Pré-remplir avec les examens existants
+    const examensSelectionnes = facture.examens.map(examen => ({
+      ...examen.examen,
+      quantite: examen.quantite || 1,
+      tarifUnitaire: examen.tarifUnitaire || examen.examen.tarif || 0
+    }));
+    
     setFactureData({
       patientId: facture.patient.id,
-      examenId: facture.examens[0]?.examen.id || '',
-      quantite: facture.examens[0]?.quantite || 1,
-      tarifUnitaire: facture.examens[0]?.tarifUnitaire || '',
+      examensSelectionnes: examensSelectionnes,
+      quantite: 1,
+      tarifUnitaire: '',
       remise: facture.remise || 0,
       dateRealisation: facture.dateRealisation || '',
       observations: facture.observations || ''
@@ -467,10 +488,15 @@ const FacturationExamens = () => {
   };
 
   const calculateTotal = () => {
-    const examen = examensDisponibles.find(e => e.id === parseInt(factureData.examenId));
-    if (!examen) return { total: 0, sousTotal: 0, remise: 0, partAssurance: 0, partPatient: 0 };
+    if (!factureData.examensSelectionnes || factureData.examensSelectionnes.length === 0) {
+      return { total: 0, sousTotal: 0, remise: 0, partAssurance: 0, partPatient: 0, tauxCouverture: 0 };
+    }
     
-    const sousTotal = examen.tarif * factureData.quantite;
+    // Calculer le sous-total pour tous les examens sélectionnés
+    const sousTotal = factureData.examensSelectionnes.reduce((sum, examen) => {
+      return sum + ((examen.tarifUnitaire || examen.tarif || 0) * (examen.quantite || 1));
+    }, 0);
+    
     const montantRemise = (sousTotal * factureData.remise) / 100;
     const total = sousTotal - montantRemise;
     
@@ -718,21 +744,63 @@ const FacturationExamens = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Examen *</label>
-                <select
-                  name="examenId"
-                  value={factureData.examenId}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
-                >
-                  <option value="">Sélectionner un examen</option>
-                  {examensDisponibles.map(examen => (
-                    <option key={examen.id} value={examen.id}>
-                      {examen.code} - {examen.libelle} ({examen.tarif.toLocaleString()} FCFA)
-                    </option>
-                  ))}
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Examens * ({factureData.examensSelectionnes.length} sélectionné(s))
+                </label>
+                <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
+                  {examensDisponibles.map((examen) => {
+                    const isSelected = factureData.examensSelectionnes.some(e => e.id === examen.id);
+                    
+                    return (
+                      <label
+                        key={examen.id}
+                        className={`flex items-center p-3 rounded cursor-pointer border ${
+                          isSelected 
+                            ? 'bg-blue-50 border-blue-300' 
+                            : 'hover:bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFactureData({
+                                ...factureData,
+                                examensSelectionnes: [...factureData.examensSelectionnes, examen]
+                              });
+                            } else {
+                              setFactureData({
+                                ...factureData,
+                                examensSelectionnes: factureData.examensSelectionnes.filter(e => e.id !== examen.id)
+                              });
+                            }
+                          }}
+                          className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-900">
+                              {examen.code} - {examen.libelle}
+                            </span>
+                            <span className="text-sm text-gray-600 font-medium">
+                              {examen.tarif.toLocaleString()} FCFA
+                            </span>
+                          </div>
+                          <div className="flex items-center text-xs text-gray-500 mt-1">
+                            <span className="mr-3">📋 {examen.categorie}</span>
+                            <span>⏱️ {examen.duree} min</span>
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+                {factureData.examensSelectionnes.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Veuillez sélectionner au moins un examen
+                  </p>
+                )}
               </div>
             </div>
             
@@ -784,9 +852,24 @@ const FacturationExamens = () => {
             </div>
             
             {/* Détails de la facturation */}
-            {factureData.patientId && factureData.examenId && (
+            {factureData.patientId && factureData.examensSelectionnes.length > 0 && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-3">Détails de la facturation</h4>
+                <div className="space-y-2 text-sm mb-3">
+                  {factureData.examensSelectionnes.map((examen, index) => (
+                    <div key={examen.id} className="flex justify-between items-center py-2 border-b border-blue-100">
+                      <div>
+                        <span className="font-medium text-gray-900">{examen.code} - {examen.libelle}</span>
+                        <div className="text-xs text-gray-500">
+                          Quantité: {examen.quantite || 1} × {(examen.tarifUnitaire || examen.tarif || 0).toLocaleString()} FCFA
+                        </div>
+                      </div>
+                      <span className="font-medium">
+                        {((examen.tarifUnitaire || examen.tarif || 0) * (examen.quantite || 1)).toLocaleString()} FCFA
+                      </span>
+                    </div>
+                  ))}
+                </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Sous-total :</span>

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { getNomCabinet, getTitrePraticien, getTitreAbrege } from '../utils/traductions';
 import documentUploadService from './documentUploadService';
 
 /**
@@ -250,13 +251,13 @@ class TransfertDossierService {
         <body>
           <div class="header-info">
             <div class="medecin-info">
-              <h3>Dr. ${medecinData.prenom || ''} ${medecinData.nom || ''}</h3>
+              <h3>${getTitreAbrege(medecinData.specialite)} ${medecinData.prenom || ''} ${medecinData.nom || ''}</h3>
               ${medecinData.specialite ? `<p>${medecinData.specialite}</p>` : ''}
               ${medecinData.telephone ? `<p>Tél: ${medecinData.telephone}</p>` : ''}
               ${medecinData.email ? `<p>Email: ${medecinData.email}</p>` : ''}
             </div>
             <div class="cabinet-info">
-              <h4>${cabinetData.nom_cabinet || 'Cabinet Médical'}</h4>
+              <h4>${cabinetData.nom_cabinet || getNomCabinet(medecinData.specialite)}</h4>
               ${cabinetData.adresse ? `<p>${cabinetData.adresse}</p>` : ''}
               ${cabinetData.ville || cabinetData.code_postal ? `<p>${cabinetData.ville || ''} ${cabinetData.code_postal || ''}</p>` : ''}
               ${cabinetData.telephone ? `<p>Tél: ${cabinetData.telephone}</p>` : ''}
@@ -295,7 +296,7 @@ class TransfertDossierService {
             ` : ''}
             ${transfertData.medecin_destinataire ? `
             <div class="info-row">
-              <span class="info-label">Médecin destinataire:</span>
+              <span class="info-label">${getTitrePraticien(medecinData.specialite)} destinataire:</span>
               <span>${transfertData.medecin_destinataire}</span>
             </div>
             ` : ''}
@@ -357,7 +358,7 @@ class TransfertDossierService {
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Médecin</th>
+                  <th>${getTitrePraticien(medecinData.specialite)}</th>
                   <th>Motif</th>
                   <th>Statut</th>
                 </tr>
@@ -368,7 +369,7 @@ class TransfertDossierService {
         htmlContent += `
                 <tr>
                   <td>${formatDate(consultation.date_consultation)}</td>
-                  <td>Dr. ${consultation.medecin?.prenom || ''} ${consultation.medecin?.nom || ''}</td>
+                  <td>${getTitreAbrege(consultation.medecin?.specialite || medecinData.specialite)} ${consultation.medecin?.prenom || ''} ${consultation.medecin?.nom || ''}</td>
                   <td>${consultation.motif_consultation || 'N/A'}</td>
                   <td>${consultation.statut || 'N/A'}</td>
                 </tr>
@@ -620,8 +621,8 @@ class TransfertDossierService {
     htmlContent += `
           <div class="footer">
             <p>Document généré automatiquement le ${new Date().toLocaleString('fr-FR')}</p>
-            <p>Signature du médecin: _________________________</p>
-            <p>Dr. ${medecinData.prenom || ''} ${medecinData.nom || ''}</p>
+            <p>Signature du ${getTitrePraticien(medecinData.specialite).toLowerCase()}: _________________________</p>
+            <p>${getTitreAbrege(medecinData.specialite)} ${medecinData.prenom || ''} ${medecinData.nom || ''}</p>
           </div>
         </body>
       </html>

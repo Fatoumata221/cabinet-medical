@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { appointmentService } from '../../lib/services';
 import { sendNotification, NOTIFICATION_TYPES } from '../../lib/notifications';
 import { useConsultationData } from '../../hooks/consultation/useConsultationData';
 import { createConsultationFromModele } from '../../services/consultation/referenceDataService';
@@ -104,6 +105,11 @@ const ConsultationDetail = () => {
 
   const [showModeleModal, setShowModeleModal] = useState(false);
   const [showCreateRdvModal, setShowCreateRdvModal] = useState(false);
+  const [rdvForm, setRdvForm] = useState({
+    date_heure: '',
+    motif: '',
+    duree: 30
+  });
 
   const [showExamenDetailsModal, setShowExamenDetailsModal] = useState(false);
   const [selectedExamen, setSelectedExamen] = useState(null);
@@ -210,16 +216,16 @@ const ConsultationDetail = () => {
       const { error: saveError } = await supabase
         .from('consultations')
         .update({
-          updated_at: endTime,
+          statut: 'terminee',
           notes_generales: consultation.notes_generales || null,
-          heure_fin_consultation: endTime
+          updated_at: endTime
         })
         .eq('id', consultation.id);
 
       if (saveError) {
         console.warn('⚠️ [Consultation] Erreur lors de la sauvegarde automatique:', saveError);
       } else {
-        setConsultation({ ...consultation, heure_fin_consultation: endTime });
+        setConsultation({ ...consultation, statut: 'terminee', updated_at: endTime });
       }
 
       console.log('📤 [Consultation] Envoi de la notification à la secrétaire...');
@@ -280,29 +286,22 @@ const ConsultationDetail = () => {
         }
       }
 
-      if (waitingQueueId) {
-        await showSuccessDialog('Consultation terminée', `La consultation a été terminée avec succès. La secrétaire a été notifiée.`);
-        await showConfirm({
-          title: 'Planifier un rendez-vous de suivi ?',
-          message: `Souhaitez-vous créer un prochain rendez-vous pour ${patient?.prenom} ${patient?.nom} ?`,
-          type: 'info',
-          confirmText: 'Oui, planifier',
-          cancelText: 'Non, terminer',
-          showCancel: true,
-          onConfirm: () => setShowCreateRdvModal(true),
-          onCancel: () => {
-            setTimeout(() => {
-              window.location.hash = '#/my-waiting-queue';
-              navigate('/my-waiting-queue', { replace: true });
-            }, 100);
-          }
-        });
-      } else {
-        setTimeout(() => {
-          window.location.hash = '#/my-waiting-queue';
-          navigate('/my-waiting-queue', { replace: true });
-        }, 100);
-      }
+      await showSuccessDialog('Consultation terminée', `La consultation a été terminée avec succès. La secrétaire a été notifiée.`);
+      await showConfirm({
+        title: 'Planifier un rendez-vous de suivi ?',
+        message: `Souhaitez-vous créer un prochain rendez-vous pour ${patient?.prenom} ${patient?.nom} ?`,
+        type: 'info',
+        confirmText: 'Oui, planifier',
+        cancelText: 'Non, terminer',
+        showCancel: true,
+        onConfirm: () => setShowCreateRdvModal(true),
+        onCancel: () => {
+          setTimeout(() => {
+            window.location.hash = '#/my-waiting-queue';
+            navigate('/my-waiting-queue', { replace: true });
+          }, 100);
+        }
+      });
     } catch (e) {
       console.error('Erreur fin de consultation:', e);
       showError(`Erreur lors de la fin de consultation: ${e?.message || e}`);
@@ -352,6 +351,42 @@ const ConsultationDetail = () => {
     } catch (err) {
       console.error('Erreur création consultation modèle:', err);
       showError('Erreur lors de la création de la consultation modèle');
+    }
+  };
+
+  const handleCreateRdv = async () => {
+    if (!patient || !consultation) return;
+
+    try {
+      console.log('🔄 [Consultation] Création RDV de suivi');
+      
+      await appointmentService.create({
+        patient_id: patient.id,
+        medecin_id: consultation.medecin_id,
+        date_heure: rdvForm.date_heure,
+        motif: rdvForm.motif || 'Suivi consultation',
+        duree: rdvForm.duree,
+        statut: 'confirme',
+        notes: `Rendez-vous de suite pour la consultation du ${new Date(consultation.date_consultation).toLocaleDateString('fr-FR')}`
+      }, userProfile);
+
+      setShowCreateRdvModal(false);
+      setRdvForm({
+        date_heure: '',
+        motif: '',
+        duree: 30
+      });
+      
+      showSuccessDialog('Rendez-vous créé', 'Le rendez-vous de suivi a été créé avec succès.');
+      
+      // Redirection vers la file d'attente après création du RDV
+      setTimeout(() => {
+        navigate('/my-waiting-queue', { replace: true });
+      }, 1500);
+      
+    } catch (error) {
+      console.error('❌ [Consultation] Erreur création RDV:', error);
+      showError('Erreur lors de la création du rendez-vous: ' + error.message);
     }
   };
 
@@ -780,6 +815,66 @@ const ConsultationDetail = () => {
           medecinNom={consultation?.medecin_nom || 'Médecin'}
           onClose={() => setShowDevisModal(false)}
         />
+      )}
+      
+      {/* Modal Créer Rendez-vous */}
+      {showCreateRdvModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Planifier un rendez-vous de suivi</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date et heure *</label>
+                  <input
+                    type="datetime-local"
+                    value={rdvForm.date_heure}
+                    onChange={(e) => setRdvForm({...rdvForm, date_heure: e.target.value})}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Motif de la consultation</label>
+                  <input
+                    type="text"
+                    value={rdvForm.motif}
+                    onChange={(e) => setRdvForm({...rdvForm, motif: e.target.value})}
+                    placeholder="Ex: Contrôle de suivi"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Durée (minutes)</label>
+                  <select
+                    value={rdvForm.duree}
+                    onChange={(e) => setRdvForm({...rdvForm, duree: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>60 minutes</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowCreateRdvModal(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleCreateRdv}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  Créer le rendez-vous
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { unifiedNotificationService } from '../services/unifiedNotificationService';
+// Import des icônes lucide-react - FINAL FIXED VERSION
 import { 
   Users, 
   Search, 
@@ -22,6 +24,7 @@ import {
 } from 'lucide-react';
 
 const PatientsPage = () => {
+  console.log('🔄 [PatientsFinal] Chargement de la page Patients - VERSION FINALE');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { hasRole } = useAuth();
@@ -33,7 +36,7 @@ const PatientsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
-  const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState({
     sexe: 'all',
     situation_familiale: 'all',
     mutuelle: '',
@@ -199,7 +202,8 @@ const PatientsPage = () => {
   };
 
   const handleViewPatient = (patient) => {
-    navigate(`/patients/details/${patient.id}`);
+    // Utiliser la route fiche-patient qui est accessible aux médecins
+    navigate(`/rendez-vous/fiche-patient?id=${patient.id}`);
   };
 
   const handleEditPatient = (patient) => {
@@ -242,10 +246,10 @@ const PatientsPage = () => {
         
         // Recharger la liste des patients
         fetchPatients();
-        alert('Patient supprimé avec succès');
+        unifiedNotificationService.success('Patient supprimé avec succès');
       } catch (error) {
         console.error('Erreur lors de la suppression:', error);
-        alert('Erreur lors de la suppression du patient');
+        unifiedNotificationService.error('Erreur lors de la suppression du patient');
       }
     }
   };
@@ -270,7 +274,7 @@ const PatientsPage = () => {
           .eq('id', editingPatientId);
         
         if (error) throw error;
-        alert('Patient modifié avec succès');
+        unifiedNotificationService.success('Patient modifié avec succès');
       } else {
         // Ajout
         const { data: userProfile } = await supabase
@@ -284,7 +288,7 @@ const PatientsPage = () => {
           .insert([{ ...formData, tenant_id: userProfile?.tenant_id }]);
         
         if (error) throw error;
-        alert('Patient ajouté avec succès');
+        unifiedNotificationService.success('Patient ajouté avec succès');
       }
       
       setShowForm(false);
@@ -292,7 +296,7 @@ const PatientsPage = () => {
       fetchPatients();
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      alert('Erreur lors de la sauvegarde du patient');
+      unifiedNotificationService.error('Erreur lors de la sauvegarde du patient');
     }
   };
 
@@ -720,7 +724,7 @@ const PatientsPage = () => {
               </div>
             </div>
             
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex gap-3">
               <button
                 type="button"
                 onClick={handleCancelForm}
@@ -734,6 +738,19 @@ const PatientsPage = () => {
               >
                 {editingPatientId ? 'Modifier' : 'Enregistrer'}
               </button>
+              {!editingPatientId && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    // Sauvegarder le patient actuel puis réinitialiser pour un autre
+                    await handleSubmitForm({ preventDefault: () => {} });
+                    handleAddPatient();
+                  }}
+                  className="btn btn-success"
+                >
+                  Ajouter un autre patient
+                </button>
+              )}
             </div>
           </form>
         </div>

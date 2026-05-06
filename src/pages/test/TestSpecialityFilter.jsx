@@ -62,8 +62,8 @@ const TestSpecialityFilter = () => {
           error: null,
           count: doctors?.length || 0
         };
-        console.log('[TEST] ✅ Médecins récupérés:', doctors?.length || 0);
-        console.log('[TEST] Détails médecins:', doctors?.map(d => ({
+        console.log('[TEST] ✅ Praticiens récupérés:', doctors?.length || 0);
+        console.log('[TEST] Détails praticiens:', doctors?.map(d => ({
           id: d.id,
           nom: d.nom,
           prenom: d.prenom,
@@ -71,7 +71,7 @@ const TestSpecialityFilter = () => {
         })));
       } catch (error) {
         newResults.doctors = { data: null, error: error.message, count: 0 };
-        console.error('[TEST] ❌ Erreur médecins:', error);
+        console.error('[TEST] ❌ Erreur praticiens:', error);
       }
 
       // 2. Test typesActesService.getAll()
@@ -336,7 +336,7 @@ const TestSpecialityFilter = () => {
       {/* Résultats des tests */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {renderResultCard(
-          'Médecins (users)',
+          'Praticiens (users)',
           <Users className="w-5 h-5 text-blue-600" />,
           results.doctors,
           config?.mode_specialite_id || null

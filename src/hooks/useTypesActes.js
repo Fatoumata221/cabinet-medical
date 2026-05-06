@@ -23,53 +23,71 @@ export const useTypesActes = () => {
       setError(null);
       const data = await typesActesService.getAll();
       
-      // Filtrer selon la spécialité de l'utilisateur connecté
+      console.log('🔍 [useTypesActes] Données brutes reçues:', data?.length || 0, 'actes');
+      console.log('🔍 [useTypesActes] Profil utilisateur:', userProfile?.specialite);
+      
+      // Filtrer pour n'afficher que les actes dentaires
       let filteredData = data;
+      
+      // D'abord, essayer de trouver la spécialité dentaire
+      const dentalKeywords = ['dent', 'chirurgien dentiste', 'odontologie', 'stomatologie'];
+      let isDentalSpecialty = false;
+      
+      // Vérifier si le profil utilisateur est dentaire
       if (userProfile?.specialite) {
         const userSpec = userProfile.specialite.toLowerCase();
-        filteredData = data.filter(acte => 
-          // Garder les actes sans spécialité (génériques) ou liés à la spécialité de l'utilisateur
-          acte.specialites_data.length === 0 || 
-          acte.specialites_data.some(s => s.nom.toLowerCase() === userSpec)
-        );
+        isDentalSpecialty = dentalKeywords.some(keyword => userSpec.includes(keyword));
+        console.log('🔍 [useTypesActes] Spécialité utilisateur détectée comme dentaire:', isDentalSpecialty);
       }
       
-      // Si la liste est vide, utiliser des actes par défaut
-      if (!filteredData || filteredData.length === 0) {
-        const defaultActes = [
-          { id: 1, nom: 'Examen général', description: 'Examen clinique complet', tarif_defaut: 5000, specialites_data: [] },
-          { id: 2, nom: 'Consultation dentaire', description: 'Consultation dentaire de base', tarif_defaut: 10000, specialites_data: [] },
-          { id: 3, nom: 'Détartrage', description: 'Nettoyage dentaire professionnel', tarif_defaut: 15000, specialites_data: [] },
-          { id: 4, nom: 'Extraction dentaire', description: 'Extraction de dent simple', tarif_defaut: 20000, specialites_data: [] },
-          { id: 5, nom: 'Obturation', description: 'Plombage dentaire', tarif_defaut: 25000, specialites_data: [] },
-          { id: 6, nom: 'Radiographie dentaire', description: 'Radio dentaire panoramique', tarif_defaut: 8000, specialites_data: [] },
-          { id: 7, nom: 'Soins canalaires', description: 'Traitement endodontique', tarif_defaut: 50000, specialites_data: [] },
-          { id: 8, nom: 'Couronne dentaire', description: 'Pose de couronne', tarif_defaut: 80000, specialites_data: [] },
-          { id: 9, nom: 'Prothèse amovible', description: 'Dentier', tarif_defaut: 120000, specialites_data: [] },
-          { id: 10, nom: 'Implant dentaire', description: 'Pose d\'implant', tarif_defaut: 200000, specialites_data: [] }
-        ];
-        setActes(defaultActes);
-      } else {
-        // S'assurer que "Examen général" est en premier
-        const examenGeneral = filteredData.find(a => a.nom === 'Examen général');
-        const otherActes = filteredData.filter(a => a.nom !== 'Examen général');
-        if (examenGeneral) {
-          setActes([examenGeneral, ...otherActes]);
-        } else {
-          // Si "Examen général" n'existe pas, l'ajouter en premier
-          const newActe = { id: 999, nom: 'Examen général', description: 'Examen clinique complet', tarif_defaut: 5000, specialites_data: [] };
-          setActes([newActe, ...filteredData]);
+      // Filtrer les actes pour ne garder que ceux dentaires
+      filteredData = data.filter(acte => {
+        // Si l'acte a des spécialités associées
+        if (acte.specialites_data && acte.specialites_data.length > 0) {
+          return acte.specialites_data.some(s => 
+            dentalKeywords.some(keyword => s.nom.toLowerCase().includes(keyword))
+          );
         }
+        
+        // Sinon, vérifier si le nom de l'acte contient des mots-clés dentaires
+        const acteName = acte.nom.toLowerCase();
+        return dentalKeywords.some(keyword => acteName.includes(keyword));
+      });
+      
+      console.log('🔍 [useTypesActes] Actes filtrés (dentaire):', filteredData?.length || 0);
+      console.log('📋 [useTypesActes] Actes dentaires trouvés:', filteredData?.map(a => ({ id: a.id, nom: a.nom })));
+      
+      // Si aucun acte dentaire trouvé, utiliser des actes dentaires par défaut
+      if (!filteredData || filteredData.length === 0) {
+        console.log('⚠️ [useTypesActes] Aucun acte dentaire trouvé, utilisation des actes par défaut');
+        const defaultDentalActes = [
+          { id: 1, nom: 'Consultation dentaire', description: 'Consultation dentaire de base', tarif_defaut: 10000, specialites_data: [] },
+          { id: 2, nom: 'Détartrage', description: 'Nettoyage dentaire professionnel', tarif_defaut: 15000, specialites_data: [] },
+          { id: 3, nom: 'Extraction dentaire', description: 'Extraction de dent simple', tarif_defaut: 20000, specialites_data: [] },
+          { id: 4, nom: 'Obturation', description: 'Plombage dentaire', tarif_defaut: 25000, specialites_data: [] },
+          { id: 5, nom: 'Radiographie dentaire', description: 'Radio dentaire panoramique', tarif_defaut: 8000, specialites_data: [] },
+          { id: 6, nom: 'Soins canalaires', description: 'Traitement endodontique', tarif_defaut: 50000, specialites_data: [] },
+          { id: 7, nom: 'Couronne dentaire', description: 'Pose de couronne', tarif_defaut: 80000, specialites_data: [] },
+          { id: 8, nom: 'Prothèse amovible', description: 'Dentier', tarif_defaut: 120000, specialites_data: [] },
+          { id: 9, nom: 'Implant dentaire', description: 'Pose d\'implant', tarif_defaut: 200000, specialites_data: [] },
+          { id: 10, nom: 'Blanchiment dentaire', description: 'Blanchiment des dents', tarif_defaut: 50000, specialites_data: [] }
+        ];
+        setActes(defaultDentalActes);
+        console.log('✅ [useTypesActes] Actes dentaires par défaut chargés:', defaultDentalActes.length);
+      } else {
+        setActes(filteredData);
+        console.log('✅ [useTypesActes] Actes dentaires chargés depuis la base:', filteredData.length);
       }
     } catch (err) {
-      console.error('Erreur chargement actes:', err);
+      console.error('❌ [useTypesActes] Erreur chargement actes:', err);
       setError(err);
-      // En cas d'erreur, utiliser des actes par défaut
-      const defaultActes = [
-        { id: 1, nom: 'Examen général', description: 'Examen clinique complet', tarif_defaut: 5000, specialites_data: [] },
-        { id: 2, nom: 'Consultation dentaire', description: 'Consultation dentaire de base', tarif_defaut: 10000, specialites_data: [] }
+      // En cas d'erreur, utiliser des actes dentaires par défaut
+      const defaultDentalActes = [
+        { id: 1, nom: 'Consultation dentaire', description: 'Consultation dentaire de base', tarif_defaut: 10000, specialites_data: [] },
+        { id: 2, nom: 'Détartrage', description: 'Nettoyage dentaire professionnel', tarif_defaut: 15000, specialites_data: [] }
       ];
-      setActes(defaultActes);
+      setActes(defaultDentalActes);
+      console.log('⚠️ [useTypesActes] Actes dentaires par défaut (erreur) chargés');
     } finally {
       setLoading(false);
     }

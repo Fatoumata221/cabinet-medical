@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase'; // Keep for now for RPC calls
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -32,6 +33,7 @@ import { Step2Confirmation } from '../../components/rendez-vous/Step2Confirmatio
 
 const PriseRendezVousPage = () => {
   const { currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const { dialogState, showError, showConfirm, closeDialog } = useConfirmDialog();
   const { showError: showAlertError, showSuccess, showWarning, showInfo } = useAlert();
   
@@ -40,6 +42,9 @@ const PriseRendezVousPage = () => {
   const [secretaireId, setSecretaireId] = useState(null);
   const [searchTerm, setSearchTerm] = useState(''); // Keep searchTerm locally
   const [localEditingAppointment, setLocalEditingAppointment] = useState(null); // Local state to pass to form hook
+  
+  // Récupérer le patientId depuis l'URL pour pré-sélection
+  const preselectedPatientId = searchParams.get('patientId');
 
   // Use the appointment booking data hook
   const { 
@@ -94,6 +99,20 @@ const PriseRendezVousPage = () => {
   useEffect(() => {
     setLocalEditingAppointment(editingAppointment);
   }, [editingAppointment]);
+
+  // Pré-sélectionner le patient si patientId est dans l'URL
+  useEffect(() => {
+    if (preselectedPatientId && allPatients.length > 0) {
+      const preselectedPatient = allPatients.find(p => p.id === parseInt(preselectedPatientId));
+      if (preselectedPatient) {
+        setFormData(prev => ({
+          ...prev,
+          patient_id: preselectedPatient.id
+        }));
+        console.log('✅ Patient pré-sélectionné:', preselectedPatient.nom, preselectedPatient.prenom);
+      }
+    }
+  }, [preselectedPatientId, allPatients, setFormData]);
 
   // Marquer un patient présent depuis la liste des rendez-vous (notifie le médecin via RPC)
   const handleMarkPresentFromAppointment = async (appointment) => {

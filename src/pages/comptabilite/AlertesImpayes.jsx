@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import { 
   Search, Filter, Download, AlertTriangle, Bell, Calendar,
   TrendingUp, Clock, CheckCircle, XCircle, RefreshCw,
@@ -27,133 +28,66 @@ const AlertesImpayes = () => {
   const chargerAlertes = async () => {
     setLoading(true);
     try {
-      // Données de test pour démonstration
-      const mockAlertes = [
-        {
-          id: 1,
-          patient: {
-            id: 1,
-            nom: 'Cissé',
-            prenom: 'Baba',
-            telephone: '77 123 45 67',
-            email: 'baba.cisse@email.com'
-          },
+      // Récupérer les factures impayées depuis la base de données
+      const { data: factures, error } = await supabase
+        .from('factures')
+        .select(`
+          id,
+          numero_facture,
+          date_facture,
+          montant_ttc,
+          montant_paye,
+          montant_restant,
+          statut_paiement,
+          patient_id,
+          assurance_id,
+          patients ( id, nom, prenom, email, telephone ),
+          assurances ( id, nom )
+        `)
+        .is('facture_parent_id', null)
+        .or('statut_paiement.eq.en_attente,statut_paiement.eq.partiel')
+        .order('date_facture', { ascending: false })
+        .limit(500);
+
+      if (error) throw error;
+
+      // Transformer les factures en alertes
+      const alertesTransformees = (factures || []).map(f => {
+        const montantRestant = parseFloat(f.montant_restant ?? (parseFloat(f.montant_ttc || 0) - parseFloat(f.montant_paye || 0)));
+        const dateFacture = new Date(f.date_facture);
+        const dateEcheance = new Date(dateFacture);
+        dateEcheance.setDate(dateEcheance.getDate() + 30); // Échéance à 30 jours par défaut
+        const retard = Math.floor((new Date() - dateEcheance) / (1000 * 60 * 60 * 24));
+        
+        // Déterminer la sévérité
+        let severite = 'moyen';
+        if (retard > 60) severite = 'critique';
+        else if (retard > 30) severite = 'eleve';
+
+        return {
+          id: f.id,
+          patient: f.patients,
           facture: {
-            numero: 'FACT-2025-045',
-            montant_total: 150000,
-            montant_paye: 0,
-            montant_restant: 150000,
-            date_emission: '2024-12-10',
-            date_echeance: '2024-12-25'
+            numero: f.numero_facture,
+            montant_total: parseFloat(f.montant_ttc || 0),
+            montant_paye: parseFloat(f.montant_paye || 0),
+            montant_restant: montantRestant,
+            date_emission: f.date_facture,
+            date_echeance: dateEcheance.toISOString().split('T')[0]
           },
-          retard: 45,
-          severite: 'critique',
-          dernierRappel: '2025-01-15',
-          nombreRappels: 3,
-          statut: 'actif',
-          notes: 'Patient contacté par téléphone le 15/01, promet de payer cette semaine'
-        },
-        {
-          id: 2,
-          patient: {
-            id: 2,
-            nom: 'Touré',
-            prenom: 'Awa',
-            telephone: '76 987 65 43',
-            email: 'awa.toure@email.com'
-          },
-          facture: {
-            numero: 'FACT-2025-042',
-            montant_total: 85000,
-            montant_paye: 25000,
-            montant_restant: 60000,
-            date_emission: '2024-12-20',
-            date_echeance: '2025-01-05'
-          },
-          retard: 30,
-          severite: 'eleve',
-          dernierRappel: '2025-01-20',
-          nombreRappels: 2,
-          statut: 'actif',
-          notes: 'En attente de confirmation du paiement'
-        },
-        {
-          id: 3,
-          patient: {
-            id: 3,
-            nom: 'Sarr',
-            prenom: 'Omar',
-            telephone: '78 456 78 90',
-            email: 'omar.sarr@email.com'
-          },
-          facture: {
-            numero: 'FACT-2025-038',
-            montant_total: 120000,
-            montant_paye: 80000,
-            montant_restant: 40000,
-            date_emission: '2024-12-25',
-            date_echeance: '2025-01-10'
-          },
-          retard: 25,
-          severite: 'moyen',
-          dernierRappel: '2025-01-22',
-          nombreRappels: 1,
-          statut: 'actif',
-          notes: 'Patient a demandé un délai supplémentaire'
-        },
-        {
-          id: 4,
-          patient: {
-            id: 4,
-            nom: 'Dieng',
-            prenom: 'Khady',
-            telephone: '77 234 56 78',
-            email: 'khady.dieng@email.com'
-          },
-          facture: {
-            numero: 'FACT-2025-035',
-            montant_total: 65000,
-            montant_paye: 0,
-            montant_restant: 65000,
-            date_emission: '2025-01-05',
-            date_echeance: '2025-01-20'
-          },
-          retard: 20,
-          severite: 'moyen',
+          retard: Math.max(0, retard),
+          severite,
           dernierRappel: null,
           nombreRappels: 0,
           statut: 'actif',
-          notes: 'Nouveau cas, pas encore contacté'
-        },
-        {
-          id: 5,
-          patient: {
-            id: 5,
-            nom: 'Faye',
-            prenom: 'Ibrahim',
-            telephone: '76 345 67 89',
-            email: 'ibrahim.faye@email.com'
-          },
-          facture: {
-            numero: 'FACT-2025-032',
-            montant_total: 95000,
-            montant_paye: 95000,
-            montant_restant: 0,
-            date_emission: '2024-12-01',
-            date_echeance: '2024-12-15'
-          },
-          retard: 60,
-          severite: 'critique',
-          dernierRappel: '2025-01-10',
-          nombreRappels: 5,
-          statut: 'resolu',
-          notes: 'Paiement complet reçu le 10/01'
-        }
-      ];
-      
-      setAlertes(mockAlertes);
-    } catch (error) {
-      console.error('Erreur lors du chargement des alertes:', error);
+          notes: ''
+        };
+      });
+
+      setAlertes(alertesTransformees);
+    } catch (e) {
+      console.error('Erreur lors du chargement des alertes:', e);
+      setAlertes([]);
     } finally {
       setLoading(false);
     }

@@ -181,7 +181,11 @@ const ActesConsultationPage = lazy(() => import('./pages/ActesPage'));
 const BcdsPage = lazy(() => import('./pages/BcdsPage'));
 const StatisticsPage = lazy(() => import('./pages/StatisticsPage'));
 const HistoriquesArchivesPage = lazy(() => import('./pages/HistoriquesArchivesPage'));
-const PatientsPage = lazy(() => import('./pages/Patients'));
+// Import direct pour contourner le problème de lazy loading
+import PatientsPage from './pages/Patients';
+import PatientsTestMinimal from './pages/PatientsTestMinimal';
+import MesPatientsPageDirect from './pages/MesPatients';
+import MesPatientsTestMinimal from './pages/MesPatientsTestMinimal';
 const WaitingQueuePage = lazy(() => import('./pages/WaitingQueuePage'));
 const SecretaryDashboard = lazy(() => import('./components/secretary/SecretaryDashboard'));
 const MedicalRecordsPage = lazy(() => import('./pages/MedicalRecordsPage'));
@@ -219,6 +223,8 @@ const ThreeDentalChart = lazy(() => import('./components/dental-chart-3d/ThreeDe
 // Wrapper pour les pages avec Suspense et Layout
 const LazyPageWrapper = ({ Component, message, allowedRoles = null }) => {
   const { currentUser, userProfile, isLoading, profileLoading } = useAuth();
+  
+  console.log('🔄 [LazyPageWrapper] Chargement du composant:', Component.name || 'Component sans nom');
   
   // Si des rôles sont spécifiés, vérifier les permissions
   if (allowedRoles) {
@@ -259,6 +265,7 @@ const AppointmentsPage = lazy(() => import('./pages/AppointmentsPage'));
 // Pages du module secrétaire - Rendez-vous
 const SalleAttentePage = lazy(() => import('./pages/SalleAttentePage'));
 const FichePatientRdv = lazy(() => import('./pages/rendez-vous/FichePatientRdv'));
+const FichePatientOnly = lazy(() => import('./pages/rendez-vous/FichePatientOnly'));
 const PriseRendezVousPage = lazy(() => import('./pages/rendez-vous/PriseRendezVousPage'));
 const RappelsSmsPage = lazy(() => import('./pages/rendez-vous/RappelsSmsPage'));
 const RechercheRendezVousPage = lazy(() => import('./pages/rendez-vous/RechercheRendezVousPage'));
@@ -532,9 +539,18 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
         <Route path="/patients" element={
-          <ProtectedRoute>
-            <LazyPageWrapper Component={PatientsPage} message="Chargement des patients..." />
+          <ProtectedRoute allowedRoles={[ROLES.DOCTOR, ROLES.SECRETARY, ROLES.ADMIN]}>
+            <PatientsPage />
           </ProtectedRoute>
+        } />
+        
+        {/* Route de test simple pour isoler le problème */}
+        <Route path="/patients-simple" element={
+          <div>
+            <h1>Page Patients Simple - Test</h1>
+            <p>Si vous voyez ceci, la route fonctionne.</p>
+            <p>Rôle: doctor</p>
+          </div>
         } />
         
         <Route path="/appointments" element={
@@ -570,8 +586,8 @@ const AppContent = () => {
         } />
         
         <Route path="/rendez-vous/fiche-patient" element={
-          <ProtectedRoute allowedRoles={['secretary', 'admin']}>
-            <LazyPageWrapper Component={FichePatientRdv} message="Chargement fiche patient..." />
+          <ProtectedRoute allowedRoles={['doctor', 'secretary', 'admin']}>
+            <LazyPageWrapper Component={FichePatientOnly} message="Chargement fiche patient..." />
           </ProtectedRoute>
         } />
         
@@ -923,7 +939,7 @@ const AppContent = () => {
         {/* Routes médecin avec lazy loading */}
         <Route path="/my-patients" element={
           <ProtectedRoute allowedRoles={['doctor']}>
-            <LazyPageWrapper Component={MesPatientsPage} message="Chargement mes patients..." />
+            <MesPatientsPageDirect />
           </ProtectedRoute>
         } />
         

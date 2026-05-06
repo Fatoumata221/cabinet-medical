@@ -1,17 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { 
-  ArrowLeft,
-  Save,
-  UserPlus,
-  Calendar,
-  Phone,
-  Mail,
-  MapPin,
-  FileText,
-  AlertCircle
-} from 'lucide-react';
+import { unifiedNotificationService } from '../services/unifiedNotificationService';
 
 const PatientForm = () => {
   const navigate = useNavigate();
@@ -65,7 +55,7 @@ const PatientForm = () => {
       if (data) setFormData(data);
     } catch (error) {
       console.error('Erreur lors du chargement:', error);
-      alert('Erreur lors du chargement du patient');
+      unifiedNotificationService.error('Erreur lors du chargement du patient');
     } finally {
       setLoading(false);
     }
@@ -91,20 +81,20 @@ const PatientForm = () => {
           .eq('id', patientId);
 
         if (error) throw error;
-        alert('Patient modifié avec succès');
+        unifiedNotificationService.success('Patient modifié avec succès');
       } else {
         const { error } = await supabase
           .from('patients')
           .insert([formData]);
 
         if (error) throw error;
-        alert('Patient ajouté avec succès');
+        unifiedNotificationService.success('Patient ajouté avec succès');
       }
 
       navigate('/rendez-vous/fiche-patient');
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      alert('Erreur lors de la sauvegarde: ' + error.message);
+      unifiedNotificationService.error('Erreur lors de la sauvegarde: ' + error.message);
     } finally {
       setLoading(false);
     }

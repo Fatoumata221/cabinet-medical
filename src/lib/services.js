@@ -220,9 +220,18 @@ export const appointmentService = {
       errors.push('Date et heure manquantes');
     } else {
       const appointmentDate = new Date(formData.date_heure);
+      const now = new Date();
+      // Permettre les rendez-vous dans les 60 prochaines minutes pour éviter les problèmes de fuseau horaire
+      const minAllowedTime = new Date(now.getTime() - 60 * 60 * 1000);
+      
+      console.log('🕐 [Validation] Date RDV:', appointmentDate.toISOString());
+      console.log('🕐 [Validation] Date actuelle:', now.toISOString());
+      console.log('🕐 [Validation] Date minimum autorisée:', minAllowedTime.toISOString());
+      console.log('🕐 [Validation] Comparaison:', appointmentDate, '<', minAllowedTime, '=', appointmentDate < minAllowedTime);
+      
       if (isNaN(appointmentDate.getTime())) {
         errors.push('Date et heure invalides');
-      } else if (appointmentDate < new Date(new Date().setSeconds(0,0))) { // Permet de sélectionner l'heure actuelle
+      } else if (appointmentDate < minAllowedTime) {
         errors.push('La date ne peut pas être dans le passé');
       }
     }
@@ -322,7 +331,7 @@ export const appointmentService = {
    */
   async checkTimeSlotConflicts(medecinId, dateHeure, excludeId = null) {
     let query = supabase
-      .from('appointments')
+      .from('appointments')   // ✅ correct
       .select('id, date_heure, motif')
       .eq('medecin_id', medecinId)
       .eq('date_heure', dateHeure)
@@ -470,8 +479,8 @@ export const appointmentService = {
     this.isCreating = true;
 
     try {
-      console.log('🚀 [AppointmentService] Début création RDV');
-      console.log('📋 [AppointmentService] FormData:', formData);
+      console.log('🚀 [appointmentService] Début création RDV');
+      console.log('📋 [appointmentService] FormData:', formData);
 
       // 1. Validation des données
       const validationErrors = this.validateAppointmentData(formData);
@@ -481,14 +490,14 @@ export const appointmentService = {
 
       // 2. Préparation des données
       const appointmentData = this.prepareAppointmentData(formData, currentUser);
-      console.log('📤 [AppointmentService] Données préparées:', appointmentData);
+      console.log('📤 [appointmentService] Données préparées:', appointmentData);
 
       // 3. Vérifications d'existence
       const patient = await this.verifyPatientExists(appointmentData.patient_id);
       const medecin = await this.verifyDoctorExists(appointmentData.medecin_id);
 
-      console.log('✅ [AppointmentService] Patient trouvé:', patient);
-      console.log('✅ [AppointmentService] Médecin trouvé:', medecin);
+      console.log('✅ [appointmentService] Patient trouvé:', patient);
+      console.log('✅ [appointmentService] Médecin trouvé:', medecin);
 
       // 4. Vérification des conflits (optionnel)
       if (!skipConflictCheck) {
@@ -502,21 +511,47 @@ export const appointmentService = {
         }
       }
 
+      // 4.1. Nettoyer les entrées existantes dans waiting_queue pour ce patient/médecin
+      console.log('🧹 [appointmentService] Nettoyage waiting_queue existant...');
+      const { error: cleanupError } = await supabase
+        .from('waiting_queue')
+        .delete()
+        .eq('patient_id', appointmentData.patient_id)
+        .eq('medecin_id', appointmentData.medecin_id);
+
+      if (cleanupError) {
+        console.warn('⚠️ [appointmentService] Erreur nettoyage waiting_queue:', cleanupError);
+      } else {
+        console.log('✅ [appointmentService] Waiting_queue nettoyé avec succès');
+      }
+
       // 5. Insertion avec retry
       let lastError;
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          console.log(`💾 [AppointmentService] Tentative ${attempt}/${maxRetries}`);
+          console.log(`💾 [appointmentService] Tentative ${attempt}/${maxRetries}`);
 
           const { data: newAppointment, error } = await supabase
             .from('appointments')
-            .insert([appointmentData])
+            .insert([{
+              patient_id: appointmentData.patient_id,
+              medecin_id: appointmentData.medecin_id,
+              date_heure: appointmentData.date_heure,
+              motif: appointmentData.motif,
+              duree: appointmentData.duree,
+              priorite: appointmentData.priorite,
+              statut: appointmentData.statut,
+              couleur: appointmentData.couleur,
+              type_rdv: appointmentData.type_rdv,
+              notes: appointmentData.notes,
+              heure_fin: appointmentData.heure_fin
+            }])
             .select()
             .single();
 
           if (error) throw error;
 
-          console.log('✅ [AppointmentService] RDV créé avec succès:', newAppointment);
+          console.log('✅ [appointmentService] RDV créé avec succès:', newAppointment);
 
           return {
             success: true,
@@ -527,7 +562,7 @@ export const appointmentService = {
 
         } catch (err) {
           lastError = err;
-          console.warn(`⚠️ [AppointmentService] Tentative ${attempt} échouée:`, err.message);
+          console.warn(`⚠️ [appointmentService] Tentative ${attempt} échouée:`, err.message);
 
           if (attempt < maxRetries) {
             await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
@@ -538,7 +573,7 @@ export const appointmentService = {
       throw lastError;
 
     } catch (error) {
-      console.error('❌ [AppointmentService] Erreur création:', error);
+      console.error('❌ [appointmentService] Erreur création:', error);
       throw error;
     } finally {
       this.isCreating = false;
@@ -547,7 +582,7 @@ export const appointmentService = {
 
   // Mettre à jour un rendez-vous
   async update(appointmentId, formData, currentUser = null) {
-    console.log('✏️ [AppointmentService] Mise à jour RDV:', appointmentId);
+    console.log('✏️ [appointmentService] Mise à jour RDV:', appointmentId);
 
     // Validation et préparation des données
     const validationErrors = this.validateAppointmentData(formData);
@@ -582,7 +617,7 @@ export const appointmentService = {
 
     if (error) throw error;
 
-    console.log('✅ [AppointmentService] RDV mis à jour:', updatedAppointment);
+    console.log('✅ [appointmentService] RDV mis à jour:', updatedAppointment);
 
     return {
       success: true,
@@ -691,7 +726,7 @@ export const appointmentService = {
   },
 
   // Récupérer les rendez-vous pour une date donnée
-  async getAppointmentsByDate(dayString) {
+  async getappointmentsByDate(dayString) {
     try {
       const { data: baseAppts, error: apptErr } = await supabase
         .from('appointments')
@@ -742,9 +777,9 @@ export const appointmentService = {
   },
 
   // Récupérer les rendez-vous pour une date donnée et un médecin spécifique
-  async getAppointmentsByDateAndDoctor(dayString, doctorId = null) {
+  async getappointmentsByDateAndDoctor(dayString, doctorId = null) {
     try {
-      let appointments = await this.getAppointmentsByDate(dayString);
+      let appointments = await this.getappointmentsByDate(dayString);
 
       if (doctorId) {
         appointments = appointments.filter(apt => apt.medecin_id === doctorId);

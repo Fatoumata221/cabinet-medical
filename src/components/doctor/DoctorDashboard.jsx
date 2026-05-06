@@ -909,7 +909,7 @@ const DoctorDashboard = () => {
                       >
                         <option value="">🤖 Auto (par défaut)</option>
                         {waitingQueue
-                          .filter(p => ['arrive', 'present', 'waiting', 'in_consultation'].includes(p.status))
+                          .filter(p => ['arrive', 'present', 'waiting', 'in_consultation', 'appele'].includes(p.status))
                           .sort((a, b) => {
                             // 1. Trier par priorité d'abord (très urgent > urgent > normal)
                             const priorityOrder = { 'tres_urgente': 0, 'urgente': 1, 'normale': 2 };

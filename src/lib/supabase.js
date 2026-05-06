@@ -10,8 +10,8 @@ if (typeof window !== 'undefined' && import.meta.env && import.meta.env.MODE ===
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
+    persistSession: import.meta.env.MODE !== 'production', // Désactiver la persistance de session en production
+    autoRefreshToken: import.meta.env.MODE !== 'production', // Désactiver le rafraîchissement automatique en production
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     storageKey: 'sb-auth',
     detectSessionInUrl: true,
