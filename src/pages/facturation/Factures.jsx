@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { motion } from 'framer-motion';
-import { 
-    PlusIcon, 
-    PencilIcon, 
-    TrashIcon, 
+import {
+    PlusIcon,
+    PencilIcon,
+    TrashIcon,
     CurrencyEuroIcon,
     DocumentTextIcon,
     CreditCardIcon,
@@ -12,8 +12,8 @@ import {
     CheckCircleIcon,
     ClockIcon,
     EyeIcon,
-    ChevronLeft,
-    ChevronRight
+    ArrowLeftIcon,
+    ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import { traduire } from '../../utils/traductions';
 import { sendNotification, NOTIFICATION_TYPES } from '../../lib/notifications';
@@ -611,7 +611,7 @@ const FacturesPage = () => {
                                     disabled={currentPage === 1}
                                     className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    <ChevronLeft className="h-5 w-5" />
+                                    <ArrowLeftIcon className="h-5 w-5" />
                                 </button>
                                 <div className="flex items-center gap-1">
                                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -633,7 +633,7 @@ const FacturesPage = () => {
                                     disabled={currentPage === totalPages}
                                     className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    <ChevronRight className="h-5 w-5" />
+                                    <ArrowRightIcon className="h-5 w-5" />
                                 </button>
                             </div>
                         </div>
