@@ -5,7 +5,7 @@ import { Building2, MapPin, Phone, Mail, Globe, FileText, Save, Upload, Image as
 import { useAuth } from '../../contexts/AuthContext';
 import { hasPermission } from '../../utils/permissions';
 import { useToast } from '../../hooks/useToast';
-import patientInactivityService from '../../services/patientInactivityService';
+import patientInactivityService from '../../services/patientInactivityService.js';
 
 const ParametresCabinet = () => {
   const { currentUser, userProfile } = useAuth();

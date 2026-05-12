@@ -541,10 +541,7 @@ export const appointmentService = {
               duree: appointmentData.duree,
               priorite: appointmentData.priorite,
               statut: appointmentData.statut,
-              couleur: appointmentData.couleur,
-              type_rdv: appointmentData.type_rdv,
-              notes: appointmentData.notes,
-              heure_fin: appointmentData.heure_fin
+              notes: appointmentData.notes
             }])
             .select()
             .single();

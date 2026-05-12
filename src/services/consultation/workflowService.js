@@ -12,7 +12,6 @@ export const finishConsultationWorkflow = async (consultation, patient, waitingQ
         .update({
             updated_at: endTime,
             notes_generales: notes_generales || null,
-            heure_fin_consultation: endTime,
             statut: 'terminee'
         })
         .eq('id', consultation.id)

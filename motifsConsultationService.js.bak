@@ -1,0 +1,89 @@
+import { supabase } from '../lib/supabase';
+
+class MotifsConsultationService {
+  // Récupérer les motifs de consultation pour une spécialité
+  async getMotifsForSelect(specialite = 'Dentiste') {
+    try {
+      // Pour l'instant, retourner des motifs par défaut pour la spécialité Dentiste
+      // TODO: Implémenter avec une vraie table motifs_consultation si nécessaire
+      const defaultMotifs = {
+        'Dentiste': [
+          { value: 'consultation_generale', label: 'Consultation générale' },
+          { value: 'détartrage', label: 'Détartrage' },
+          { value: 'carie', label: 'Traitement de carie' },
+          { value: 'extraction', label: 'Extraction dentaire' },
+          { value: 'prothese', label: 'Prothèse dentaire' },
+          { value: 'orthodontie', label: 'Orthodontie' },
+          { value: 'urgence', label: 'Urgence dentaire' },
+          { value: 'contrôle', label: 'Contrôle de routine' },
+          { value: 'blanchiment', label: 'Blanchiment dentaire' },
+          { value: 'implant', label: 'Implant dentaire' }
+        ]
+      };
+
+      return defaultMotifs[specialite] || defaultMotifs['Dentiste'];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des motifs de consultation:', error);
+      return [];
+    }
+  }
+
+  // Récupérer les motifs par défaut
+  async getDefaultMotifsForSelect() {
+    try {
+      return [
+        { value: 'consultation_generale', label: 'Consultation générale' },
+        { value: 'détartrage', label: 'Détartrage' },
+        { value: 'carie', label: 'Traitement de carie' },
+        { value: 'extraction', label: 'Extraction dentaire' },
+        { value: 'prothese', label: 'Prothèse dentaire' },
+        { value: 'orthodontie', label: 'Orthodontie' },
+        { value: 'urgence', label: 'Urgence dentaire' },
+        { value: 'contrôle', label: 'Contrôle de routine' },
+        { value: 'blanchiment', label: 'Blanchiment dentaire' },
+        { value: 'implant', label: 'Implant dentaire' }
+      ];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des motifs par défaut:', error);
+      return [];
+    }
+  }
+
+  // Ajouter un motif de consultation (pour utilisation future)
+  async addMotif(motif) {
+    try {
+      // TODO: Implémenter quand la table motifs_consultation sera créée
+      console.log('Ajout de motif non implémenté:', motif);
+      return { success: false, message: 'Non implémenté' };
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du motif:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Mettre à jour un motif de consultation (pour utilisation future)
+  async updateMotif(id, motif) {
+    try {
+      // TODO: Implémenter quand la table motifs_consultation sera créée
+      console.log('Mise à jour de motif non implémentée:', id, motif);
+      return { success: false, message: 'Non implémenté' };
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du motif:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Supprimer un motif de consultation (pour utilisation future)
+  async deleteMotif(id) {
+    try {
+      // TODO: Implémenter quand la table motifs_consultation sera créée
+      console.log('Suppression de motif non implémentée:', id);
+      return { success: false, message: 'Non implémenté' };
+    } catch (error) {
+      console.error('Erreur lors de la suppression du motif:', error);
+      return { success: false, error: error.message };
+    }
+  }
+}
+
+export default new MotifsConsultationService();
