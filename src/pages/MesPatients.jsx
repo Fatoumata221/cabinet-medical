@@ -30,10 +30,7 @@ const MesPatientsPage = () => {
     const [userProfile, setUserProfile] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(15);
-<<<<<<< HEAD
-=======
     const [recentFilter, setRecentFilter] = useState(true); // Par défaut, afficher seulement les patients récents
->>>>>>> dev
 
     useEffect(() => {
       initializeData();

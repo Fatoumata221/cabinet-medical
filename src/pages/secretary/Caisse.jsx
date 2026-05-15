@@ -30,7 +30,6 @@ import {
   PrinterIcon,
   XMarkIcon as XIcon,
   MagnifyingGlassIcon,
-  BanknotesIcon,
   CreditCardIcon,
   DocumentCheckIcon,
   ArrowsRightLeftIcon,
@@ -793,7 +792,7 @@ const Caisse = () => {
     if (!detailsJournee.lignes.length) return;
     const headers = [
       'Patient',
-      'Numero facture',
+      'Numéro facture',
       'Montant facture',
       'Part patient',
       'Part couverture',
@@ -824,7 +823,7 @@ const Caisse = () => {
   const handleExportHistoriquePatientCsv = () => {
     if (!historiquePatientData.lignes.length) return;
     const headers = [
-      'Numero facture',
+      'Numéro facture',
       'Date paiement',
       'Montant facture',
       'Part patient',
@@ -856,7 +855,7 @@ const Caisse = () => {
     const headers = [
       'Date',
       'Patient',
-      'Numero facture',
+      'Numéro facture',
       'Montant facture',
       'Part patient',
       'Part couverture',
