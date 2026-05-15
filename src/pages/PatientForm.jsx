@@ -20,7 +20,7 @@ const PatientForm = () => {
     adresse: '',
     numero_dossier: '',
     lieu_naissance: '',
-    nationalite: '',
+    nationalite: 'sénégalais(e)',
     profession: '',
     situation_familiale: '',
     numero_ipm: '',

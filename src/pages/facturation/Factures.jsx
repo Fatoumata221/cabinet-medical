@@ -1,22 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { motion } from 'framer-motion';
+<<<<<<< HEAD
 import {
     PlusIcon,
     PencilIcon,
     TrashIcon,
     CurrencyEuroIcon,
+=======
+import { 
+    PlusIcon, 
+    PencilIcon, 
+    TrashIcon, 
+>>>>>>> dev
     DocumentTextIcon,
     CreditCardIcon,
     BanknotesIcon,
     CheckCircleIcon,
     ClockIcon,
     EyeIcon,
+<<<<<<< HEAD
     ArrowLeftIcon,
     ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import { traduire } from '../../utils/traductions';
 import { sendNotification, NOTIFICATION_TYPES } from '../../lib/notifications';
+=======
+    ChevronLeft,
+    ChevronRight
+} from '@heroicons/react/24/outline';
+import { traduire } from '../../utils/traductions';
+import { formatMontantDecimal } from '../../utils/currency';
+>>>>>>> dev
 
 const FacturesPage = () => {
     const [factures, setFactures] = useState([]);
@@ -308,7 +323,7 @@ const FacturesPage = () => {
             case 'carte': return <CreditCardIcon className="h-4 w-4" />;
             case 'especes': return <BanknotesIcon className="h-4 w-4" />;
             case 'assurance': return <DocumentTextIcon className="h-4 w-4" />;
-            default: return <CurrencyEuroIcon className="h-4 w-4" />;
+            default: return <BanknotesIcon className="h-4 w-4" />;
         }
     };
 
@@ -412,7 +427,7 @@ const FacturesPage = () => {
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <div className="flex items-center">
-                            <CurrencyEuroIcon className="h-8 w-8 text-orange-600 mr-3" />
+                            <BanknotesIcon className="h-8 w-8 text-orange-600 mr-3" />
                             <div>
                                 <p className="text-sm text-gray-600">Partiel</p>
                                 <p className="text-2xl font-bold text-gray-900">{stats.partiel}</p>
@@ -430,22 +445,22 @@ const FacturesPage = () => {
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <div className="flex items-center">
-                            <CurrencyEuroIcon className="h-8 w-8 text-green-600 mr-3" />
+                            <BanknotesIcon className="h-8 w-8 text-green-600 mr-3" />
                             <div>
                                 <p className="text-sm text-gray-600">Total TTC</p>
                                 <p className="text-2xl font-bold text-gray-900">
-                                    {stats.totalMontant.toFixed(2)} €
+                                    {formatMontantDecimal(stats.totalMontant)}
                                 </p>
                             </div>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <div className="flex items-center">
-                            <CurrencyEuroIcon className="h-8 w-8 text-blue-600 mr-3" />
+                            <BanknotesIcon className="h-8 w-8 text-blue-600 mr-3" />
                             <div>
                                 <p className="text-sm text-gray-600">Total Payé</p>
                                 <p className="text-2xl font-bold text-gray-900">
-                                    {stats.totalPaye.toFixed(2)} €
+                                    {formatMontantDecimal(stats.totalPaye)}
                                 </p>
                             </div>
                         </div>
@@ -549,16 +564,16 @@ const FacturesPage = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">
-                                                {facture.montant_ttc.toFixed(2)} €
+                                                {formatMontantDecimal(facture.montant_ttc)}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-900">
-                                                {facture.montant_paye.toFixed(2)} €
+                                                {formatMontantDecimal(facture.montant_paye)}
                                             </div>
                                             {facture.montant_restant > 0 && (
                                                 <div className="text-sm text-red-600">
-                                                    Reste: {facture.montant_restant.toFixed(2)} €
+                                                    Reste: {formatMontantDecimal(facture.montant_restant)}
                                                 </div>
                                             )}
                                         </td>
@@ -582,7 +597,7 @@ const FacturesPage = () => {
                                                         className="text-green-600 hover:text-green-900"
                                                         title="Paiement"
                                                     >
-                                                        <CurrencyEuroIcon className="h-4 w-4" />
+                                                        <BanknotesIcon className="h-4 w-4" />
                                                     </button>
                                                 )}
                                                 <button
@@ -611,7 +626,11 @@ const FacturesPage = () => {
                                     disabled={currentPage === 1}
                                     className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
+<<<<<<< HEAD
                                     <ArrowLeftIcon className="h-5 w-5" />
+=======
+                                    <ChevronLeft className="h-5 w-5" />
+>>>>>>> dev
                                 </button>
                                 <div className="flex items-center gap-1">
                                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -633,7 +652,11 @@ const FacturesPage = () => {
                                     disabled={currentPage === totalPages}
                                     className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
+<<<<<<< HEAD
                                     <ArrowRightIcon className="h-5 w-5" />
+=======
+                                    <ChevronRight className="h-5 w-5" />
+>>>>>>> dev
                                 </button>
                             </div>
                         </div>
@@ -741,16 +764,16 @@ const FacturesPage = () => {
                         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                             <div className="text-sm text-gray-600">
                                 <p><strong>Patient:</strong> {selectedFacture.consultations?.patients?.nom} {selectedFacture.consultations?.patients?.prenom}</p>
-                                <p><strong>Montant TTC:</strong> {selectedFacture.montant_ttc.toFixed(2)} €</p>
-                                <p><strong>Déjà payé:</strong> {selectedFacture.montant_paye.toFixed(2)} €</p>
-                                <p><strong>Reste à payer:</strong> {selectedFacture.montant_restant.toFixed(2)} €</p>
+                                <p><strong>Montant TTC:</strong> {formatMontantDecimal(selectedFacture.montant_ttc)}</p>
+                                <p><strong>Déjà payé:</strong> {formatMontantDecimal(selectedFacture.montant_paye)}</p>
+                                <p><strong>Reste à payer:</strong> {formatMontantDecimal(selectedFacture.montant_restant)}</p>
                             </div>
                         </div>
                         
                         <form onSubmit={handlePaiementSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Montant Payé (€)
+                                    Montant payé (FCFA)
                                 </label>
                                 <input
                                     type="number"

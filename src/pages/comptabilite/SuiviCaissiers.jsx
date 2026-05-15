@@ -10,7 +10,7 @@ import {
   Download,
   Eye,
   BarChart3,
-  DollarSign,
+  Coins,
   Clock,
   User,
   Receipt,
@@ -325,7 +325,7 @@ const SuiviCaissiers = () => {
               <p className="text-sm font-medium text-gray-600">Ticket moyen</p>
               <p className="text-2xl font-bold text-gray-900">{formatAmount(averageTicket)}</p>
             </div>
-            <DollarSign className="w-8 h-8 text-green-600" />
+            <Coins className="w-8 h-8 text-green-600" />
           </div>
         </div>
 

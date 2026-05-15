@@ -362,7 +362,7 @@ export const PAGES_CONFIG = [
     description: 'Gestion des actes et tarifs',
     path: '/parametrage/annuaire-actes-tarifs',
     category: 'Paramétrage',
-    icon: 'DollarSign',
+    icon: 'Coins',
     keywords: ['actes', 'tarifs', 'prix', 'nomenclature'],
     allowedRoles: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.SECRETARY],
     isSubPage: true

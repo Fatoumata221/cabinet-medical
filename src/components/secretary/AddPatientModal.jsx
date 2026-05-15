@@ -48,7 +48,7 @@ const AddPatientModal = ({ doctors, onClose, onPatientAdded }) => {
     numero_dossier: '',
     sexe: 'M',
     lieu_naissance: '',
-    nationalite: '',
+    nationalite: 'sénégalais(e)',
     profession: '',
     situation_familiale: '',
     personne_contact: '',

@@ -19,7 +19,7 @@ import {
 import { 
   Users, 
   Calendar, 
-  DollarSign, 
+  Coins, 
   TrendingUp, 
   Clock, 
   UserCheck,
@@ -137,7 +137,7 @@ const StatisticsPage = () => {
           <StatCard 
             title="Revenus (FCFA)" 
             value={statsData.overview.totalRevenue.toLocaleString()} 
-            icon={DollarSign} 
+            icon={Coins} 
             change={+12.3}
             color="yellow"
           />
@@ -168,7 +168,7 @@ const StatisticsPage = () => {
           <StatCard 
             title="Revenus (FCFA)" 
             value={statsData.overview.totalRevenue.toLocaleString()} 
-            icon={DollarSign} 
+            icon={Coins} 
             change={+12.3}
             color="yellow"
           />

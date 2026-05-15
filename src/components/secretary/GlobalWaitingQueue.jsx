@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  Stethoscope, 
-  Clock, 
-  AlertTriangle, 
-  Users, 
+import {
+  Stethoscope,
+  Clock,
+  AlertTriangle,
+  Users,
   Eye,
   Phone,
   Calendar,
@@ -349,11 +349,20 @@ const GlobalWaitingQueue = ({ doctors, searchTerm, filterStatus, onDoctorSelect 
     return doctors.filter(doctor => {
       const doctorName = `${doctor.prenom} ${doctor.nom}`.toLowerCase();
       const searchLower = searchTerm.toLowerCase();
-      
+
       if (searchTerm && !doctorName.includes(searchLower)) {
-        return false;
+        // Vérifier si le terme de recherche correspond à un patient par téléphone
+        const queue = waitingQueues[doctor.id] || [];
+        const hasMatchingPatient = queue.some(patient => {
+          const patientPhone = patient.patient?.telephone || '';
+          return patientPhone.includes(searchTerm);
+        });
+
+        if (!hasMatchingPatient) {
+          return false;
+        }
       }
-      
+
       return true;
     });
   };
@@ -457,106 +466,104 @@ const GlobalWaitingQueue = ({ doctors, searchTerm, filterStatus, onDoctorSelect 
             return filteredQueue.length > 0 || todaysAppointments.length > 0;
           })
           .map((doctor) => {
-          const stats = getDoctorStats(doctor.id);
-          const queue = waitingQueues[doctor.id] || [];
-          const filteredQueue = filterPatients(queue);
-          const todaysAppointments = appointmentsByDoctor[doctor.id] || [];
+            const stats = getDoctorStats(doctor.id);
+            const queue = waitingQueues[doctor.id] || [];
+            const filteredQueue = filterPatients(queue);
+            const todaysAppointments = appointmentsByDoctor[doctor.id] || [];
 
-          return (
-            <div key={doctor.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              {/* En-tête du médecin */}
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-medical-primary rounded-full flex items-center justify-center">
-                      <Stethoscope className="w-5 h-5 text-white" />
+            return (
+              <div key={doctor.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
+                {/* En-tête du médecin */}
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-medical-primary rounded-full flex items-center justify-center">
+                        <Stethoscope className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">
+                          Dr. {doctor.prenom} {doctor.nom}
+                        </h3>
+                        <p className="text-sm text-gray-500">{doctor.specialite}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Dr. {doctor.prenom} {doctor.nom}
-                      </h3>
-                      <p className="text-sm text-gray-500">{doctor.specialite}</p>
+                    <button
+                      onClick={() => onDoctorSelect(doctor)}
+                      className="flex items-center px-3 py-1 text-medical-primary hover:text-medical-primary-dark text-sm font-medium"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Voir détails
+                    </button>
+                  </div>
+
+                  {/* Statistiques rapides */}
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="bg-blue-50 rounded p-2">
+                      <p className="text-lg font-bold text-blue-600">{stats.total}</p>
+                      <p className="text-xs text-blue-600">Total</p>
+                    </div>
+                    <div className="bg-yellow-50 rounded p-2">
+                      <p className="text-lg font-bold text-yellow-600">{stats.waiting}</p>
+                      <p className="text-xs text-yellow-600">En attente</p>
+                    </div>
+                    <div className="bg-purple-50 rounded p-2">
+                      <p className="text-lg font-bold text-purple-600">{stats.inConsultation}</p>
+                      <p className="text-xs text-purple-600">En consultation</p>
+                    </div>
+                    <div className="bg-red-50 rounded p-2">
+                      <p className="text-lg font-bold text-red-600">{stats.urgent}</p>
+                      <p className="text-xs text-red-600">Urgences</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => onDoctorSelect(doctor)}
-                    className="flex items-center px-3 py-1 text-medical-primary hover:text-medical-primary-dark text-sm font-medium"
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    Voir détails
-                  </button>
                 </div>
 
-                {/* Statistiques rapides */}
-                <div className="grid grid-cols-4 gap-2 text-center">
-                  <div className="bg-blue-50 rounded p-2">
-                    <p className="text-lg font-bold text-blue-600">{stats.total}</p>
-                    <p className="text-xs text-blue-600">Total</p>
-                  </div>
-                  <div className="bg-yellow-50 rounded p-2">
-                    <p className="text-lg font-bold text-yellow-600">{stats.waiting}</p>
-                    <p className="text-xs text-yellow-600">En attente</p>
-                  </div>
-                  <div className="bg-purple-50 rounded p-2">
-                    <p className="text-lg font-bold text-purple-600">{stats.inConsultation}</p>
-                    <p className="text-xs text-purple-600">En consultation</p>
-                  </div>
-                  <div className="bg-red-50 rounded p-2">
-                    <p className="text-lg font-bold text-red-600">{stats.urgent}</p>
-                    <p className="text-xs text-red-600">Urgences</p>
-                  </div>
-                </div>
-              </div>
+                {/* Liste des patients */}
+                <div className="p-4">
+                  {filteredQueue.length > 0 ? (
+                    <div className="max-h-64 overflow-y-auto space-y-2">
+                      {filteredQueue.slice(0, 8).map((patient) => {
+                        const waitTime = calculateWaitTime(patient.arrived_at);
 
-              {/* Liste des patients */}
-              <div className="p-4">
-                {filteredQueue.length > 0 ? (
-                  <div className="space-y-3">
-                    {filteredQueue.slice(0, 5).map((patient) => {
-                      const waitTime = calculateWaitTime(patient.arrived_at);
-                      
-                      return (
-                        <div 
-                          key={patient.id} 
-                          className={`border rounded-lg p-3 transition-all duration-200 ${
-                            patient.status === 'appele' ? 'border-orange-300 bg-orange-50' :
-                            patient.status === 'entre' ? 'border-purple-300 bg-purple-50' :
-                            patient.status === 'en_consultation' ? 'border-blue-300 bg-blue-50' :
-                            patient.priority === 'urgente' || patient.priority === 'tres_urgente' ? 'border-red-300 bg-red-50' :
-                            'border-gray-200 bg-gray-50'
-                          } ${patient.status === 'appele' ? 'patient-called animate-pulse' : ''} ${patient.status === 'en_consultation' ? 'opacity-60 grayscale' : ''}`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <h4 className="font-medium text-gray-900">
-                                  {patient.patient?.prenom} {patient.patient?.nom}
-                                </h4>
-                                {patient.priority === 'urgente' || patient.priority === 'tres_urgente' && (
-                                  <AlertTriangle className="w-3 h-3 text-red-600" />
-                                )}
-                              </div>
-                              
-                              <div className="flex items-center space-x-4 text-xs text-gray-600">
-                                <span className="flex items-center">
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  {formatTime(patient.arrived_at)}
-                                </span>
-                                <span className="flex items-center">
-                                  <Activity className="w-3 h-3 mr-1" />
-                                  {waitTime} min
-                                </span>
-                                {patient.appointment?.motif && (
-                                  <span className="flex items-center">
-                                    <Calendar className="w-3 h-3 mr-1" />
-                                    {patient.appointment.motif}
+                        return (
+                          <div
+                            key={patient.id}
+                            className={`border rounded-lg p-3 transition-all duration-200 ${
+                              patient.status === 'appele' ? 'border-orange-300 bg-orange-50' :
+                              patient.status === 'entre' ? 'border-purple-300 bg-purple-50' :
+                              patient.status === 'en_consultation' ? 'border-blue-300 bg-blue-50' :
+                              patient.priority === 'urgente' || patient.priority === 'tres_urgente' ? 'border-red-300 bg-red-50' :
+                              'border-gray-200 bg-gray-50'
+                            } ${patient.status === 'appele' ? 'patient-called animate-pulse' : ''} ${patient.status === 'en_consultation' ? 'opacity-60 grayscale' : ''}`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <h4 className="font-medium text-gray-900 text-sm truncate">
+                                    {patient.patient?.prenom} {patient.patient?.nom}
+                                  </h4>
+                                  {patient.priority === 'urgente' || patient.priority === 'tres_urgente' && (
+                                    <AlertTriangle className="w-3 h-3 text-red-600 flex-shrink-0" />
+                                  )}
+                                </div>
+
+                                <div className="flex items-center space-x-3 text-xs text-gray-600 mb-1">
+                                  <span className="flex items-center whitespace-nowrap">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    {formatTime(patient.arrived_at)}
                                   </span>
+                                  <span className="flex items-center whitespace-nowrap">
+                                    <Activity className="w-3 h-3 mr-1" />
+                                    {waitTime} min
+                                  </span>
+                                </div>
+                                {patient.appointment?.motif && (
+                                  <div className="text-xs text-gray-500 truncate">
+                                    {patient.appointment.motif}
+                                  </div>
                                 )}
                               </div>
-                            </div>
-                            
-                            <div className="flex flex-col items-end space-y-2">
-                              <div className="flex flex-col items-end space-y-1">
+
+                              <div className="flex flex-col items-end space-y-1 ml-2 flex-shrink-0">
                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(patient.status)}`}>
                                   {getStatusLabel(patient.status)}
                                 </span>
@@ -570,117 +577,112 @@ const GlobalWaitingQueue = ({ doctors, searchTerm, filterStatus, onDoctorSelect 
                                     {patient.priority}
                                   </span>
                                 )}
-                              </div>
-                              
-                              {/* Bouton pour marquer comme présent - visible seulement pour les patients appelés */}
-                              {patient.status === 'appele' && (
+                                {patient.status === 'appele' && (
+                                  <button
+                                    onClick={() => handleMarkPatientPresent(patient.id)}
+                                    className="inline-flex items-center px-2 py-1 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-md transition-colors duration-200 shadow-sm hover:shadow-md"
+                                    title="Marquer le patient comme présent"
+                                  >
+                                    <UserCheck className="w-3 h-3 mr-1" />
+                                    Présent
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => handleMarkPatientPresent(patient.id)}
-                                  className="inline-flex items-center px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-md transition-colors duration-200 shadow-sm hover:shadow-md"
-                                  title="Marquer le patient comme présent"
+                                  onClick={() => {
+                                    setSelectedPatientForUpload(patient.patient);
+                                    setShowUploadModal(true);
+                                  }}
+                                  className="inline-flex items-center px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-colors duration-200 shadow-sm hover:shadow-md"
+                                  title="Scanner des documents"
                                 >
-                                  <UserCheck className="w-3 h-3 mr-1" />
-                                  Présent
+                                  <FileImage className="w-3 h-3 mr-1" />
+                                  Scanner
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {filteredQueue.length > 8 && (
+                        <div className="text-center py-2">
+                          <span className="text-sm text-gray-500">
+                            +{filteredQueue.length - 8} autre(s) patient(s)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500 text-sm">
+                        {queue.length === 0 ? 'Aucun patient' : 'Aucun patient correspondant aux filtres'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {/* Rendez-vous du jour pour ce médecin */}
+                <div className="p-4 border-t border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                    <Calendar className="w-4 h-4 mr-2" /> Rendez-vous du jour ({todaysAppointments.length})
+                  </h4>
+                  {todaysAppointments.length > 0 ? (
+                    <div className="space-y-2">
+                      {todaysAppointments.slice(0, 5).map((appt) => {
+                        const inQueue = isAppointmentInQueue(doctor.id, appt);
+                        return (
+                          <div key={appt.id} className={`flex items-center justify-between border rounded-md px-3 py-2 ${inQueue ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="min-w-0">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-7 h-7 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                                  {formatTime(appt.date_heure)}
+                                </div>
+                                <div className="truncate">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {appt.patient?.prenom} {appt.patient?.nom}
+                                  </p>
+                                  <p className="text-xs text-gray-500 truncate">{appt.motif || 'Motif non défini'}</p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end space-y-2">
+                              {inQueue ? (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                  <CheckCircle className="w-3 h-3 mr-1" /> En file
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleAddAppointmentToQueue(doctor.id, appt)}
+                                  className="inline-flex items-center px-3 py-1 bg-medical-primary text-white rounded-md hover:bg-medical-primary-dark text-xs"
+                                >
+                                  <UserCheck className="w-3 h-3 mr-1" /> Présent
                                 </button>
                               )}
-                              
+
                               {/* Bouton pour scanner des documents */}
                               <button
                                 onClick={() => {
-                                  setSelectedPatientForUpload(patient.patient);
+                                  setSelectedPatientForUpload(appt.patient);
                                   setShowUploadModal(true);
                                 }}
                                 className="inline-flex items-center px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-colors duration-200 shadow-sm hover:shadow-md"
                                 title="Scanner des documents"
                               >
-                                <FileImage className="w-3 h-3 mr-1" />
+                                <Upload className="w-3 h-3 mr-1" />
                                 Scanner
                               </button>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                    
-                    {filteredQueue.length > 5 && (
-                      <div className="text-center py-2">
-                        <span className="text-sm text-gray-500">
-                          +{filteredQueue.length - 5} autre(s) patient(s)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500 text-sm">
-                      {queue.length === 0 ? 'Aucun patient' : 'Aucun patient correspondant aux filtres'}
-                    </p>
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-xs text-gray-500">Aucun rendez-vous aujourd'hui</div>
+                  )}
+                </div>
               </div>
-              {/* Rendez-vous du jour pour ce médecin */}
-              <div className="p-4 border-t border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                  <Calendar className="w-4 h-4 mr-2" /> Rendez-vous du jour ({todaysAppointments.length})
-                </h4>
-                {todaysAppointments.length > 0 ? (
-                  <div className="space-y-2">
-                    {todaysAppointments.slice(0, 5).map((appt) => {
-                      const inQueue = isAppointmentInQueue(doctor.id, appt);
-                      return (
-                        <div key={appt.id} className={`flex items-center justify-between border rounded-md px-3 py-2 ${inQueue ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                          <div className="min-w-0">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-7 h-7 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                                {formatTime(appt.date_heure)}
-                              </div>
-                              <div className="truncate">
-                                <p className="text-sm font-medium text-gray-900 truncate">
-                                  {appt.patient?.prenom} {appt.patient?.nom}
-                                </p>
-                                <p className="text-xs text-gray-500 truncate">{appt.motif || 'Motif non défini'}</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end space-y-2">
-                            {inQueue ? (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                                <CheckCircle className="w-3 h-3 mr-1" /> En file
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => handleAddAppointmentToQueue(doctor.id, appt)}
-                                className="inline-flex items-center px-3 py-1 bg-medical-primary text-white rounded-md hover:bg-medical-primary-dark text-xs"
-                              >
-                                <UserCheck className="w-3 h-3 mr-1" /> Présent
-                              </button>
-                            )}
-                            
-                            {/* Bouton pour scanner des documents */}
-                            <button
-                              onClick={() => {
-                                setSelectedPatientForUpload(appt.patient);
-                                setShowUploadModal(true);
-                              }}
-                              className="inline-flex items-center px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-colors duration-200 shadow-sm hover:shadow-md"
-                              title="Scanner des documents"
-                            >
-                              <Upload className="w-3 h-3 mr-1" />
-                              Scanner
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-4 text-xs text-gray-500">Aucun rendez-vous aujourd'hui</div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
       {filteredDoctors.length === 0 && (
         <div className="text-center py-12">

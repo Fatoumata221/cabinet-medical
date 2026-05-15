@@ -57,7 +57,11 @@ const PatientsPage = () => {
     email: '',
     adresse: '',
     lieu_naissance: '',
+<<<<<<< HEAD
     nationalite: '',
+=======
+    nationalite: 'sénégalais(e)',
+>>>>>>> dev
     profession: '',
     situation_familiale: '',
     personne_contact: '',
@@ -122,7 +126,11 @@ const PatientsPage = () => {
       email: patient.email || '',
       adresse: patient.adresse || '',
       lieu_naissance: patient.lieu_naissance || '',
+<<<<<<< HEAD
       nationalite: patient.nationalite || '',
+=======
+      nationalite: patient.nationalite || 'français',
+>>>>>>> dev
       profession: patient.profession || '',
       situation_familiale: patient.situation_familiale || '',
       personne_contact: patient.personne_contact || '',

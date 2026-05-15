@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES, PERMISSIONS, hasPermission, getRoleDisplayName, getRoleColor } from '../utils/permissions';
-import { Shield, Check, X, User, Settings, FileText, DollarSign, BarChart3 } from 'lucide-react';
+import { Shield, Check, X, User, Settings, FileText, Coins, BarChart3 } from 'lucide-react';
 
 /**
  * Composant de test pour vérifier les permissions
@@ -26,7 +26,7 @@ const PermissionTest = () => {
     { key: 'canManageAppointments', label: 'Gérer les Rendez-vous', icon: Settings },
     { key: 'canManagePatients', label: 'Gérer les Patients', icon: User },
     { key: 'canManageConsultations', label: 'Gérer les Consultations', icon: FileText },
-    { key: 'canManageBilling', label: 'Gérer la Facturation', icon: DollarSign },
+    { key: 'canManageBilling', label: 'Gérer la Facturation', icon: Coins },
     { key: 'canViewReports', label: 'Voir les Rapports', icon: BarChart3 },
     { key: 'canManageSettings', label: 'Gérer les Paramètres', icon: Settings },
     { key: 'canManageUsers', label: 'Gérer les Utilisateurs', icon: User },

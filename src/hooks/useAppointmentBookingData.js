@@ -62,18 +62,7 @@ export const useAppointmentBookingData = (selectedDateFilter, selectedDoctorIdFi
 
       const dayString = targetDate.toISOString().split('T')[0];
 
-      let query = appointmentService.getAppointmentsByDate(dayString); // Assuming a new method getAppointmentsByDate is added to appointmentService
-
-      if (selectedDoctorIdFilter) {
-        query = query.eq('medecin_id', selectedDoctorIdFilter); // This part needs to be handled in the service if a generic getAppointmentsByDate is made
-      }
-      
-      const data = await query; // This won't work directly, need to call the service method
-      
-      // Re-call appointmentService.getAll and filter locally if getAppointmentsByDate doesn't exist
-      // For now, let's assume we'll create appointmentService.getAppointmentsByDate and handle doctorId filtering within it.
-      
-      const fetchedAppointments = await appointmentService.getAppointmentsByDateAndDoctor(dayString, selectedDoctorIdFilter);
+      const fetchedAppointments = await appointmentService.getappointmentsByDateAndDoctor(dayString, selectedDoctorIdFilter);
 
       setAppointments(fetchedAppointments || []);
     } catch (err) {

@@ -33,7 +33,6 @@ const ConsultationsTable = ({ consultations, loading, onViewDetails, searchTerm 
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Médecin</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motif</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
@@ -57,10 +56,9 @@ const ConsultationsTable = ({ consultations, loading, onViewDetails, searchTerm 
                 <div className="text-sm text-gray-500">{consultation.users?.specialite}</div>
               </td>
               <td className="px-6 py-4">
-                <div className="text-sm text-gray-900 max-w-xs truncate">{consultation.motif_consultation || 'Non spécifié'}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Terminée</span>
+                <div className="text-sm text-gray-900 max-w-xs truncate">
+                  {consultation.motif_consultation || consultation.motif || consultation.type_consultation || consultation.notes_generales || 'Non spécifié'}
+                </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button onClick={() => onViewDetails(consultation)} className="text-blue-600 hover:text-blue-900" title="Voir détails">

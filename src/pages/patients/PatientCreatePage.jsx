@@ -31,7 +31,7 @@ const PatientCreatePage = () => {
     adresse: '',
     numero_dossier: '',
     lieu_naissance: '',
-    nationalite: 'Sénégalaise',
+    nationalite: 'sénégalais(e)',
     profession: '',
     situation_familiale: '',
     groupe_sanguin: '',

@@ -5,7 +5,7 @@ import {
   AreaChart, Area
 } from 'recharts';
 import { 
-  TrendingUp, TrendingDown, DollarSign, Calendar, Users, 
+  TrendingUp, TrendingDown, Coins, Calendar, Users, 
   Activity, AlertCircle, Download, Filter, RefreshCw,
   Clock, CheckCircle, XCircle, AlertTriangle
 } from 'lucide-react';
@@ -184,7 +184,7 @@ const TableauBordComptable = () => {
                 <span className="text-green-600">+{donnees.statistiques.croissanceMensuelle}%</span>
               </div>
             </div>
-            <DollarSign className="w-8 h-8 text-green-600" />
+            <Coins className="w-8 h-8 text-green-600" />
           </div>
         </div>
 

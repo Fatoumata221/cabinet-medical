@@ -12,7 +12,7 @@ import {
   User,
   CheckCircle,
   Clock,
-  DollarSign,
+  Coins,
   FileText,
   Save,
   X,
@@ -539,7 +539,7 @@ const FacturationPharmacie = () => {
         
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <div className="flex items-center">
-            <DollarSign className="w-8 h-8 text-medical-primary mr-4" />
+            <Coins className="w-8 h-8 text-medical-primary mr-4" />
             <div>
               <p className="text-sm font-medium text-gray-500">Chiffre d'affaires</p>
               <p className="text-2xl font-semibold text-gray-900">

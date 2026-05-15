@@ -6,7 +6,7 @@ import {
     PlusIcon, 
     PencilIcon, 
     TrashIcon, 
-    CurrencyEuroIcon,
+    BanknotesIcon,
     DocumentTextIcon,
     ClockIcon
 } from '@heroicons/react/24/outline';
@@ -240,7 +240,7 @@ const ActesPage = () => {
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <div className="flex items-center">
-                            <CurrencyEuroIcon className="h-8 w-8 text-green-600 mr-3" />
+                            <BanknotesIcon className="h-8 w-8 text-green-600 mr-3" />
                             <div>
                                 <p className="text-sm text-gray-600">Montant Total</p>
                                 <p className="text-2xl font-bold text-gray-900">

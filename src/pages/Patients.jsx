@@ -98,7 +98,7 @@ const PatientsPage = () => {
             adresse: patient.adresse || '',
             numero_dossier: patient.numero_dossier || '',
             lieu_naissance: patient.lieu_naissance || '',
-            nationalite: patient.nationalite || '',
+            nationalite: patient.nationalite || 'sénégalais(e)',
             profession: patient.profession || '',
             situation_familiale: patient.situation_familiale || '',
             numero_ipm: patient.numero_ipm || '',
@@ -116,7 +116,7 @@ const PatientsPage = () => {
         }
       }
     }
-  }, [patients, searchParams]);
+  }, [searchParams, patients]);
 
   const fetchPatients = async () => {
     try {
@@ -217,7 +217,7 @@ const PatientsPage = () => {
       adresse: patient.adresse || '',
       numero_dossier: patient.numero_dossier || '',
       lieu_naissance: patient.lieu_naissance || '',
-      nationalite: patient.nationalite || '',
+      nationalite: patient.nationalite || 'français',
       profession: patient.profession || '',
       situation_familiale: patient.situation_familiale || '',
       numero_ipm: patient.numero_ipm || '',
@@ -399,7 +399,7 @@ const PatientsPage = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <Users className="w-8 h-8 text-medical-primary" />
@@ -464,300 +464,285 @@ const PatientsPage = () => {
         </div>
       </div>
 
-      {/* Formulaire d'ajout/modification */}
+      {/* Modal d'ajout/modification de patient */}
       {showForm && (
-        <div className="card">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {editingPatientId ? 'Modifier le patient' : 'Nouveau patient'}
-            </h2>
-            <button
-              onClick={handleCancelForm}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <Plus className="w-6 h-6 rotate-45" />
-            </button>
-          </div>
-          
-          <form onSubmit={handleSubmitForm}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                <input
-                  type="text"
-                  name="nom"
-                  value={formData.nom}
-                  onChange={handleInputChange}
-                  required
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
-                <input
-                  type="text"
-                  name="prenom"
-                  value={formData.prenom}
-                  onChange={handleInputChange}
-                  required
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date de naissance *</label>
-                <input
-                  type="date"
-                  name="date_naissance"
-                  value={formData.date_naissance}
-                  onChange={handleInputChange}
-                  required
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sexe</label>
-                <select
-                  name="sexe"
-                  value={formData.sexe}
-                  onChange={handleInputChange}
-                  className="form-select"
-                >
-                  <option value="M">Masculin</option>
-                  <option value="F">Féminin</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone *</label>
-                <input
-                  type="tel"
-                  name="telephone"
-                  value={formData.telephone}
-                  onChange={handleInputChange}
-                  required
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de dossier</label>
-                <input
-                  type="text"
-                  name="numero_dossier"
-                  value={formData.numero_dossier}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de naissance</label>
-                <input
-                  type="text"
-                  name="lieu_naissance"
-                  value={formData.lieu_naissance}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nationalité</label>
-                <input
-                  type="text"
-                  name="nationalite"
-                  value={formData.nationalite}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Profession</label>
-                <input
-                  type="text"
-                  name="profession"
-                  value={formData.profession}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Situation familiale</label>
-                <select
-                  name="situation_familiale"
-                  value={formData.situation_familiale}
-                  onChange={handleInputChange}
-                  className="form-select"
-                >
-                  <option value="">Sélectionner</option>
-                  <option value="celibataire">Célibataire</option>
-                  <option value="marie">Marié(e)</option>
-                  <option value="divorce">Divorcé(e)</option>
-                  <option value="veuf">Veuf/Veuve</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Numéro IPM/CSS</label>
-                <input
-                  type="text"
-                  name="numero_ipm"
-                  value={formData.numero_ipm}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mutuelle</label>
-                <input
-                  type="text"
-                  name="mutuelle"
-                  value={formData.mutuelle}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de mutuelle</label>
-                <input
-                  type="text"
-                  name="numero_mutuelle"
-                  value={formData.numero_mutuelle}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Médecin traitant</label>
-                <input
-                  type="text"
-                  name="medecin_traitant"
-                  value={formData.medecin_traitant}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Personne de contact</label>
-                <input
-                  type="text"
-                  name="personne_contact"
-                  value={formData.personne_contact}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone de contact</label>
-                <input
-                  type="tel"
-                  name="telephone_contact"
-                  value={formData.telephone_contact}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Lien avec la personne de contact</label>
-                <input
-                  type="text"
-                  name="lien_contact"
-                  value={formData.lien_contact}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div className="md:col-span-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-                <input
-                  type="text"
-                  name="adresse"
-                  value={formData.adresse}
-                  onChange={handleInputChange}
-                  className="input-field"
-                />
-              </div>
-              
-              <div className="md:col-span-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleInputChange}
-                  rows="3"
-                  className="input-field"
-                />
-              </div>
-              
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="actif"
-                  checked={formData.actif}
-                  onChange={(e) => setFormData(prev => ({ ...prev, actif: e.target.checked }))}
-                  className="mr-2 rounded"
-                />
-                <label className="text-sm text-gray-700">Patient actif</label>
-              </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* En-tête */}
+            <div className="flex items-center justify-between p-2 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {editingPatientId ? 'Modifier le patient' : 'Nouveau patient'}
+              </h2>
+              <button
+                onClick={handleCancelForm}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
             
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleCancelForm}
-                className="btn btn-secondary"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-              >
-                {editingPatientId ? 'Modifier' : 'Enregistrer'}
-              </button>
-              {!editingPatientId && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    // Sauvegarder le patient actuel puis réinitialiser pour un autre
-                    await handleSubmitForm({ preventDefault: () => {} });
-                    handleAddPatient();
-                  }}
-                  className="btn btn-success"
-                >
-                  Ajouter un autre patient
-                </button>
-              )}
+            {/* Contenu du formulaire */}
+            <div className="p-4">
+              <form onSubmit={handleSubmitForm}>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Nom *</label>
+                    <input
+                      type="text"
+                      name="nom"
+                      value={formData.nom}
+                      onChange={handleInputChange}
+                      required
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Prénom *</label>
+                    <input
+                      type="text"
+                      name="prenom"
+                      value={formData.prenom}
+                      onChange={handleInputChange}
+                      required
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Date de naissance *</label>
+                    <input
+                      type="date"
+                      name="date_naissance"
+                      value={formData.date_naissance}
+                      onChange={handleInputChange}
+                      required
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Sexe</label>
+                    <select
+                      name="sexe"
+                      value={formData.sexe}
+                      onChange={handleInputChange}
+                      className="form-select text-xs py-1.5"
+                    >
+                      <option value="M">M</option>
+                      <option value="F">F</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Téléphone *</label>
+                    <input
+                      type="tel"
+                      name="telephone"
+                      value={formData.telephone}
+                      onChange={handleInputChange}
+                      required
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Numéro de dossier</label>
+                    <input
+                      type="text"
+                      name="numero_dossier"
+                      value={formData.numero_dossier}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Nationalité</label>
+                    <input
+                      type="text"
+                      name="nationalite"
+                      value={formData.nationalite}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Lieu naissance</label>
+                    <input
+                      type="text"
+                      name="lieu_naissance"
+                      value={formData.lieu_naissance}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Profession</label>
+                    <input
+                      type="text"
+                      name="profession"
+                      value={formData.profession}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Situation familiale</label>
+                    <select
+                      name="situation_familiale"
+                      value={formData.situation_familiale}
+                      onChange={handleInputChange}
+                      className="form-select text-xs py-1.5"
+                    >
+                      <option value="">-</option>
+                      <option value="celibataire">Célibataire</option>
+                      <option value="marie">Marié(e)</option>
+                      <option value="divorce">Divorcé(e)</option>
+                      <option value="veuf">Veuf/Veuve</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Numéro IPM/CSS</label>
+                    <input
+                      type="text"
+                      name="numero_ipm"
+                      value={formData.numero_ipm}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Mutuelle</label>
+                    <input
+                      type="text"
+                      name="mutuelle"
+                      value={formData.mutuelle}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Numéro mutuelle</label>
+                    <input
+                      type="text"
+                      name="numero_mutuelle"
+                      value={formData.numero_mutuelle}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Médecin traitant</label>
+                    <input
+                      type="text"
+                      name="medecin_traitant"
+                      value={formData.medecin_traitant}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Personne à contacter</label>
+                    <input
+                      type="text"
+                      name="personne_contact"
+                      value={formData.personne_contact}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Téléphone contact</label>
+                    <input
+                      type="tel"
+                      name="telephone_contact"
+                      value={formData.telephone_contact}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Lien avec la personne de contact</label>
+                    <input
+                      type="text"
+                      name="lien_contact"
+                      value={formData.lien_contact}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Adresse</label>
+                    <input
+                      type="text"
+                      name="adresse"
+                      value={formData.adresse}
+                      onChange={handleInputChange}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">Notes</label>
+                    <textarea
+                      name="notes"
+                      value={formData.notes}
+                      onChange={handleInputChange}
+                      rows="1"
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+                  <div className="flex items-center pt-4">
+                    <input
+                      type="checkbox"
+                      name="actif"
+                      checked={formData.actif}
+                      onChange={(e) => setFormData(prev => ({ ...prev, actif: e.target.checked }))}
+                      className="mr-1 rounded text-xs"
+                    />
+                    <label className="text-xs text-gray-700">Actif</label>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 mt-3 pt-3 border-t">
+                  <button
+                    type="button"
+                    onClick={handleCancelForm}
+                    className="btn btn-secondary text-xs py-1.5 px-3"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary text-xs py-1.5 px-3"
+                  >
+                    {editingPatientId ? 'Modifier' : 'Enregistrer'}
+                  </button>
+                  {!editingPatientId && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await handleSubmitForm({ preventDefault: () => {} });
+                        handleAddPatient();
+                      }}
+                      className="btn btn-success text-xs py-1.5 px-3"
+                    >
+                      + Autre
+                    </button>
+                  )}
+                </div>
+              </form>
             </div>
-          </form>
+          </div>
         </div>
       )}
 
       {/* Filtres et recherche */}
-      <div className="card">
+      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 relative z-10 mb-8">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -798,7 +783,7 @@ const PatientsPage = () => {
         
         {/* Panneau de filtres avancés */}
         {showFiltersPanel && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-gray-200 relative z-20">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Filtres avancés</h3>
               <button
@@ -894,7 +879,7 @@ const PatientsPage = () => {
       </div>
 
       {/* Liste des patients */}
-      <div className="card">
+      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 relative z-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -1005,4 +990,3 @@ const PatientsPage = () => {
 };
 
 export default PatientsPage;
-

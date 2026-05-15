@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { fetchConsultations as fetchConsultationsService } from '../../services/consultation/consultationService';
 
 export const useConsultations = (options) => {
+  const { userProfile } = useAuth();
+  const tenantId = userProfile?.tenant_id || null;
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -10,7 +13,7 @@ export const useConsultations = (options) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchConsultationsService(currentOptions);
+      const data = await fetchConsultationsService({ ...currentOptions, tenantId });
       setConsultations(data);
     } catch (err) {
       setError(err);
@@ -18,7 +21,7 @@ export const useConsultations = (options) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
     loadConsultations(options);

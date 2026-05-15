@@ -41,7 +41,7 @@ import {
   Syringe,
   ClipboardList,
   FileSignature,
-  DollarSign,
+  Coins,
   Building2,
   Database,
   Fingerprint,
@@ -524,7 +524,7 @@ const HistoriquesArchivesPage = () => {
       
       // Facturation
       'facture': <Receipt className="w-5 h-5 text-green-700" />,
-      'devis': <DollarSign className="w-5 h-5 text-blue-700" />,
+      'devis': <Coins className="w-5 h-5 text-blue-700" />,
       'remboursement': <TrendingUp className="w-5 h-5 text-emerald-600" />,
       
       // Administratif

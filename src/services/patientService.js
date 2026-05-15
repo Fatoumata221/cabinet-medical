@@ -23,33 +23,32 @@ export const fetchPatients = async () => {
  */
 export const generateNumeroDossier = async () => {
   try {
-    let nextNumber = 1;
-    let maxAttempts = 100;
-    let attempts = 0;
-    let paddedNumber = '';
+    // Récupérer tous les numéros de dossier existants pour trouver le maximum
+    const { data, error } = await supabase
+      .from('patients')
+      .select('numero_dossier')
+      .not('numero_dossier', 'is', null);
 
-    while (attempts < maxAttempts) {
-      // Récupérer le dernier numéro de dossier
-      const { data, error } = await supabase
-        .from('patients')
-        .select('numero_dossier')
-        .not('numero_dossier', 'is', null)
-        .order('id', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    if (error) throw error;
 
-      if (error) throw error;
-
-      if (data && data.numero_dossier) {
-        // Essayer d'extraire le numéro séquentiel
-        const lastNumber = parseInt(data.numero_dossier, 10);
-        if (!isNaN(lastNumber)) {
-          nextNumber = lastNumber + 1;
+    // Trouver le numéro maximum existant
+    let maxNumber = 0;
+    if (data && data.length > 0) {
+      for (const patient of data) {
+        const num = parseInt(patient.numero_dossier, 10);
+        if (!isNaN(num) && num > maxNumber) {
+          maxNumber = num;
         }
       }
+    }
 
+    // Commencer à partir du maximum + 1
+    let nextNumber = maxNumber + 1;
+    let maxAttempts = 50;
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
       // Déterminer le nombre de chiffres nécessaires
-      // Si on dépasse 999999, passer à 7 chiffres
       let padding = 6;
       if (nextNumber > 999999) {
         padding = 7;
@@ -58,7 +57,7 @@ export const generateNumeroDossier = async () => {
       }
 
       // Formater avec padding dynamique
-      paddedNumber = String(nextNumber).padStart(padding, '0');
+      const paddedNumber = String(nextNumber).padStart(padding, '0');
 
       // Vérifier si ce numéro existe déjà
       const { data: existingData, error: checkError } = await supabase
@@ -79,14 +78,16 @@ export const generateNumeroDossier = async () => {
       attempts++;
     }
 
-    // Si on a atteint le nombre maximum de tentatives, utiliser un timestamp
-    console.warn('Impossible de générer un numéro unique après %d tentatives, utilisation du timestamp', maxAttempts);
-    const timestamp = Date.now().toString().slice(-6);
-    return timestamp.padStart(6, '0');
+    // Si on a atteint le nombre maximum de tentatives, utiliser un timestamp + random pour éviter les collisions
+    console.warn('Impossible de générer un numéro unique après %d tentatives, utilisation du timestamp + random', maxAttempts);
+    const timestamp = Date.now().toString().slice(-4);
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    return (timestamp + random).padStart(6, '0');
   } catch (error) {
     console.error('Erreur lors de la génération du numéro de dossier:', error);
-    // En cas d'erreur, retourner un format basé sur le timestamp
-    const timestamp = Date.now().toString().slice(-6);
-    return timestamp.padStart(6, '0');
+    // En cas d'erreur, retourner un format basé sur le timestamp + random
+    const timestamp = Date.now().toString().slice(-4);
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    return (timestamp + random).padStart(6, '0');
   }
 };

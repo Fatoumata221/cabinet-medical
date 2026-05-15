@@ -38,7 +38,7 @@ import {
   Scan,
   TrendingUp,
   MoreHorizontal,
-  DollarSign,
+  Coins,
   AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -51,7 +51,7 @@ const ICON_MAP = {
   UserCheck, Activity, Shield, Pill, TestTube, Monitor, Eye, History, List,
   Package, Briefcase, Route, FileBarChart, FileSearch, FileCheck, FolderOpen,
   IdCard, UserPlus, CalendarPlus, MessageSquare, Bell, Scan, TrendingUp,
-  MoreHorizontal, DollarSign, AlertTriangle, Search, Clock, Star, ArrowRight
+  MoreHorizontal, Coins, AlertTriangle, Search, Clock, Star, ArrowRight
 };
 
 const GlobalSearch = ({ isOpen, onClose, className = "" }) => {

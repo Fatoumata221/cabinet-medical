@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { 
-  Receipt, 
-  Search, 
-  Filter, 
-  Plus, 
-  Edit, 
+import {
+  Receipt,
+  Search,
+  Filter,
+  Plus,
+  Edit,
   Trash2,
   Eye,
   Download,
@@ -13,7 +13,7 @@ import {
   User,
   CheckCircle,
   Clock,
-  DollarSign,
+  Coins,
   FileText,
   Save,
   X,
@@ -25,6 +25,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import SearchableSelect from '../../components/common/SearchableSelect';
 import { useAlert } from '../../contexts/AlertContext';
+import { generateFacturePDF } from '../../services/impression/facturePdf.js';
 
 const FacturationFactures = () => {
   const location = useLocation();
@@ -323,7 +324,36 @@ const FacturationFactures = () => {
         ? facture.statut !== 'payee' && facture.statut !== 'annulee'
         : facture.statut === selectedStatus;
     const matchesType = selectedType === 'all' || facture.type === selectedType;
-    return matchesSearch && matchesStatus && matchesType;
+
+    // Filtre par période (uniquement si une période spécifique est sélectionnée)
+    const matchesPeriod = () => {
+      if (!selectedPeriod || selectedPeriod === 'all') return true;
+      if (!facture.date) return false;
+      const factureDate = new Date(facture.date);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      switch (selectedPeriod) {
+        case 'today':
+          return factureDate >= today && factureDate < new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        case 'week':
+          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return factureDate >= weekAgo;
+        case 'month':
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          return factureDate >= monthStart;
+        case 'quarter':
+          const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+          return factureDate >= quarterStart;
+        case 'year':
+          const yearStart = new Date(now.getFullYear(), 0, 1);
+          return factureDate >= yearStart;
+        default:
+          return true;
+      }
+    };
+
+    return matchesSearch && matchesStatus && matchesType && matchesPeriod();
   });
 
   const getStatusColor = (statut) => {
@@ -384,14 +414,41 @@ const FacturationFactures = () => {
     }
   };
 
-  const handleDownload = (facture) => {
+  const handleDownload = async (facture) => {
     console.log('Téléchargement facture:', facture.numero);
     showInfo(`Téléchargement de la facture ${facture.numero} en cours...`);
+
+    try {
+      const result = await generateFacturePDF(supabase, facture, false, null);
+      if (result.success) {
+        showSuccess(`Facture ${facture.numero} téléchargée avec succès!`);
+      } else {
+        showError(`Erreur lors du téléchargement: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors du téléchargement:', error);
+      showError('Erreur lors du téléchargement de la facture');
+    }
   };
 
-  const handleSendEmail = (facture) => {
+  const handleSendEmail = async (facture) => {
     console.log('Envoi email facture:', facture.numero);
-    showInfo(`Envoi de la facture ${facture.numero} par email en cours...`);
+    showInfo(`Génération du PDF de la facture ${facture.numero} pour envoi par email...`);
+
+    try {
+      const result = await generateFacturePDF(supabase, facture, false, null);
+      if (result.success) {
+        // Pour l'instant, simuler l'envoi par email
+        // Dans une implémentation réelle, il faudrait utiliser un service d'email
+        showSuccess(`Facture ${facture.numero} prête pour l'envoi par email (PDF généré)`);
+        console.log('PDF généré avec succès pour envoi par email');
+      } else {
+        showError(`Erreur lors de la génération du PDF: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+      showError('Erreur lors de la préparation de l\'envoi par email');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -575,7 +632,7 @@ const FacturationFactures = () => {
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <DollarSign className="w-8 h-8 text-green-600" />
+              <Coins className="w-8 h-8 text-green-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Chiffre d'affaires</p>
@@ -631,7 +688,7 @@ const FacturationFactures = () => {
 
       {/* Filtres et recherche */}
       <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Rechercher</label>
             <div className="flex">
@@ -648,12 +705,12 @@ const FacturationFactures = () => {
             </div>
           </div>
           
-          <div>
+          <div className="ml-16">
             <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+              className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
             >
               <option value="all">Tous les types</option>
               {types.map(type => (
@@ -662,12 +719,12 @@ const FacturationFactures = () => {
             </select>
           </div>
           
-          <div>
+          <div className="ml-8">
             <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+              className="w-60 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
             >
               <option value="all">Tous les statuts</option>
               <option value="outstanding">À encaisser (non payées)</option>
@@ -679,12 +736,13 @@ const FacturationFactures = () => {
             </select>
           </div>
           
-          <div>
+          <div className="ml-auto">
             <label className="block text-sm font-medium text-gray-700 mb-2">Période</label>
             <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+              style={{ width: '168px' }}
             >
               <option value="today">Aujourd'hui</option>
               <option value="week">Cette semaine</option>

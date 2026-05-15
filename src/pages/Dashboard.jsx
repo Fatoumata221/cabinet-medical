@@ -5,7 +5,7 @@ import {
   Users, 
   Calendar as CalendarIcon, 
   Clock, 
-  DollarSign, 
+  Coins, 
   AlertTriangle,
   CheckCircle,
   UserCheck,
@@ -282,7 +282,7 @@ const Dashboard = () => {
               </p>
             </div>
             <div className="p-3 rounded-full bg-emerald-100">
-              <DollarSign className="w-6 h-6 text-emerald-600" />
+              <Coins className="w-6 h-6 text-emerald-600" />
             </div>
           </div>
         </motion.div>

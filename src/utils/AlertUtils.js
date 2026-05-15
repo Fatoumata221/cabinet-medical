@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, TrendingUp, TrendingDown, Clock, DollarSign } from 'lucide-react';
+import { AlertTriangle, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 
 // Utilitaire pour les alertes et notifications
 const AlertUtils = {

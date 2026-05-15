@@ -8,7 +8,7 @@ import {
   Clock, 
   FileText, 
   Pill, 
-  DollarSign, 
+  Coins, 
   BarChart3, 
   Settings, 
   UserCheck, 
@@ -97,7 +97,7 @@ const Sidebar = () => {
       },
       {
         name: 'FACTURATION',
-        icon: DollarSign,
+        icon: Coins,
         items: [
           { name: 'Factures', icon: FileText, path: '/facturation/factures' },
           { name: 'Actes', icon: Activity, path: '/facturation/actes' },
@@ -111,7 +111,7 @@ const Sidebar = () => {
         icon: LayoutDashboard,
         items: [
           { name: 'Caisse', icon: CreditCard, path: '/caisse' },
-          { name: 'Encaissement', icon: DollarSign, path: '/comptabilite/encaissement' },
+          { name: 'Encaissement', icon: Coins, path: '/comptabilite/encaissement' },
           { name: 'Alertes impayés', icon: AlertTriangle, path: '/comptabilite/alertes-impayes' },
         ]
       },

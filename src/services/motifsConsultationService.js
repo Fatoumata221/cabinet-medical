@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 
+<<<<<<< HEAD
 /**
  * Service pour gérer les motifs de consultation de manière centralisée
  */
@@ -10,10 +11,18 @@ export const motifsConsultationService = {
    * @returns {Promise<Array>} Liste des motifs
    */
   async getMotifsForSelect(specialite = 'Dentiste') {
+=======
+const motifsConsultationService = {
+  /**
+   * Récupère les motifs de consultation pour une spécialité donnée
+   */
+  getMotifsForSelect: async (specialite = 'Généraliste') => {
+>>>>>>> dev
     try {
       const { data, error } = await supabase
         .from('motifs_consultation')
         .select('*')
+<<<<<<< HEAD
         .eq('specialite_id', (await this.getSpecialiteId(specialite)))
         .eq('actif', true)
         .order('ordre', { ascending: true });
@@ -75,16 +84,52 @@ export const motifsConsultationService = {
       return data || [];
     } catch (error) {
       console.error('Erreur récupération tous les motifs:', error);
+=======
+        .eq('specialite', specialite)
+        .or('specialite.is.null,specialite.eq.Généraliste');
+
+      if (error) throw error;
+
+      return (data || []).map(motif => ({
+        id: motif.id,
+        label: motif.nom,
+        description: motif.description
+      }));
+    } catch (error) {
+      console.error('Erreur lors du chargement des motifs:', error);
+>>>>>>> dev
       return [];
     }
   },
 
   /**
+<<<<<<< HEAD
    * Crée un nouveau motif de consultation
    * @param {Object} motifData - Données du motif
    * @returns {Promise<Object>} Résultat de la création
    */
   async createMotif(motifData) {
+=======
+   * Retourne les motifs par défaut pour le select
+   */
+  getDefaultMotifsForSelect: () => {
+    return [
+      { id: 1, label: 'Consultation générale', description: 'Examen médical général' },
+      { id: 2, label: 'Suivi post-consultation', description: 'Suivi après une consultation précédente' },
+      { id: 3, label: 'Urgence', description: 'Consultation urgente' },
+      { id: 4, label: 'Contrôle', description: 'Contrôle de routine' },
+      { id: 5, label: 'Vaccination', description: 'Administration de vaccins' },
+      { id: 6, label: 'Ordonnance', description: 'Renouvellement d\'ordonnance' },
+      { id: 7, label: 'Certificat', description: 'Délivrance de certificat médical' },
+      { id: 8, label: 'Autre', description: 'Autre motif de consultation' }
+    ];
+  },
+
+  /**
+   * Crée un nouveau motif de consultation
+   */
+  createMotif: async (motifData) => {
+>>>>>>> dev
     try {
       const { data, error } = await supabase
         .from('motifs_consultation')
@@ -93,6 +138,7 @@ export const motifsConsultationService = {
         .single();
 
       if (error) throw error;
+<<<<<<< HEAD
       return { success: true, data };
     } catch (error) {
       console.error('Erreur création motif:', error);
@@ -169,6 +215,13 @@ export const motifsConsultationService = {
       { value: 'Consultation de contrôle', label: 'Consultation de contrôle', description: 'Consultation de contrôle dentaire' },
       { value: 'Autre', label: 'Autre', description: 'Autre motif de consultation' }
     ];
+=======
+      return data;
+    } catch (error) {
+      console.error('Erreur lors de la création du motif:', error);
+      throw error;
+    }
+>>>>>>> dev
   }
 };
 

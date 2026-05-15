@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, Filter, Download, Calendar, TrendingUp, TrendingDown,
   BarChart3, PieChart, Activity, RefreshCw, FileText, Eye,
-  ChevronDown, ChevronUp, Clock, DollarSign, Users, Target
+  ChevronDown, ChevronUp, Clock, Coins, Users, Target
 } from 'lucide-react';
 
 const RechercheAvancee = () => {
@@ -336,7 +336,7 @@ const RechercheAvancee = () => {
                 {formatMontant(stats.totalMontant)}
               </p>
             </div>
-            <DollarSign className="w-8 h-8 text-blue-600" />
+            <Coins className="w-8 h-8 text-blue-600" />
           </div>
         </div>
         

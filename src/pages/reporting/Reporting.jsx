@@ -7,7 +7,7 @@ import {
   Users, 
   Stethoscope, 
   FileText, 
-  DollarSign,
+  Coins,
   Calendar,
   Download,
   Filter,
@@ -183,10 +183,7 @@ const Reporting = () => {
   };
 
   const formaterMontant = (montant) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'XOF'
-    }).format(montant || 0);
+    return new Intl.NumberFormat('fr-FR').format(montant || 0) + ' FCFA';
   };
 
   const formaterNombre = (nombre) => {
@@ -202,15 +199,15 @@ const Reporting = () => {
 
   const tabs = isAccounting
     ? [
-        { id: 'resume', label: 'Résumé Financier', icon: DollarSign },
-        { id: 'finances', label: 'Finances', icon: DollarSign }
+        { id: 'resume', label: 'Résumé Financier', icon: Coins },
+        { id: 'finances', label: 'Finances', icon: Coins }
       ]
     : [
         { id: 'resume', label: 'Résumé Global', icon: BarChart3 },
         { id: 'consultations', label: 'Consultations', icon: Stethoscope },
         { id: 'actes', label: 'Actes', icon: Activity },
         { id: 'certificats', label: 'Certificats', icon: FileText },
-        { id: 'finances', label: 'Finances', icon: DollarSign }
+        { id: 'finances', label: 'Finances', icon: Coins }
       ];
 
   useEffect(() => {

@@ -13,7 +13,7 @@ import {
   User,
   CheckCircle,
   Clock,
-  DollarSign,
+  Coins,
   FileText,
   Save,
   X,
@@ -589,7 +589,7 @@ const EncaissementFactures = () => {
                             className="p-2 text-green-600 rounded-lg hover:bg-green-50"
                             title="Encaisser"
                           >
-                            <DollarSign className="w-4 h-4" />
+                            <Coins className="w-4 h-4" />
                           </button>
                         )}
                         

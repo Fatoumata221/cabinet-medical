@@ -14,7 +14,7 @@ import {
   User,
   CheckCircle,
   Clock,
-  DollarSign,
+  Coins,
   FileText,
   Save,
   X,
@@ -632,7 +632,7 @@ const FacturationActes = () => {
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <DollarSign className="w-8 h-8 text-medical-primary" />
+              <Coins className="w-8 h-8 text-medical-primary" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Chiffre d&apos;affaires</p>

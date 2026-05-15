@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  DollarSign, 
+  Coins, 
   FileText, 
   TrendingUp, 
   Calendar,
@@ -443,7 +443,7 @@ const AccountingDashboard = () => {
           {getStatCard(
             "Total facturé",
             formatCfa(kpis.billed),
-            <DollarSign className="w-6 h-6 text-green-600" />,
+            <Coins className="w-6 h-6 text-green-600" />,
             "bg-green-100",
             null,
             () => navigate('/reports')

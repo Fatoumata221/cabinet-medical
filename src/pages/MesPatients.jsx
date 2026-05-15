@@ -30,6 +30,10 @@ const MesPatientsPage = () => {
     const [userProfile, setUserProfile] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(15);
+<<<<<<< HEAD
+=======
+    const [recentFilter, setRecentFilter] = useState(true); // Par défaut, afficher seulement les patients récents
+>>>>>>> dev
 
     useEffect(() => {
       initializeData();
@@ -129,6 +133,11 @@ const MesPatientsPage = () => {
             // Essayer avec différentes tables possibles
             const consultationTables = ['consultations', 'consultation', 'rendez_vous', 'consultations_medecins'];
 
+            // Calculer la date limite pour les consultations récentes (90 jours)
+            const recentDate = new Date();
+            recentDate.setDate(recentDate.getDate() - 90);
+            const recentDateISO = recentDate.toISOString();
+
             for (const tableName of consultationTables) {
               try {
                 console.log(` [TEST] Test de la table: ${tableName}`);
@@ -147,11 +156,17 @@ const MesPatientsPage = () => {
                 console.log(` [TEST] Table ${tableName} existe, test de récupération...`);
 
                 // Si la table existe, essayer de trouver les patients du médecin
-                const { data: consultData, error: consultError } = await supabase
+                // Filtrer par date si le filtre récent est activé
+                let query = supabase
                   .from(tableName)
                   .select('*')
-                  .eq('medecin_id', doctorId)
-                  .limit(10);
+                  .eq('medecin_id', doctorId);
+
+                if (recentFilter) {
+                  query = query.gte('date_consultation', recentDateISO);
+                }
+
+                const { data: consultData, error: consultError } = await query.limit(10);
 
                 if (consultError) {
                   console.log(` [TEST] Erreur avec ${tableName}:`, consultError.message);

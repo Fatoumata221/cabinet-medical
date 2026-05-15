@@ -141,7 +141,7 @@ const ListeProduits = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-2">Prix (€)</label>
+            <label className="block text-sm font-medium mb-2">Prix (FCFA)</label>
             <input
               type="number"
               step="0.01"
@@ -256,7 +256,7 @@ const ListeProduits = () => {
                 <td className="px-6 py-4 whitespace-nowrap">{produit.fabricant}</td>
                 <td className="px-6 py-4 whitespace-nowrap font-mono">{produit.code_atc}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {produit.prix ? `${produit.prix.toFixed(2)} €` : '-'}
+                  {produit.prix ? `${produit.prix.toLocaleString('fr-FR')} FCFA` : '-'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${

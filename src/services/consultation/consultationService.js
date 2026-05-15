@@ -20,7 +20,7 @@ export const getConsultation = async (id) => {
 };
 
 export const fetchConsultations = async (options = {}) => {
-  const { doctorId, status } = options;
+  const { doctorId, status, tenantId } = options;
 
   let query = supabase
     .from('consultations')
@@ -38,13 +38,17 @@ export const fetchConsultations = async (options = {}) => {
     query = query.eq('statut', status);
   }
 
+  if (tenantId) {
+    query = query.eq('tenant_id', tenantId);
+  }
+
   const { data, error } = await query.order('date_consultation', { ascending: false });
 
   if (error) {
     console.error('Erreur lors du chargement des consultations:', error);
     throw error;
   }
-  
+
   return data || [];
 };
 

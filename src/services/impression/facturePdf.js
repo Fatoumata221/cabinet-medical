@@ -15,7 +15,7 @@ export const generateFacturePDF = async (supabase, facture, forPrint = false, te
         .select('medecin_id, users:medecin_id(nom, prenom, specialite, telephone, email)')
         .eq('id', facture.consultation_id)
         .single();
-      
+
       if (medecinError) {
         console.error("Erreur lors de la récupération des informations du médecin:", medecinError);
       } else if (consultationData?.users) {
@@ -24,38 +24,38 @@ export const generateFacturePDF = async (supabase, facture, forPrint = false, te
     }
 
     const doc = new jsPDF();
-      
+
     const primaryColor = [59, 130, 246]; // Blue-600
     const grayColor = [107, 114, 128]; // Gray-500
-    
+
     let yPos = 20;
-    
-    if (cabinetData?.logo_url) {
+
+    if (settings?.logo_url) {
       try {
-        doc.addImage(cabinetData.logo_url, 'PNG', 20, yPos, 30, 30);
+        doc.addImage(settings.logo_url, 'PNG', 20, yPos, 30, 30);
         yPos += 35;
       } catch (e) {
         console.warn('Impossible d\'ajouter le logo:', e);
         yPos += 5;
       }
     }
-    
+
     doc.setFontSize(18);
     doc.setTextColor(...primaryColor);
-    doc.text(cabinetData?.nom_cabinet || 'Cabinet Médical', 105, yPos, { align: 'center' });
+    doc.text(settings?.nom_cabinet || 'Cabinet Médical', 105, yPos, { align: 'center' });
     yPos += 8;
-    
-    if (cabinetData?.adresse || cabinetData?.ville) {
+
+    if (settings?.adresse || settings?.ville) {
       doc.setFontSize(10);
       doc.setTextColor(...grayColor);
-      const adresse = [cabinetData?.adresse, cabinetData?.ville, cabinetData?.code_postal].filter(Boolean).join(', ');
+      const adresse = [settings?.adresse, settings?.ville, settings?.code_postal].filter(Boolean).join(', ');
       doc.text(adresse, 105, yPos, { align: 'center' });
       yPos += 5;
     }
-    
-    if (cabinetData?.telephone || cabinetData?.email) {
+
+    if (settings?.telephone || settings?.email) {
       doc.setFontSize(9);
-      const contact = [cabinetData?.telephone && `Tél: ${cabinetData.telephone}`, cabinetData?.email].filter(Boolean).join(' | ');
+      const contact = [settings?.telephone && `Tél: ${settings.telephone}`, settings?.email].filter(Boolean).join(' | ');
       doc.text(contact, 105, yPos, { align: 'center' });
       yPos += 5;
     }
@@ -118,15 +118,33 @@ export const generateFacturePDF = async (supabase, facture, forPrint = false, te
     }
     
     yPos += 10;
-    
-    const tableData = facture.actes.map((item, index) => [
-      index + 1,
-      item.acte.code || '',
-      item.acte.libelle || 'Acte médical',
-      item.quantite || 1,
-      `${(item.tarifUnitaire || 0).toLocaleString()} FCFA`,
-      `${((item.tarifUnitaire || 0) * (item.quantite || 1)).toLocaleString()} FCFA`
-    ]);
+
+    // Gérer les deux formats de données: actes ou items
+    const tableData = (facture.actes || facture.items || []).map((item, index) => {
+      // Format actes (détail complet)
+      if (item.acte) {
+        return [
+          index + 1,
+          item.acte.code || '',
+          item.acte.libelle || 'Acte médical',
+          item.quantite || 1,
+          `${(item.tarifUnitaire || 0).toLocaleString()} FCFA`,
+          `${((item.tarifUnitaire || 0) * (item.quantite || 1)).toLocaleString()} FCFA`
+        ];
+      }
+      // Format items (simplifié - chaîne de caractères)
+      const itemName = typeof item === 'string' ? item : (item.libelle || item.nom || 'Service');
+      const itemPrice = typeof item === 'object' ? (item.prix || item.tarif || 0) : 0;
+      const itemQty = typeof item === 'object' ? (item.quantite || 1) : 1;
+      return [
+        index + 1,
+        '',
+        itemName,
+        itemQty,
+        `${itemPrice.toLocaleString()} FCFA`,
+        `${(itemPrice * itemQty).toLocaleString()} FCFA`
+      ];
+    });
     
     let finalY = yPos + 50;
     
