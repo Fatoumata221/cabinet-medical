@@ -1,10 +1,28 @@
 import { useState, useCallback } from 'react'
 
-export const useCalendarSearch = (appointments, patients) => {
+export const useCalendarSearch = (
+  appointments,
+  patients,
+  scopedDoctorId = null,
+) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [showSearchDropdown, setShowSearchDropdown] = useState(false)
   const [selectedSearchResult, setSelectedSearchResult] = useState(null)
+
+  const scopedAppointments = scopedDoctorId
+    ? appointments.filter(
+        (apt) => String(apt.medecin_id) === String(scopedDoctorId),
+      )
+    : appointments
+
+  const scopedPatients = scopedDoctorId
+    ? patients.filter((patient) =>
+        scopedAppointments.some(
+          (apt) => String(apt.patient_id) === String(patient.id),
+        ),
+      )
+    : patients
 
   const searchPatientsAndMotifs = useCallback(
     (value) => {
@@ -15,7 +33,7 @@ export const useCalendarSearch = (appointments, patients) => {
         return
       }
 
-      const patientMatches = patients
+      const patientMatches = scopedPatients
         .filter((patient) => {
           const fullname = `${patient.prenom ?? ''} ${
             patient.nom ?? ''
@@ -35,7 +53,7 @@ export const useCalendarSearch = (appointments, patients) => {
           phone: patient.telephone ?? '',
         }))
 
-      const appointmentMatches = appointments
+      const appointmentMatches = scopedAppointments
         .filter((apt) => {
           const motif = (apt.motif ?? '').toLowerCase()
           const patientName = `${apt.patient?.prenom ?? ''} ${
@@ -60,7 +78,7 @@ export const useCalendarSearch = (appointments, patients) => {
       setSearchResults(combined)
       setShowSearchDropdown(combined.length > 0)
     },
-    [appointments, patients],
+    [scopedAppointments, scopedPatients],
   )
 
   const clearSearch = useCallback(() => {

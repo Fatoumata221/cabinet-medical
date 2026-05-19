@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { appointmentService } from '../lib/services'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { getIsoString, clampDuration } from '../utils/date'
 import { hashSpecialtyToColor, darkenHexColor } from '../utils/colors'
@@ -8,8 +9,9 @@ import { useCalendarSearch } from './useCalendarSearch'
 
 const DEFAULT_APPOINTMENT_DURATION = 30
 const MAX_SELECTION_MINUTES = 120
-const RESOURCE_COLUMN_MIN_WIDTH = 260
-const RESOURCE_AREA_WIDTH = 220
+const RESOURCE_COLUMN_MIN_WIDTH = 190
+const RESOURCE_AREA_WIDTH = 150
+const MAX_RESOURCE_COLUMNS_NO_SCROLL = 4
 
 const getEventColor = (
   statut,
@@ -78,12 +80,35 @@ const buildStats = (appointments) => {
   ]
 }
 
+const getFullCalendarDayView = (disableDoctorFilter) =>
+  disableDoctorFilter ? 'timeGridDay' : 'resourceTimeGridDay'
+
+export const resolveFullCalendarView = (calendarView, disableDoctorFilter) => {
+  if (calendarView === 'timeGridDay') {
+    return getFullCalendarDayView(disableDoctorFilter)
+  }
+  return calendarView
+}
+
+const isDateInRange = (date, start, end) => {
+  const time = date.getTime()
+  return time >= start.getTime() && time < end.getTime()
+}
+
 export const useNewCalendar = ({
   initialView = 'timeGridWeek',
   selectedDoctorFilter = 'all',
   disableDoctorFilter = false,
 }) => {
   const { currentUser } = useAuth()
+
+  const scopedDoctorId =
+    disableDoctorFilter &&
+    selectedDoctorFilter &&
+    selectedDoctorFilter !== 'all'
+      ? selectedDoctorFilter
+      : null
+
   const {
     loading,
     appointments,
@@ -92,7 +117,7 @@ export const useNewCalendar = ({
     specialites,
     loadData,
     setAppointments,
-  } = useCalendarData(currentUser)
+  } = useCalendarData(currentUser, { scopedDoctorId })
   const {
     searchTerm,
     setSearchTerm,
@@ -104,10 +129,9 @@ export const useNewCalendar = ({
     setSelectedSearchResult,
     searchPatientsAndMotifs,
     clearSearch,
-  } = useCalendarSearch(appointments, patients)
+  } = useCalendarSearch(appointments, patients, scopedDoctorId)
 
   const calendarRef = useRef(null)
-  const audioRef = useRef(null)
 
   const [calendarView, setCalendarView] = useState(initialView)
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -125,11 +149,35 @@ export const useNewCalendar = ({
   const [localDoctorFilter, setLocalDoctorFilter] = useState(
     selectedDoctorFilter,
   )
-  const [showDragDemo, setShowDragDemo] = useState(true)
+  const [viewingToday, setViewingToday] = useState(true)
 
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  useEffect(() => {
+    if (!scopedDoctorId) return
+
+    const channel = supabase
+      .channel(`doctor_calendar_${scopedDoctorId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `medecin_id=eq.${scopedDoctorId}`,
+        },
+        () => {
+          loadData()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [scopedDoctorId, loadData])
 
   useEffect(() => {
     setLocalDoctorFilter(selectedDoctorFilter)
@@ -257,12 +305,6 @@ export const useNewCalendar = ({
     selectedSpecialty,
   ])
 
-  useEffect(() => {
-    if (filteredAppointments.length > 0) {
-      setShowDragDemo(false)
-    }
-  }, [filteredAppointments.length])
-
   const calendarEvents = useMemo(() => {
     return filteredAppointments.map((apt) => {
       const startDate = new Date(apt.date_heure)
@@ -345,53 +387,13 @@ export const useNewCalendar = ({
     }))
   }, [visibleMedecins])
 
-  useEffect(() => {
-    if (calendarView === 'timeGridDay' && disableDoctorFilter) {
-      const applyFullWidth = () => {
-        const cols = document.querySelectorAll('.fc-resource-timeline-col')
-        const headerCells = document.querySelectorAll(
-          '.fc-resource-timeline-header-cell',
-        )
-        const slotLanes = document.querySelectorAll(
-          '.fc-resource-timeline-slot-lane',
-        )
-
-        if (cols.length === 1) {
-          cols.forEach((col) => {
-            col.style.width = '100%'
-            col.style.minWidth = '100%'
-            col.style.maxWidth = '100%'
-          })
-
-          headerCells.forEach((cell) => {
-            cell.style.width = '100%'
-            cell.style.minWidth = '100%'
-            cell.style.maxWidth = '100%'
-          })
-
-          slotLanes.forEach((lane) => {
-            lane.style.width = '100%'
-            lane.style.minWidth = '100%'
-            lane.style.maxWidth = '100%'
-          })
-        }
-      }
-
-      applyFullWidth()
-      const timeout = setTimeout(applyFullWidth, 100)
-      const timeout2 = setTimeout(applyFullWidth, 500)
-
-      return () => {
-        clearTimeout(timeout)
-        clearTimeout(timeout2)
-      }
-    }
-  }, [calendarView, disableDoctorFilter])
-
   const dayViewMinWidth = useMemo(() => {
     if (calendarView !== 'timeGridDay') return null
     if (disableDoctorFilter) return null
     const resourceCount = Math.max(calendarResources.length, 1)
+    if (resourceCount > MAX_RESOURCE_COLUMNS_NO_SCROLL) {
+      return null
+    }
     return resourceCount * RESOURCE_COLUMN_MIN_WIDTH + RESOURCE_AREA_WIDTH
   }, [calendarView, calendarResources.length, disableDoctorFilter])
 
@@ -401,8 +403,17 @@ export const useNewCalendar = ({
   )
 
   const getNavigationText = useCallback(() => {
-    return calendarView === 'timeGridDay' ? 'Journée' : 'Semaine'
+    if (calendarView === 'timeGridDay') return 'Journée'
+    if (calendarView === 'dayGridMonth') return 'Mois'
+    return 'Semaine'
   }, [calendarView])
+
+  const dayCellClassNames = useCallback((arg) => {
+    const classes = []
+    if (arg.isToday) classes.push('calendar-cell-today')
+    if (arg.isPast && !arg.isToday) classes.push('calendar-cell-past')
+    return classes
+  }, [])
 
   const getDateDisplayText = useCallback(() => {
     const calendarApi = calendarRef.current?.getApi()
@@ -429,19 +440,65 @@ export const useNewCalendar = ({
 
   const handleToday = useCallback(() => {
     const calendarApi = calendarRef.current?.getApi()
-    calendarApi?.today()
-  }, [])
+    if (!calendarApi) return
 
-  const handleViewChange = useCallback((view) => {
-    const calendarApi = calendarRef.current?.getApi()
-    const fullCalendarView =
-      view === 'timeGridDay' ? 'resourceTimeGridDay' : view
-
-    if (calendarApi) {
-      calendarApi.changeView(fullCalendarView)
+    try {
+      calendarApi.today()
+      // Ensure internal state reflects the active view returned by FullCalendar.
+      const viewType = calendarApi.view?.type
+      // Map resource view to logical day view for our state naming
+      if (viewType === 'resourceTimeGridDay') {
+        setCalendarView('timeGridDay')
+      } else if (viewType === 'timeGridDay' || viewType === 'timeGridWeek' || viewType === 'dayGridMonth') {
+        setCalendarView(viewType)
+      }
+    } catch (err) {
+      console.warn('Erreur lors du déplacement vers aujourd\'hui:', err)
     }
-    setCalendarView(view)
   }, [])
+
+  const handleViewChange = useCallback(
+    (view) => {
+      const calendarApi = calendarRef.current?.getApi()
+      const fullCalendarView = resolveFullCalendarView(view, disableDoctorFilter)
+
+      if (calendarApi) {
+        calendarApi.changeView(fullCalendarView)
+      }
+      setCalendarView(view)
+    },
+    [disableDoctorFilter],
+  )
+
+  const openCreateModalAtDate = useCallback(
+    (date, duration = DEFAULT_APPOINTMENT_DURATION) => {
+      setEditingAppointment(null)
+      setModalInitialDate(date)
+      setModalInitialDuration(duration)
+      setModalInitialDoctorId(
+        disableDoctorFilter && selectedDoctorFilter !== 'all'
+          ? String(selectedDoctorFilter)
+          : '',
+      )
+      setModalInitialSpecialty(
+        selectedSpecialty !== 'all' ? selectedSpecialty : '',
+      )
+      setModalInitialPatientId('')
+      setShowAppointmentModal(true)
+    },
+    [disableDoctorFilter, selectedDoctorFilter, selectedSpecialty],
+  )
+
+  const handleDateClick = useCallback(
+    (clickInfo) => {
+      if (calendarView !== 'dayGridMonth') return
+
+      const clicked = new Date(clickInfo.date)
+      clicked.setHours(9, 0, 0, 0)
+      openCreateModalAtDate(clicked)
+    },
+    [calendarView, openCreateModalAtDate],
+  )
 
   const selectSearchResult = useCallback(
     (result) => {
@@ -452,35 +509,51 @@ export const useNewCalendar = ({
       const calendarApi = calendarRef.current?.getApi()
       if (!calendarApi) return
 
+      const dayView = getFullCalendarDayView(disableDoctorFilter)
+
       if (result.type === 'appointment' && result.date) {
         const targetDate = new Date(result.date)
         calendarApi.gotoDate(targetDate)
-        calendarApi.changeView('resourceTimeGridDay')
+        calendarApi.changeView(dayView)
         setCalendarView('timeGridDay')
-        if (result.medecinId) {
+        if (!disableDoctorFilter && result.medecinId) {
           setLocalDoctorFilter(String(result.medecinId))
         }
       } else if (result.type === 'patient') {
-        const nextAppointment = appointments
+        const patientAppointments = appointments
           .filter((apt) => apt.patient_id === result.id)
           .sort(
             (a, b) =>
               new Date(a.date_heure).getTime() -
               new Date(b.date_heure).getTime(),
-          )[0]
+          )
+
+        const nextAppointment = disableDoctorFilter
+          ? patientAppointments.find(
+              (apt) =>
+                String(apt.medecin_id) === String(selectedDoctorFilter),
+            ) ?? patientAppointments[0]
+          : patientAppointments[0]
 
         if (nextAppointment) {
           const targetDate = new Date(nextAppointment.date_heure)
           calendarApi.gotoDate(targetDate)
-          calendarApi.changeView('resourceTimeGridDay')
+          calendarApi.changeView(dayView)
           setCalendarView('timeGridDay')
-          if (nextAppointment.medecin_id) {
+          if (!disableDoctorFilter && nextAppointment.medecin_id) {
             setLocalDoctorFilter(String(nextAppointment.medecin_id))
           }
         }
       }
     },
-    [appointments, setSelectedSearchResult, setSearchTerm, setShowSearchDropdown],
+    [
+      appointments,
+      disableDoctorFilter,
+      selectedDoctorFilter,
+      setSelectedSearchResult,
+      setSearchTerm,
+      setShowSearchDropdown,
+    ],
   )
 
   const handleDateSelect = useCallback(
@@ -495,7 +568,11 @@ export const useNewCalendar = ({
       setModalInitialDate(start)
       setModalInitialDuration(duration)
       setModalInitialDoctorId(
-        selectionInfo.resource ? String(selectionInfo.resource.id) : '',
+        selectionInfo.resource
+          ? String(selectionInfo.resource.id)
+          : disableDoctorFilter && selectedDoctorFilter !== 'all'
+            ? String(selectedDoctorFilter)
+            : '',
       )
       setModalInitialSpecialty(
         selectionInfo.resource?.extendedProps?.medecin?.specialite
@@ -519,7 +596,7 @@ export const useNewCalendar = ({
         )
       }
     },
-    [selectedSpecialty],
+    [selectedSpecialty, disableDoctorFilter, selectedDoctorFilter],
   )
 
   const handleEventClick = useCallback(
@@ -625,52 +702,23 @@ export const useNewCalendar = ({
     setLocalDoctorFilter(value)
   }, [])
 
-  const handleDatesSet = useCallback(
-    (arg) => {
-      const nextDate = arg?.start ?? null
+  const handleDatesSet = useCallback((arg) => {
+    const nextDate = arg?.start ?? null
 
-      setSelectedDate((prevDate) => {
-        if (!prevDate && !nextDate) return prevDate
-        if (prevDate && nextDate && prevDate.getTime() === nextDate.getTime()) {
-          return prevDate
-        }
-        return nextDate
-      })
-
-      if (calendarView === 'timeGridDay' && disableDoctorFilter) {
-        setTimeout(() => {
-          const cols = document.querySelectorAll('.fc-resource-timeline-col')
-          const headerCells = document.querySelectorAll(
-            '.fc-resource-timeline-header-cell',
-          )
-          const slotLanes = document.querySelectorAll(
-            '.fc-resource-timeline-slot-lane',
-          )
-
-          if (cols.length === 1) {
-            cols.forEach((col) => {
-              col.style.width = '100%'
-              col.style.minWidth = '100%'
-              col.style.maxWidth = '100%'
-            })
-
-            headerCells.forEach((cell) => {
-              cell.style.width = '100%'
-              cell.style.minWidth = '100%'
-              cell.style.maxWidth = '100%'
-            })
-
-            slotLanes.forEach((lane) => {
-              lane.style.width = '100%'
-              lane.style.minWidth = '100%'
-              lane.style.maxWidth = '100%'
-            })
-          }
-        }, 100)
+    setSelectedDate((prevDate) => {
+      if (!prevDate && !nextDate) return prevDate
+      if (prevDate && nextDate && prevDate.getTime() === nextDate.getTime()) {
+        return prevDate
       }
-    },
-    [calendarView, disableDoctorFilter],
-  )
+      return nextDate
+    })
+
+    if (arg?.start && arg?.end) {
+      const today = new Date()
+      today.setHours(12, 0, 0, 0)
+      setViewingToday(isDateInRange(today, arg.start, arg.end))
+    }
+  }, [])
 
   const createAppointment = async (formData) => {
     try {
@@ -717,12 +765,12 @@ export const useNewCalendar = ({
     // State
     loading,
     calendarRef,
-    audioRef,
     appointments,
     patients,
     medecins,
     specialites,
     calendarView,
+    viewingToday,
     selectedDate,
     searchTerm,
     searchResults,
@@ -738,7 +786,6 @@ export const useNewCalendar = ({
     animatedStats,
     selectedSpecialty,
     localDoctorFilter,
-    showDragDemo,
     filteredAppointments,
     calendarEvents,
     calendarResources,
@@ -760,7 +807,6 @@ export const useNewCalendar = ({
     setAnimatedStats,
     setSelectedSpecialty,
     setLocalDoctorFilter,
-    setShowDragDemo,
     setCalendarView,
     setSelectedDate,
 
@@ -778,7 +824,11 @@ export const useNewCalendar = ({
     handleNext,
     handleToday,
     handleViewChange,
+    handleDateClick,
     handleDateSelect,
+    dayCellClassNames,
+    resolveFullCalendarView: () =>
+      resolveFullCalendarView(calendarView, disableDoctorFilter),
     handleEventClick,
     handleEventDrop,
     handleEventResize,
@@ -788,8 +838,15 @@ export const useNewCalendar = ({
     updateAppointment,
     deleteAppointment,
     getAppointmentErrorMessage: appointmentService.getErrorMessage,
+    doctorPlanningLabel:
+      disableDoctorFilter && medecins.length === 1
+        ? `Mon planning — Dr. ${medecins[0].prenom ?? ''} ${medecins[0].nom ?? ''}`.trim()
+        : disableDoctorFilter
+          ? 'Mon planning'
+          : null,
     DEFAULT_APPOINTMENT_DURATION,
     MAX_SELECTION_MINUTES,
+    useResourceDayView: !disableDoctorFilter,
     RESOURCE_COLUMN_MIN_WIDTH,
     RESOURCE_AREA_WIDTH,
     getEventColor,

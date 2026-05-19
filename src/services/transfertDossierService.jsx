@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { getNomCabinet, getTitrePraticien, getTitreAbrege } from '../utils/traductions';
+import { getConsultationMotif } from '../utils/consultationUtils';
 import documentUploadService from './documentUploadService';
 
 /**
@@ -370,7 +371,7 @@ class TransfertDossierService {
                 <tr>
                   <td>${formatDate(consultation.date_consultation)}</td>
                   <td>${getTitreAbrege(consultation.medecin?.specialite || medecinData.specialite)} ${consultation.medecin?.prenom || ''} ${consultation.medecin?.nom || ''}</td>
-                  <td>${consultation.motif_consultation || 'N/A'}</td>
+                  <td>${getConsultationMotif(consultation) || 'N/A'}</td>
                   <td>${consultation.statut || 'N/A'}</td>
                 </tr>
         `;

@@ -45,6 +45,7 @@ export const useAppointmentForm = ({
     patient_telephone: '',
     patient_email: '',
     patient_date_naissance: '',
+    patient_sexe: 'M',
     create_patient: false
   });
 
@@ -236,6 +237,7 @@ export const useAppointmentForm = ({
       patient_telephone: '',
       patient_email: '',
       patient_date_naissance: '',
+      patient_sexe: 'M',
       create_patient: false
     });
     setManualDate(new Date());
@@ -376,6 +378,7 @@ export const useAppointmentForm = ({
           telephone: quickBooking.patient_telephone,
           email: quickBooking.patient_email,
           date_naissance: quickBooking.patient_date_naissance || null,
+          sexe: quickBooking.patient_sexe || 'M',
           actif: true,
         });
         patientId = createdPatient.id;
@@ -423,6 +426,7 @@ export const useAppointmentForm = ({
                     appointment_id: result.appointment.id,
                     status: 'waiting',
                     arrived_at: new Date().toISOString(),
+                    motif_consultation: result.appointment.motif || appointmentData.motif || '',
                 });
                 addedToWaitingQueue = true;
             }

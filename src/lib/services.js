@@ -395,7 +395,8 @@ export const appointmentService = {
       .from('appointments')
       .select(`
         *,
-        patient:patients(nom, prenom, telephone)
+        patient:patients(nom, prenom, telephone),
+        medecin:users!fk_appointments_medecin(nom, prenom, specialite, specialite_id)
       `)
       .eq('medecin_id', medecinId)
       .order('date_heure', { ascending: true })

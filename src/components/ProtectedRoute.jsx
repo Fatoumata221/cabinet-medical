@@ -32,19 +32,24 @@ const ProtectedRoute = ({
     ? (Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles])
     : [];
 
-  // Logging pour débogage
-  console.log('🔍 [ProtectedRoute] Vérification accès:', {
-    allowedRoles,
-    currentRole,
-    userProfile: userProfile?.role,
-    userMetadataRole: currentUser?.user_metadata?.role,
-    appMetadataRole: currentUser?.app_metadata?.role,
-    hasRole: roles.some(role => hasRole(role)),
-    pathname: location.pathname
-  });
-
   // Vérifier si l'utilisateur a l'un des rôles autorisés
   const hasAccess = !allowedRoles || roles.length === 0 || roles.some(role => hasRole(role));
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    if (isLoading) return;
+    if (!currentUser) return;
+
+    console.log('🔍 [ProtectedRoute] Vérification accès:', {
+      allowedRoles,
+      currentRole,
+      userProfileRole: userProfile?.role,
+      userMetadataRole: currentUser?.user_metadata?.role,
+      appMetadataRole: currentUser?.app_metadata?.role,
+      hasAccess,
+      pathname: location.pathname
+    });
+  }, [allowedRoles, currentRole, currentUser, userProfile?.role, isLoading, hasAccess, location.pathname]);
 
   // Ne logger qu'une fois par changement de route ou de rôle
   // IMPORTANT: Tous les hooks doivent être appelés avant les returns conditionnels

@@ -501,6 +501,20 @@ const DoctorSpecificQueue = ({ doctor, searchTerm, filterStatus }) => {
                               Motif: {patient.appointment.motif}
                             </p>
                           )}
+                          {patient.appointment?.type_rdv && (
+                            <p className={`text-xs font-semibold px-2 py-1 rounded w-fit ${
+                              patient.appointment.type_rdv === 'consultation' ? 'bg-purple-100 text-purple-700' :
+                              patient.appointment.type_rdv === 'suivi' ? 'bg-cyan-100 text-cyan-700' :
+                              patient.appointment.type_rdv === 'urgence' ? 'bg-red-100 text-red-700' :
+                              patient.appointment.type_rdv === 'preventif' ? 'bg-green-100 text-green-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {patient.appointment.type_rdv === 'consultation' && '🏥 Consultation'}
+                              {patient.appointment.type_rdv === 'suivi' && '📋 Suivi'}
+                              {patient.appointment.type_rdv === 'urgence' && '🚑 Urgence'}
+                              {patient.appointment.type_rdv === 'preventif' && '💚 Préventif'}
+                            </p>
+                          )}
                         </div>
                         
                         <div className="flex flex-col items-end space-y-2">

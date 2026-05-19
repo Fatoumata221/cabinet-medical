@@ -7,7 +7,14 @@ import {
   User,
   X,
   FileText,
+  CalendarDays,
 } from 'lucide-react'
+
+const VIEW_OPTIONS = [
+  { value: 'timeGridDay', label: 'Jour' },
+  { value: 'timeGridWeek', label: 'Semaine' },
+  { value: 'dayGridMonth', label: 'Mois' },
+]
 
 const CalendarHeader = ({
   handlePrev,
@@ -16,6 +23,7 @@ const CalendarHeader = ({
   getDateDisplayText,
   getNavigationText,
   calendarView,
+  viewingToday = false,
   handleViewChange,
   searchTerm,
   setSearchTerm,
@@ -31,45 +39,74 @@ const CalendarHeader = ({
   handleDoctorFilterChange,
   medecins,
   disableDoctorFilter,
+  doctorPlanningLabel,
   availableSpecialties,
   selectedSpecialty,
   setSelectedSpecialty,
   setEditingAppointment,
   setShowAppointmentModal,
-  DEFAULT_APPOINTPOINTMENT_DURATION,
 }) => {
   return (
-    <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+    <div className="calendar-header px-4 py-3 border-b border-slate-200 bg-white">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handlePrev}
-            className="p-2 hover:bg-white rounded-xl transition-all"
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
             title={`${getNavigationText()} précédente`}
+            type="button"
           >
             <ChevronLeft size={20} className="text-gray-600" />
           </button>
-          <div className="flex items-center space-x-2">
+
+          <button
+            onClick={handleToday}
+            type="button"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 hover:border-blue-700 shadow-sm transition-colors"
+            title="Revenir à aujourd'hui"
+          >
+            <CalendarDays size={16} />
+            Aujourd&apos;hui
+          </button>
+
+          <button
+            onClick={handleNext}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            title={`${getNavigationText()} suivante`}
+            type="button"
+          >
+            <ChevronRight size={20} className="text-gray-600" />
+          </button>
+
+          <div className="flex items-center gap-2 ml-1">
             <button
               onClick={handleToday}
-              className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer hover:scale-105 transform whitespace-nowrap"
+              type="button"
+              className={`text-lg font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                viewingToday
+                  ? 'text-blue-700'
+                  : 'text-gray-900 hover:text-blue-600'
+              }`}
               title="Aller à aujourd'hui"
             >
               {getDateDisplayText()}
             </button>
+            {viewingToday && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+                Aujourd&apos;hui
+              </span>
+            )}
             {calendarView === 'timeGridDay' && (
               <span className="text-xs text-gray-500 whitespace-nowrap">
-                Navigation par journée
+                Vue journée
+              </span>
+            )}
+            {calendarView === 'dayGridMonth' && (
+              <span className="text-xs text-gray-500 whitespace-nowrap">
+                Vue mois
               </span>
             )}
           </div>
-          <button
-            onClick={handleNext}
-            className="p-2 hover:bg-white rounded-xl transition-all"
-            title={`${getNavigationText()} suivante`}
-          >
-            <ChevronRight size={20} className="text-gray-600" />
-          </button>
         </div>
 
         <div className="flex items-center space-x-3 flex-wrap gap-3">
@@ -98,27 +135,29 @@ const CalendarHeader = ({
               onBlur={() => {
                 setTimeout(() => setShowSearchDropdown(false), 150)
               }}
-              className="pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+              className="pl-10 pr-8 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent w-56 xl:w-64"
             />
             {searchTerm && (
               <button
                 onClick={clearSearch}
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
                 title="Effacer la recherche"
+                type="button"
               >
                 <X size={14} className="text-gray-400" />
               </button>
             )}
 
             {showSearchDropdown && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-2xl shadow-lg z-50 max-h-64 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
                 <div className="p-2">
                   {searchResults.map((result, index) => (
                     <button
                       key={`${result.type}-${result.id}-${index}`}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => selectSearchResult(result)}
-                      className="w-full text-left px-3 py-2 rounded-xl text-sm transition-colors hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                      className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                      type="button"
                     >
                       <div className="flex items-center space-x-2">
                         <div
@@ -144,8 +183,8 @@ const CalendarHeader = ({
                                 ? `📞 ${result.phone}`
                                 : 'Patient'
                               : result.motif
-                              ? result.motif
-                              : 'Rendez-vous'}
+                                ? result.motif
+                                : 'Rendez-vous'}
                           </div>
                         </div>
                       </div>
@@ -156,12 +195,18 @@ const CalendarHeader = ({
             )}
           </div>
 
+          {disableDoctorFilter && doctorPlanningLabel && (
+            <span className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-gray-700 whitespace-nowrap">
+              {doctorPlanningLabel}
+            </span>
+          )}
+
           {!disableDoctorFilter && (
             <div className="relative">
               <select
                 value={localDoctorFilter}
                 onChange={(e) => handleDoctorFilterChange(e.target.value)}
-                className="px-4 py-2 bg-white border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">Tous les médecins</option>
                 {medecins.map((medecin) => (
@@ -178,7 +223,7 @@ const CalendarHeader = ({
               <select
                 value={selectedSpecialty}
                 onChange={(e) => setSelectedSpecialty(e.target.value)}
-                className="px-4 py-2 bg-white border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">Toutes les spécialités</option>
                 {availableSpecialties.map((specialite) => (
@@ -190,50 +235,51 @@ const CalendarHeader = ({
             </div>
           )}
 
-          {!disableDoctorFilter &&
+          {(disableDoctorFilter && selectedSearchResult) ||
+          (!disableDoctorFilter &&
             (localDoctorFilter !== 'all' ||
               selectedSearchResult ||
-              selectedSpecialty !== 'all') && (
-              <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                <Filter size={14} />
-                <span>Filtres actifs</span>
-                {selectedSpecialty !== 'all' && (
-                  <button
-                    onClick={() => setSelectedSpecialty('all')}
-                    className="bg-white/70 text-blue-700 px-2 py-0.5 rounded-full text-xs hover:bg-white transition-colors"
-                    title="Supprimer le filtre spécialité"
-                  >
-                    {selectedSpecialty}
-                    <span className="ml-1">x</span>
-                  </button>
-                )}
-                {selectedSearchResult && (
-                  <button
-                    onClick={clearSearch}
-                    className="ml-2 hover:bg-blue-200 rounded-full p-1 transition-colors"
-                    title="Effacer la recherche"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-            )}
+              selectedSpecialty !== 'all')) ? (
+            <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+              <Filter size={14} />
+              <span>Filtres actifs</span>
+              {selectedSpecialty !== 'all' && !disableDoctorFilter && (
+                <button
+                  onClick={() => setSelectedSpecialty('all')}
+                  className="bg-white/70 text-blue-700 px-2 py-0.5 rounded-full text-xs hover:bg-white transition-colors"
+                  title="Supprimer le filtre spécialité"
+                  type="button"
+                >
+                  {selectedSpecialty}
+                  <span className="ml-1">x</span>
+                </button>
+              )}
+              {selectedSearchResult && (
+                <button
+                  onClick={clearSearch}
+                  className="ml-2 hover:bg-blue-200 rounded-full p-1 transition-colors"
+                  title="Effacer la recherche"
+                  type="button"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex items-center space-x-3">
-          <div className="bg-gray-100/80 p-1.5 rounded-2xl backdrop-blur-sm border border-gray-200">
+          <div className="bg-slate-100 p-1 rounded-lg border border-slate-200">
             <div className="flex gap-1">
-              {[
-                { value: 'timeGridDay', label: 'Jour' },
-                { value: 'timeGridWeek', label: 'Semaine' },
-              ].map((view) => (
+              {VIEW_OPTIONS.map((view) => (
                 <button
                   key={view.value}
                   onClick={() => handleViewChange(view.value)}
-                  className={`py-2.5 px-5 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                  type="button"
+                  className={`py-2 px-3 rounded-md font-semibold text-sm transition-colors ${
                     calendarView === view.value
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg transform scale-105'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/80'
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/70'
                   }`}
                 >
                   {view.label}
@@ -247,7 +293,8 @@ const CalendarHeader = ({
               setEditingAppointment(null)
               setShowAppointmentModal(true)
             }}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2.5 rounded-2xl flex items-center space-x-2 transition-all transform hover:scale-105 shadow-lg font-semibold text-sm whitespace-nowrap"
+            type="button"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors shadow-sm font-semibold text-sm whitespace-nowrap"
           >
             <Plus size={18} />
             <span>Nouveau RDV</span>

@@ -6,41 +6,79 @@ import {
 } from '../lib/services'
 import { specialtyService } from '../lib/services/specialtyService'
 
-export const useCalendarData = (currentUser) => {
+const derivePatientsFromAppointments = (appointments) => {
+  const byId = new Map()
+  for (const apt of appointments || []) {
+    if (!apt?.patient_id || !apt?.patient) continue
+    if (!byId.has(apt.patient_id)) {
+      byId.set(apt.patient_id, {
+        id: apt.patient_id,
+        nom: apt.patient.nom,
+        prenom: apt.patient.prenom,
+        telephone: apt.patient.telephone,
+      })
+    }
+  }
+  return Array.from(byId.values())
+}
+
+export const useCalendarData = (currentUser, options = {}) => {
+  const { scopedDoctorId = null } = options
   const [loading, setLoading] = useState(true)
   const [appointments, setAppointments] = useState([])
   const [patients, setPatients] = useState([])
   const [medecins, setMedecins] = useState([])
   const [specialites, setSpecialites] = useState([])
   const currentUserRef = useRef(currentUser)
+  const scopedDoctorIdRef = useRef(scopedDoctorId)
   const initialLoadDone = useRef(false)
   currentUserRef.current = currentUser
+  scopedDoctorIdRef.current = scopedDoctorId
 
   const loadData = useCallback(async () => {
     const user = currentUserRef.current
     if (!user) return
 
+    const doctorId = scopedDoctorIdRef.current
+
     try {
-      // Afficher le spinner uniquement au premier chargement
       if (!initialLoadDone.current) {
         setLoading(true)
       }
+
       const ignoreSpecialityForSecretary = user?.role === 'secretary'
-      const [appointmentsData, patientsData, medecinsData, specialitesData] =
-        await Promise.all([
-          appointmentService.getAll({
-            ignoreSpecialityFilter: ignoreSpecialityForSecretary,
-          }),
-          patientService.getAll(),
-          userService.getDoctors({
-            ignoreSpecialityFilter: ignoreSpecialityForSecretary,
-          }),
-          specialtyService.getAll(),
-        ])
-      setAppointments(appointmentsData || [])
-      setPatients(patientsData || [])
-      setMedecins(medecinsData || [])
-      setSpecialites(specialitesData || [])
+
+      if (doctorId) {
+        const [appointmentsData, medecinData, specialitesData] =
+          await Promise.all([
+            appointmentService.getByDoctor(doctorId),
+            userService.getById(doctorId),
+            specialtyService.getAll(),
+          ])
+
+        const appointmentsList = appointmentsData || []
+        setAppointments(appointmentsList)
+        setPatients(derivePatientsFromAppointments(appointmentsList))
+        setMedecins(medecinData ? [medecinData] : [])
+        setSpecialites(specialitesData || [])
+      } else {
+        const [appointmentsData, patientsData, medecinsData, specialitesData] =
+          await Promise.all([
+            appointmentService.getAll({
+              ignoreSpecialityFilter: ignoreSpecialityForSecretary,
+            }),
+            patientService.getAll(),
+            userService.getDoctors({
+              ignoreSpecialityFilter: ignoreSpecialityForSecretary,
+            }),
+            specialtyService.getAll(),
+          ])
+        setAppointments(appointmentsData || [])
+        setPatients(patientsData || [])
+        setMedecins(medecinsData || [])
+        setSpecialites(specialitesData || [])
+      }
+
       initialLoadDone.current = true
     } catch (error) {
       console.error('Erreur lors du chargement du calendrier:', error)

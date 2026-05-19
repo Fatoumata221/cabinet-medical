@@ -16,32 +16,34 @@ const statIcons = {
 
 const StatsCards = ({ stats, animatedStats }) => {
   return (
-    <div className="absolute right-6 top-1/2 transform -translate-y-1/2 z-30">
-      <div className="flex flex-col gap-4">
+    <div className="w-full px-3 py-2 sm:px-4">
+      <div className="grid grid-cols-3 gap-2">
         {stats.map((stat, index) => {
           const Icon = statIcons[stat.label] || CalendarIcon
           return (
             <div
               key={stat.label}
-              className="relative overflow-hidden bg-white backdrop-blur-sm rounded-3xl border border-gray-100 p-4 hover:shadow-2xl transition-all duration-500"
+              className="relative overflow-hidden bg-white/95 backdrop-blur rounded-lg border border-slate-200 px-3 py-2 shadow-sm transition-all duration-200"
               style={{
-                transitionDelay: `${index * 100}ms`,
+                transitionDelay: `${index * 50}ms`,
                 opacity: animatedStats ? 1 : 0,
-                transform: animatedStats ? 'translateY(0)' : 'translateY(10px)',
+                transform: animatedStats ? 'translateY(0)' : 'translateY(5px)',
               }}
             >
-              <div className="flex flex-col items-center text-center">
+              <div className="flex items-center gap-2">
                 <div
-                  className={`p-2 bg-gradient-to-r ${stat.color} rounded-2xl text-white shadow-lg mb-2`}
+                  className={`flex h-8 w-8 items-center justify-center bg-gradient-to-r ${stat.color} rounded-lg text-white shadow-sm`}
                 >
-                  <Icon size={20} />
+                  <Icon size={14} />
                 </div>
-                <p className="text-xs text-gray-600 font-medium">
-                  {stat.label}
-                </p>
-                <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                  {stat.value}
-                </h3>
+                <div className="min-w-0">
+                  <p className="text-[11px] text-gray-600 font-medium truncate">
+                    {stat.label}
+                  </p>
+                  <h3 className="text-lg font-semibold text-gray-900 leading-tight">
+                    {stat.value}
+                  </h3>
+                </div>
               </div>
             </div>
           )

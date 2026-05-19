@@ -12,6 +12,7 @@ import {
 import { fetchPatients } from '../../services/patientService';
 import { getModelesConsultation } from '../../services/consultation/referenceDataService';
 import { useNavigate } from 'react-router-dom';
+import { normalizeConsultationType, getConsultationType, getConsultationMotif } from '../../utils/consultationUtils';
 
 export const useConsultationsPage = () => {
     const navigate = useNavigate();
@@ -88,21 +89,22 @@ export const useConsultationsPage = () => {
         return { total, enCours, terminees, annulees, urgentes, dureeMoyenne };
     }, [consultations]);
 
-    const filteredConsultations = useMemo(() => {
-        return consultations.filter(consultation => {
-            const matchesSearch = 
-              consultation.patients?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              consultation.patients?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              consultation.patients?.numero_dossier?.includes(searchTerm) ||
-              consultation.motif_consultation?.toLowerCase().includes(searchTerm.toLowerCase());
-            
-            const matchesStatus = statusFilter === 'all' || consultation.statut === statusFilter;
-            const matchesUrgence = urgenceFilter === 'all' || consultation.niveau_urgence === urgenceFilter;
-            const matchesType = typeFilter === 'all' || consultation.type_consultation === typeFilter;
-            
-            return matchesSearch && matchesStatus && matchesUrgence && matchesType;
-        });
-    }, [consultations, searchTerm, statusFilter, urgenceFilter, typeFilter]);
+  const filteredConsultations = useMemo(() => {
+      return consultations.filter(consultation => {
+          const consultationMotif = getConsultationMotif(consultation).toLowerCase();
+          const matchesSearch = 
+            consultation.patients?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            consultation.patients?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            consultation.patients?.numero_dossier?.includes(searchTerm) ||
+            consultationMotif.includes(searchTerm.toLowerCase());
+          
+          const matchesStatus = statusFilter === 'all' || consultation.statut === statusFilter;
+          const matchesUrgence = urgenceFilter === 'all' || consultation.niveau_urgence === urgenceFilter;
+          const matchesType = typeFilter === 'all' || normalizeConsultationType(getConsultationType(consultation)) === normalizeConsultationType(typeFilter);
+          
+          return matchesSearch && matchesStatus && matchesUrgence && matchesType;
+      });
+  }, [consultations, searchTerm, statusFilter, urgenceFilter, typeFilter]);
 
     const handleCreateConsultation = async () => {
         if (!selectedPatient || !motifConsultation.trim()) {

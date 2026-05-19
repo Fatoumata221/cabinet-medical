@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Receipt, Pill,  Stethoscope, User, FileText, Clock } from 'lucide-react';
 import PropTypes from 'prop-types';
+import { getConsultationMotif } from '../../../utils/consultationUtils';
 const ConsultationDetailsModal = ({ 
   consultation, 
   workflows, 
@@ -98,7 +99,7 @@ const ConsultationDetailsModal = ({
                          </h4>
                       </div>
                       <div className="p-4">
-                        <p className="text-gray-700">{consultation.motif_consultation || 'Aucun motif spécifié'}</p>
+                        <p className="text-gray-700">{getConsultationMotif(consultation) || 'Aucun motif spécifié'}</p>
                       </div>
                    </div>
                 </div>

@@ -202,7 +202,8 @@ const CreateRdvModal = ({
             appointment_id: newAppointment.id,
             status: 'waiting',
             arrived_at: new Date().toISOString(),
-            order_position: nextPosition
+            order_position: nextPosition,
+            motif_consultation: appointmentData.motif
           }]);
 
         if (qError) {

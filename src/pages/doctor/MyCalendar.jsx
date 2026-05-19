@@ -4,7 +4,7 @@ import NewCalendar from '../../components/NewCalendar';
 
 const MyCalendar = () => {
   const { userProfile } = useAuth();
-  
+
   if (!userProfile?.id) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -18,14 +18,9 @@ const MyCalendar = () => {
 
   return (
     <div className="w-full h-full">
-      <NewCalendar 
+      <NewCalendar
         selectedDoctorFilter={String(userProfile.id)}
         disableDoctorFilter={true}
-        onDoctorFilterChange={(value) => {
-          // Le filtre est déjà fixé sur le médecin connecté, 
-          // mais on garde cette prop pour la compatibilité
-          console.log('Filtre médecin changé:', value);
-        }}
       />
     </div>
   );

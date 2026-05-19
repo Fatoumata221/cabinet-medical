@@ -561,6 +561,20 @@ const GlobalWaitingQueue = ({ doctors, searchTerm, filterStatus, onDoctorSelect 
                                     {patient.appointment.motif}
                                   </div>
                                 )}
+                                {patient.appointment?.type_rdv && (
+                                  <div className={`text-xs px-2 py-0.5 rounded inline-block mt-1 ${
+                                    patient.appointment.type_rdv === 'consultation' ? 'bg-purple-100 text-purple-700' :
+                                    patient.appointment.type_rdv === 'suivi' ? 'bg-cyan-100 text-cyan-700' :
+                                    patient.appointment.type_rdv === 'urgence' ? 'bg-red-100 text-red-700' :
+                                    patient.appointment.type_rdv === 'preventif' ? 'bg-green-100 text-green-700' :
+                                    'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {patient.appointment.type_rdv === 'consultation' && '🏥 Consultation'}
+                                    {patient.appointment.type_rdv === 'suivi' && '📋 Suivi'}
+                                    {patient.appointment.type_rdv === 'urgence' && '🚑 Urgence'}
+                                    {patient.appointment.type_rdv === 'preventif' && '💚 Préventif'}
+                                  </div>
+                                )}
                               </div>
 
                               <div className="flex flex-col items-end space-y-1 ml-2 flex-shrink-0">

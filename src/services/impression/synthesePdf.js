@@ -1,4 +1,5 @@
 import { fetchParametres } from '../parametrageService.js';
+import { getConsultationMotif } from '../../utils/consultationUtils';
 
 export const generateSynthesisPDF = async (
     supabase,
@@ -28,7 +29,7 @@ export const generateSynthesisPDF = async (
         syntheseContent += `Date: ${new Date().toLocaleDateString('fr-FR')}\n`;
         syntheseContent += `Patient: ${patient?.prenom} ${patient?.nom}\n`;
         syntheseContent += `Dossier N°: ${patient?.numero_dossier}\n`;
-        syntheseContent += `Motif: ${consultation?.motif_consultation}\n`;
+        syntheseContent += `Motif: ${getConsultationMotif(consultation)}\n`;
         syntheseContent += `\n${'='.repeat(50)}\n\n`;
 
         if (antecedents.length > 0) {

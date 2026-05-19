@@ -1,5 +1,81 @@
 import { supabase } from '../../lib/supabase';
 
+const dayKey = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).split('T')[0] || '';
+  return date.toISOString().split('T')[0];
+};
+
+const enrichWithAppointmentMotifs = async (consultations) => {
+  const list = Array.isArray(consultations) ? consultations : consultations ? [consultations] : [];
+  if (list.length === 0) return consultations;
+
+  const appointmentIds = Array.from(new Set(list.map(c => c.appointment_id).filter(Boolean)));
+  const patientIds = Array.from(new Set(list.map(c => c.patient_id).filter(Boolean)));
+  const doctorIds = Array.from(new Set(list.map(c => c.medecin_id).filter(Boolean)));
+  const dateKeys = Array.from(new Set(list.map(c => dayKey(c.date_consultation || c.created_at)).filter(Boolean)));
+
+  if (appointmentIds.length === 0 && (patientIds.length === 0 || doctorIds.length === 0 || dateKeys.length === 0)) {
+    return consultations;
+  }
+
+  let appointments = [];
+  if (appointmentIds.length > 0) {
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('id, patient_id, medecin_id, date_heure, motif')
+      .in('id', appointmentIds);
+    if (!error && data) appointments = data;
+  }
+
+  if (patientIds.length > 0 && doctorIds.length > 0 && dateKeys.length > 0) {
+    const sortedDates = [...dateKeys].sort();
+    const minDate = sortedDates[0];
+    const maxDate = sortedDates[sortedDates.length - 1];
+    const endDate = new Date(`${maxDate}T00:00:00.000Z`);
+    endDate.setUTCDate(endDate.getUTCDate() + 1);
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('id, patient_id, medecin_id, date_heure, motif')
+      .in('patient_id', patientIds)
+      .in('medecin_id', doctorIds)
+      .gte('date_heure', `${minDate}T00:00:00.000Z`)
+      .lt('date_heure', endDate.toISOString());
+    if (!error && data) {
+      const existingIds = new Set(appointments.map(a => a.id));
+      appointments = [...appointments, ...data.filter(a => !existingIds.has(a.id))];
+    }
+  }
+
+  const byId = new Map(appointments.map(a => [a.id, a]));
+  const byPatientDoctorDay = new Map();
+  appointments.forEach((appointment) => {
+    const key = `${appointment.patient_id}:${appointment.medecin_id}:${dayKey(appointment.date_heure)}`;
+    if (!byPatientDoctorDay.has(key)) byPatientDoctorDay.set(key, appointment);
+  });
+
+  const enriched = list.map((consultation) => {
+    const linkedAppointment = consultation.appointment_id ? byId.get(consultation.appointment_id) : null;
+    const fallbackKey = `${consultation.patient_id}:${consultation.medecin_id}:${dayKey(consultation.date_consultation || consultation.created_at)}`;
+    const fallbackAppointment = byPatientDoctorDay.get(fallbackKey);
+    const appointment = linkedAppointment || fallbackAppointment || null;
+    const appointmentMotif = appointment?.motif || '';
+
+    return {
+      ...consultation,
+      appointment: appointment || consultation.appointment || null,
+      rdv_motif: appointmentMotif,
+      motif_consultation: consultation.motif_consultation || consultation.motif || appointmentMotif || null,
+      motif: consultation.motif || consultation.motif_consultation || appointmentMotif || null,
+      appointment_id: consultation.appointment_id || appointment?.id || null
+    };
+  });
+
+  return Array.isArray(consultations) ? enriched : enriched[0];
+};
+
 export const getConsultation = async (id) => {
   const { data, error } = await supabase
     .from('consultations')
@@ -16,7 +92,7 @@ export const getConsultation = async (id) => {
     throw error;
   }
 
-  return data;
+  return enrichWithAppointmentMotifs(data);
 };
 
 export const fetchConsultations = async (options = {}) => {
@@ -49,7 +125,7 @@ export const fetchConsultations = async (options = {}) => {
     throw error;
   }
 
-  return data || [];
+  return enrichWithAppointmentMotifs(data || []);
 };
 
 export const getAntecedents = async (patientId) => {

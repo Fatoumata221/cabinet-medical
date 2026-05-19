@@ -6,7 +6,6 @@ import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import RdvCreationModal from './rendez-vous/RdvCreationModal'
 import { useNewCalendar } from '../hooks/useNewCalendar'
-import { useAuth } from '../contexts/AuthContext'
 import CalendarHeader from './calendar/CalendarHeader'
 import StatsCards from './calendar/StatsCards'
 import React from 'react'
@@ -14,15 +13,11 @@ import PropTypes from 'prop-types'
 
 const NewCalendar = ({
   selectedDoctorFilter,
-  onDoctorFilterChange,
   disableDoctorFilter = false,
 }) => {
-  const { currentUser } = useAuth()
   const {
     loading,
     calendarRef,
-    audioRef,
-    medecins,
     calendarView,
     searchTerm,
     searchResults,
@@ -38,12 +33,11 @@ const NewCalendar = ({
     animatedStats,
     selectedSpecialty,
     localDoctorFilter,
-    showDragDemo,
-    filteredAppointments,
     calendarEvents,
     calendarResources,
     dayViewMinWidth,
     stats,
+    medecins,
 
     setSearchTerm,
     setShowSearchDropdown,
@@ -51,7 +45,7 @@ const NewCalendar = ({
     setShowAppointmentModal,
     setEditingAppointment,
     setSelectedSpecialty,
-    
+
     loadData,
     availableSpecialties,
     searchPatientsAndMotifs,
@@ -70,17 +64,50 @@ const NewCalendar = ({
     handleDoctorFilterChange,
     handleDatesSet,
     deleteAppointment,
-    
-    DEFAULT_APPOINTMENT_DURATION,
+
     RESOURCE_AREA_WIDTH,
     createAppointment,
     updateAppointment,
-    getAppointmentErrorMessage, // Assuming this will be returned by useNewCalendar
+    getAppointmentErrorMessage,
+    doctorPlanningLabel,
+    useResourceDayView,
+    viewingToday,
+    handleDateClick,
+    dayCellClassNames,
+    resolveFullCalendarView,
   } = useNewCalendar({
     selectedDoctorFilter,
     disableDoctorFilter,
-    currentUser,
   })
+
+  const fullCalendarView = resolveFullCalendarView()
+  const isMonthView = calendarView === 'dayGridMonth'
+  const isTimeGridView =
+    calendarView === 'timeGridWeek' || calendarView === 'timeGridDay'
+
+  const renderEventContent = (eventInfo) => {
+    const { event, timeText } = eventInfo
+    const props = event.extendedProps || {}
+    const patientName = props.patientName || event.title || 'Rendez-vous'
+    const motif = props.motif || props.motif_detaille || ''
+    const doctorName = props.medecin
+      ? `Dr. ${props.medecin.prenom ?? ''} ${props.medecin.nom ?? ''}`.trim()
+      : ''
+    const duration = Number(props.durationMinutes || 0)
+
+    return (
+      <div className="gc-event-content">
+        <div className="gc-event-time">{timeText}</div>
+        <div className="gc-event-title">{patientName}</div>
+        {duration >= 30 && motif && (
+          <div className="gc-event-meta">{motif}</div>
+        )}
+        {duration >= 45 && doctorName && (
+          <div className="gc-event-meta">{doctorName}</div>
+        )}
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -96,15 +123,11 @@ const NewCalendar = ({
   }
 
   return (
-    <div className="h-screen rounded-3xl bg-gradient-to-br from-slate-50 via-white to-blue-50 transition-all duration-500 flex flex-col relative">
-      <audio ref={audioRef} preload="auto">
-        <source src="/notification.mp3" type="audio/mpeg" />
-      </audio>
-
+    <div className="google-calendar-shell h-screen bg-slate-100 transition-all duration-300 flex flex-col relative">
       <StatsCards stats={stats} animatedStats={animatedStats} />
 
-      <div className="rounded-3xl pb-6 flex-1 flex flex-col">
-        <div className="bg-white backdrop-blur-sm rounded-3xl border border-gray-100 overflow-hidden flex-1 flex flex-col">
+      <div className="px-3 pb-3 flex-1 flex flex-col min-h-0 sm:px-4 sm:pb-4">
+        <div className="google-calendar-surface bg-white border border-slate-200 overflow-hidden flex-1 flex flex-col shadow-sm">
           <CalendarHeader
             handlePrev={handlePrev}
             handleNext={handleNext}
@@ -112,6 +135,7 @@ const NewCalendar = ({
             getDateDisplayText={getDateDisplayText}
             getNavigationText={getNavigationText}
             calendarView={calendarView}
+            viewingToday={viewingToday}
             handleViewChange={handleViewChange}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -127,17 +151,17 @@ const NewCalendar = ({
             handleDoctorFilterChange={handleDoctorFilterChange}
             medecins={medecins}
             disableDoctorFilter={disableDoctorFilter}
+            doctorPlanningLabel={doctorPlanningLabel}
             availableSpecialties={availableSpecialties}
             selectedSpecialty={selectedSpecialty}
             setSelectedSpecialty={setSelectedSpecialty}
             setEditingAppointment={setEditingAppointment}
             setShowAppointmentModal={setShowAppointmentModal}
-            DEFAULT_APPOINTMENT_DURATION={DEFAULT_APPOINTMENT_DURATION}
           />
 
           <div className="flex-1 relative overflow-hidden">
-            <div className="h-full w-full overflow-x-auto relative">
-              {calendarView === 'timeGridDay' && (
+            <div className="h-full w-full overflow-hidden relative">
+              {calendarView === 'timeGridDay' && useResourceDayView && (
                 <div className="absolute top-0 bottom-0 left-0 w-[64px] pointer-events-none gradient-mask-l-0">
                   <div className="h-full w-full bg-gradient-to-r from-white via-white/70 to-transparent" />
                 </div>
@@ -145,8 +169,9 @@ const NewCalendar = ({
               <div
                 className="h-full"
                 style={{
-                  minWidth: dayViewMinWidth ? `${dayViewMinWidth}px` : 'auto',
-                  width: dayViewMinWidth ? `${dayViewMinWidth}px` : '100%',
+                  minWidth: dayViewMinWidth ? `${dayViewMinWidth}px` : '100%',
+                  width: '100%',
+                  maxWidth: '100%',
                 }}
               >
                 <FullCalendar
@@ -160,31 +185,43 @@ const NewCalendar = ({
                     resourceTimeGridPlugin,
                   ]}
                   headerToolbar={false}
-                  initialView={
-                    calendarView === 'timeGridDay'
-                      ? 'resourceTimeGridDay'
-                      : calendarView
-                  }
+                  initialView={fullCalendarView}
                   events={calendarEvents}
                   resources={
-                    calendarView === 'timeGridDay' ? calendarResources : undefined
+                    calendarView === 'timeGridDay' && useResourceDayView
+                      ? calendarResources
+                      : undefined
                   }
                   eventClick={handleEventClick}
-                  eventDrop={handleEventDrop}
-                  eventResize={handleEventResize}
-                  selectable
-                  select={handleDateSelect}
-                  selectConstraint={{
-                    startTime: '08:00',
-                    endTime: '18:00',
-                    daysOfWeek: [1, 2, 3, 4, 5, 6],
-                  }}
+                  eventContent={renderEventContent}
+                  eventDrop={isTimeGridView ? handleEventDrop : undefined}
+                  eventResize={isTimeGridView ? handleEventResize : undefined}
+                  editable={isTimeGridView}
+                  selectable={isTimeGridView}
+                  select={isTimeGridView ? handleDateSelect : undefined}
+                  dateClick={isMonthView ? handleDateClick : undefined}
+                  selectConstraint={
+                    isTimeGridView
+                      ? {
+                          startTime: '08:00',
+                          endTime: '18:00',
+                          daysOfWeek: [1, 2, 3, 4, 5, 6],
+                        }
+                      : undefined
+                  }
+                  dayCellClassNames={dayCellClassNames}
+                  fixedWeekCount={false}
+                  showNonCurrentDates
+                  dayMaxEventRows={isMonthView ? 3 : false}
+                  moreLinkClick="popover"
+                  eventMaxStack={isMonthView ? 2 : undefined}
                   height="100%"
                   locale="fr"
                   slotMinTime="08:00:00"
                   slotMaxTime="18:00:00"
                   allDaySlot={false}
-                  slotDuration="00:15:00"
+                  slotDuration="00:30:00"
+                  snapDuration="00:15:00"
                   slotLabelInterval="01:00"
                   eventTimeFormat={{
                     hour: '2-digit',
@@ -201,13 +238,10 @@ const NewCalendar = ({
                     hour12: false,
                   }}
                   eventDisplay="block"
-                  eventResizableFromStart
-                  editable
-                  droppable
-                  selectMirror
-                  dayMaxEvents
-                  moreLinkClick="popover"
-                  eventClassNames="cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+                  eventResizableFromStart={isTimeGridView}
+                  droppable={isTimeGridView}
+                  selectMirror={isTimeGridView}
+                  eventClassNames="google-calendar-event cursor-pointer"
                   businessHours={{
                     daysOfWeek: [1, 2, 3, 4, 5, 6],
                     startTime: '08:00',
@@ -222,7 +256,7 @@ const NewCalendar = ({
                   handleWindowResize
                   windowResizeDelay={100}
                   resourceAreaWidth={
-                    calendarView === 'timeGridDay'
+                    calendarView === 'timeGridDay' && useResourceDayView
                       ? RESOURCE_AREA_WIDTH
                       : undefined
                   }
@@ -230,27 +264,6 @@ const NewCalendar = ({
                 />
               </div>
             </div>
-
-            {/* Ajuster la largeur de la colonne en vue jour pour un seul médecin */}
-            {calendarView === 'timeGridDay' && disableDoctorFilter && calendarResources.length === 1 && (
-              <style>{`
-                .fc-resource-timeline-col {
-                  width: 100% !important;
-                  min-width: 100% !important;
-                  max-width: 100% !important;
-                }
-                .fc-resource-timeline-header-cell {
-                  width: 100% !important;
-                  min-width: 100% !important;
-                  max-width: 100% !important;
-                }
-                .fc-resource-timeline-slot-lane {
-                  width: 100% !important;
-                  min-width: 100% !important;
-                  max-width: 100% !important;
-                }
-              `}</style>
-            )}
           </div>
         </div>
       </div>
@@ -273,16 +286,19 @@ const NewCalendar = ({
         getAppointmentErrorMessage={getAppointmentErrorMessage}
         restrictToCurrentDoctor={disableDoctorFilter}
         onSuccess={async () => {
-          await loadData();
+          await loadData()
         }}
         onDelete={
           editingAppointment
             ? async (appointmentId) => {
-                if (!window.confirm('Supprimer ce rendez-vous ?')) return;
+                if (!window.confirm('Supprimer ce rendez-vous ?')) return
                 try {
-                  await deleteAppointment(appointmentId);
+                  await deleteAppointment(appointmentId)
                 } catch (error) {
-                  console.error('Erreur lors de la suppression du rendez-vous:', error);
+                  console.error(
+                    'Erreur lors de la suppression du rendez-vous:',
+                    error,
+                  )
                 }
               }
             : undefined
@@ -293,9 +309,7 @@ const NewCalendar = ({
 }
 NewCalendar.propTypes = {
   selectedDoctorFilter: PropTypes.string,
-  onDoctorFilterChange: PropTypes.func,
   disableDoctorFilter: PropTypes.bool,
 }
 
 export default NewCalendar
-

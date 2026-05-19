@@ -83,6 +83,22 @@ const PatientSelector = ({ quickBooking, setQuickBooking, patients, value, onCha
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sexe</label>
+            <select
+              value={quickBooking.patient_sexe || 'M'}
+              onChange={(e) =>
+                setQuickBooking({
+                  ...quickBooking,
+                  patient_sexe: e.target.value
+                })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+            >
+              <option value="M">Masculin</option>
+              <option value="F">FÃ©minin</option>
+            </select>
+          </div>
         </div>
       ) : (
         <SearchableSelect

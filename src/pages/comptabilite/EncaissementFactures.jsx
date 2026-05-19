@@ -262,13 +262,36 @@ const EncaissementFactures = () => {
   const handlePaymentSubmit = async () => {
     try {
       if (!selectedFacture) return;
+      const amount = parseFloat(paymentData.montant_paye) || 0;
+      const montantTtc = parseFloat(selectedFacture.montant_ttc) || 0;
+      const montantDejaPaye = parseFloat(selectedFacture.montant_paye) || 0;
+      const isDecaissement = amount < 0;
+
+      if (amount === 0) {
+        showWarning('Veuillez saisir un montant différent de 0');
+        return;
+      }
+
+      if (amount > 0 && amount > (parseFloat(selectedFacture.montant_restant) || 0)) {
+        showWarning('Le montant à encaisser dépasse le reste à payer');
+        return;
+      }
+
+      if (isDecaissement && Math.abs(amount) > montantDejaPaye) {
+        showWarning('Le décaissement dépasse le montant déjà encaissé');
+        return;
+      }
+
+      const newMontantPaye = Math.max(0, montantDejaPaye + amount);
+      const newMontantRestant = Math.max(0, montantTtc - newMontantPaye);
+      const newStatut = newMontantPaye >= montantTtc
+        ? 'paye'
+        : newMontantPaye > 0
+          ? 'partiel'
+          : 'en_attente';
 
       // Si c'est une facture de test (ID 999 ou 998), simuler le paiement
       if (selectedFacture.id >= 998) {
-        const newMontantPaye = (selectedFacture.montant_paye || 0) + parseFloat(paymentData.montant_paye);
-        const newStatut = newMontantPaye >= selectedFacture.montant_ttc ? 'paye' : 
-                         newMontantPaye > 0 ? 'partiel' : 'en_attente';
-
         // Simuler la mise à jour locale
         setFactures(prevFactures => 
           prevFactures.map(f => 
@@ -276,7 +299,7 @@ const EncaissementFactures = () => {
               ? { 
                   ...f, 
                   montant_paye: newMontantPaye, 
-                  montant_restant: f.montant_ttc - newMontantPaye,
+                  montant_restant: newMontantRestant,
                   statut_paiement: newStatut,
                   mode_paiement: paymentData.mode_paiement,
                   date_paiement: new Date().toISOString(),
@@ -287,21 +310,22 @@ const EncaissementFactures = () => {
           )
         );
 
-        showSuccess('Paiement de test enregistré avec succès');
+        showSuccess(
+          isDecaissement
+            ? `Décaissement de test enregistré (${Math.abs(amount).toLocaleString()} FCFA)`
+            : `Encaissement de test enregistré (${amount.toLocaleString()} FCFA)`,
+        );
         setShowPaymentModal(false);
         setSelectedFacture(null);
         return;
       }
 
       // Traitement normal pour les factures réelles
-      const newMontantPaye = (selectedFacture.montant_paye || 0) + parseFloat(paymentData.montant_paye);
-      const newStatut = newMontantPaye >= selectedFacture.montant_ttc ? 'paye' : 
-                       newMontantPaye > 0 ? 'partiel' : 'en_attente';
-
       const { error } = await supabase
         .from('factures')
         .update({
           montant_paye: newMontantPaye,
+          montant_restant: newMontantRestant,
           statut_paiement: newStatut,
           mode_paiement: paymentData.mode_paiement,
           date_paiement: new Date().toISOString(),
@@ -313,7 +337,27 @@ const EncaissementFactures = () => {
 
       if (error) throw error;
 
-      showSuccess('Paiement enregistré avec succès');
+      showSuccess(
+        isDecaissement
+          ? `Décaissement enregistré (${Math.abs(amount).toLocaleString()} FCFA)`
+          : `Encaissement enregistré (${amount.toLocaleString()} FCFA)`,
+      );
+      setFactures(prevFactures =>
+        prevFactures.map(f =>
+          f.id === selectedFacture.id
+            ? {
+                ...f,
+                montant_paye: newMontantPaye,
+                montant_restant: newMontantRestant,
+                statut_paiement: newStatut,
+                mode_paiement: paymentData.mode_paiement,
+                date_paiement: new Date().toISOString(),
+                notes: paymentData.notes ? `${f.notes || ''}\n${paymentData.notes}`.trim() : f.notes,
+                updated_at: new Date().toISOString(),
+              }
+            : f,
+        ),
+      );
       setShowPaymentModal(false);
       setSelectedFacture(null);
       fetchFactures();
@@ -650,14 +694,15 @@ const EncaissementFactures = () => {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Montant à encaisser
+                  Montant ({'>'}0 = encaissement, {'<'}0 = décaissement)
                 </label>
                 <input
                   type="number"
                   value={paymentData.montant_paye}
                   onChange={(e) => setPaymentData(prev => ({ ...prev, montant_paye: parseFloat(e.target.value) || 0 }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  max={selectedFacture.montant_restant}
+                  min={-(parseFloat(selectedFacture.montant_paye) || 0)}
+                  max={parseFloat(selectedFacture.montant_restant) || 0}
                   step="0.01"
                 />
               </div>
@@ -703,7 +748,7 @@ const EncaissementFactures = () => {
                 onClick={handlePaymentSubmit}
                 className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
               >
-                Encaisser
+                Valider l'opération
               </button>
             </div>
           </div>

@@ -151,7 +151,8 @@ const AddPatientModal = ({ doctors, onClose, onPatientAdded }) => {
           priority: priority,
           notes: notes,
           arrived_at: new Date().toISOString(),
-          order_position: nextPosition
+          order_position: nextPosition,
+          motif_consultation: notes
         }]);
 
       if (error) throw error;

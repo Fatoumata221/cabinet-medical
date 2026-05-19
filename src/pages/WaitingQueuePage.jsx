@@ -193,7 +193,7 @@ const WaitingQueuePage = () => {
           }),
           status: item.status,
           priorite: item.priorite || 'normale',
-          motif: item.motif || 'Consultation',
+          motif: item.motif_consultation || item.motif || 'Consultation',
           tempsAttente: Math.floor((new Date() - new Date(item.arrived_at || item.created_at || item.updated_at)) / 60000),
           medecin_id: item.medecin_id
         };
@@ -326,7 +326,7 @@ const WaitingQueuePage = () => {
           }),
           status: item.status,
           priorite: item.priorite || 'normale',
-          motif: item.motif || 'Consultation',
+          motif: item.motif_consultation || item.motif || 'Consultation',
           tempsAttente: Math.floor((new Date() - new Date(item.created_at)) / 60000),
           medecin_id: item.medecin_id
         };
@@ -476,6 +476,9 @@ const WaitingQueuePage = () => {
           nom: patientData.nom,
           prenom: patientData.prenom,
           telephone: patientData.telephone,
+          email: patientData.email || null,
+          date_naissance: patientData.date_naissance || null,
+          sexe: patientData.sexe || 'M',
           numero_dossier: numeroDossier
         }])
         .select()

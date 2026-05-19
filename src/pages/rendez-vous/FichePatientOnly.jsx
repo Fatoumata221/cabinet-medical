@@ -29,7 +29,7 @@ import {
 const FichePatientOnly = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile, getUserProfile } = useAuth();
   
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -52,19 +52,34 @@ const FichePatientOnly = () => {
   });
 
   useEffect(() => {
-    fetchPatients();
-    fetchMedecins();
-    loadMotifs();
-    
-    // Si un ID patient est fourni dans l'URL
-    const patientId = searchParams.get('id');
-    if (patientId) {
-      loadPatientData(patientId);
-    } else {
-      // Rediriger vers la page patients si pas d'ID
-      navigate('/my-patients');
+    const initializePage = async () => {
+      const profile = userProfile || await getUserProfile();
+      await Promise.all([
+        fetchPatients(profile),
+        fetchMedecins(),
+        loadMotifs()
+      ]);
+      
+      // Si un ID patient est fourni dans l'URL
+      const patientId = searchParams.get('id');
+      if (patientId) {
+        loadPatientData(patientId);
+      } else {
+        // Rediriger vers la page patients si pas d'ID
+        navigate('/my-patients');
+      }
+    };
+
+    if (currentUser) {
+      initializePage();
     }
-  }, [searchParams, navigate]);
+  }, [currentUser?.id, userProfile?.id, searchParams, navigate]);
+
+  const getDoctorDisplayName = () => {
+    const profile = userProfile || currentUser?.profile || currentUser;
+    const fullName = `${profile?.prenom || ''} ${profile?.nom || ''}`.trim();
+    return fullName ? `Dr. ${fullName}` : 'Dr.';
+  };
 
   const fetchMedecins = async () => {
     try {
@@ -101,61 +116,95 @@ const FichePatientOnly = () => {
     }
   };
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (profile = userProfile) => {
     try {
-      console.log('🔄 [FichePatientOnly] Récupération des patients du médecin:', currentUser.id);
-      
-      // Utiliser la même logique que MesPatients pour récupérer les patients du médecin
-      let foundPatients = [];
-      
-      // Stratégie 1: consultations (patients que le médecin a consultés)
-      // Utiliser l'ID numérique du médecin (344) au lieu de l'UUID pour la table consultations
-      const doctorNumericId = 344; // ID numérique du médecin Dr. Diallo
-      
-      const { data: consultData, error: consultError } = await supabase
-        .from('consultations')
+      if (!profile?.id) {
+        setPatients([]);
+        return;
+      }
+
+      console.log('[FichePatientOnly] Recuperation des patients du medecin:', profile.id);
+      const patientIds = new Set();
+
+      const { data: treatedPatients, error: linkedError } = await supabase
+        .from('patients')
         .select('*')
-        .eq('medecin_id', doctorNumericId)
-        .limit(10);
+        .eq('medecin_traitant_id', profile.id)
+        .order('nom', { ascending: true });
 
-      if (!consultError && consultData && consultData.length > 0) {
-        console.log('✅ [FichePatientOnly] Patients trouvés via consultations:', consultData.length);
-        
-        // Extraire les IDs des patients
-        const patientIds = [...new Set(
-          consultData
-            .filter(row => row.patient_id)
-            .map(row => row.patient_id)
-        )];
-        
-        if (patientIds.length > 0) {
-          const { data: patientData, error: patientError } = await supabase
-            .from('patients')
-            .select('*')
-            .in('id', patientIds)
-            .order('nom', { ascending: true });
+      if (linkedError) {
+        console.warn('[FichePatientOnly] Erreur patients lies:', linkedError.message);
+      }
 
-          if (!patientError) {
-            foundPatients = patientData || [];
-          }
+      let linkedPatients = treatedPatients || [];
+
+      if (currentUser?.id) {
+        const { data: createdPatients, error: createdError } = await supabase
+          .from('patients')
+          .select('*')
+          .eq('created_by', currentUser.id)
+          .order('nom', { ascending: true });
+
+        if (createdError) {
+          console.warn('[FichePatientOnly] Erreur patients crees:', createdError.message);
+        } else {
+          const existingIds = new Set(linkedPatients.map((patient) => patient.id));
+          linkedPatients = [
+            ...linkedPatients,
+            ...(createdPatients || []).filter((patient) => !existingIds.has(patient.id))
+          ];
         }
       }
 
-      // Si aucun patient trouvé via consultations, essayer fallback
-      if (foundPatients.length === 0) {
-        console.log('❌ [FichePatientOnly] Aucun patient trouvé, fallback sur tous les patients');
-      const { data: allPatients, error: allError } = await supabase
-        .from('patients')
-        .select('*')
-        .order('nom', { ascending: true })
-        .limit(20); // Limiter pour éviter de surcharger
+      (linkedPatients || []).forEach((patient) => patientIds.add(patient.id));
 
-      if (!allError) {
-        foundPatients = allPatients || [];
-      }
+      const { data: consultData, error: consultError } = await supabase
+        .from('consultations')
+        .select('patient_id')
+        .eq('medecin_id', profile.id);
+
+      if (consultError) {
+        console.warn('[FichePatientOnly] Erreur consultations:', consultError.message);
       }
 
-      console.log('🎉 [FichePatientOnly] Patients du médecin trouvés:', foundPatients.length);
+      (consultData || []).forEach((row) => {
+        if (row.patient_id) patientIds.add(row.patient_id);
+      });
+
+      const { data: appointmentData, error: appointmentError } = await supabase
+        .from('appointments')
+        .select('patient_id')
+        .eq('medecin_id', profile.id);
+
+      if (appointmentError) {
+        console.warn('[FichePatientOnly] Erreur rendez-vous:', appointmentError.message);
+      }
+
+      (appointmentData || []).forEach((row) => {
+        if (row.patient_id) patientIds.add(row.patient_id);
+      });
+
+      let foundPatients = linkedPatients || [];
+      const missingPatientIds = [...patientIds].filter(
+        (patientId) => !foundPatients.some((patient) => patient.id === patientId)
+      );
+
+      if (missingPatientIds.length > 0) {
+        const { data: patientData, error: patientError } = await supabase
+          .from('patients')
+          .select('*')
+          .in('id', missingPatientIds)
+          .order('nom', { ascending: true });
+
+        if (patientError) throw patientError;
+        foundPatients = [...foundPatients, ...(patientData || [])];
+      }
+
+      foundPatients.sort((a, b) =>
+        `${a.nom || ''} ${a.prenom || ''}`.localeCompare(`${b.nom || ''} ${b.prenom || ''}`, 'fr')
+      );
+
+      console.log('[FichePatientOnly] Patients du medecin trouves:', foundPatients.length);
       setPatients(foundPatients);
     } catch (error) {
       console.error('Erreur lors du chargement des patients:', error);
@@ -314,7 +363,7 @@ const FichePatientOnly = () => {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-md border border-gray-200">
             <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Patients du Dr. {currentUser?.nom}</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Patients du {getDoctorDisplayName()}</h2>
               
               {/* Recherche */}
               <div className="mt-4">

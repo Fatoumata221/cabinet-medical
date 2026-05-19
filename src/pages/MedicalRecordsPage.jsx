@@ -28,6 +28,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getConsultationMotif } from '../utils/consultationUtils';
 import { useAuth } from '../contexts/AuthContext';
 import TransfertDossierModal from '../components/doctor/TransfertDossierModal';
 
@@ -163,8 +164,8 @@ const MedicalRecordsPage = () => {
         type: 'consultation',
         date: consultation.date_consultation || consultation.created_at,
         medecin: `Dr. ${userProfile.prenom} ${userProfile.nom}`,
-        titre: consultation.motif_consultation || 'Consultation',
-        description: consultation.motif_consultation || 'Consultation médicale',
+        titre: getConsultationMotif(consultation) || 'Consultation',
+        description: getConsultationMotif(consultation) || 'Consultation médicale',
         documents: [],
         statut: consultation.statut || 'terminee',
         notes: consultation.notes_generales || '',

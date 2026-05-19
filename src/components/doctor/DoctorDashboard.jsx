@@ -152,6 +152,7 @@ const DoctorDashboard = () => {
           id,
           date_heure,
           motif,
+          type_rdv,
           statut,
           patient_id,
           patient:patients(id, nom, prenom, telephone)
@@ -160,6 +161,27 @@ const DoctorDashboard = () => {
         .gte('date_heure', today.toISOString())
         .lt('date_heure', tomorrow.toISOString())
         .order('date_heure');
+
+      // Si la queue a des appointment_ids, récupérer aussi les appointments liés (même hors plage)
+      const appointmentIds = (queueData || [])
+        .filter(item => item.appointment_id)
+        .map(item => item.appointment_id);
+      
+      let linkedAppointments = [];
+      if (appointmentIds.length > 0) {
+        const { data: linkedData } = await supabase
+          .from('appointments')
+          .select(`
+            id,
+            date_heure,
+            motif,
+            type_rdv,
+            statut,
+            patient_id
+          `)
+          .in('id', appointmentIds);
+        linkedAppointments = linkedData || [];
+      }
 
       if (appointmentsError) {
         console.error('Erreur récupération rendez-vous:', appointmentsError);
@@ -177,10 +199,16 @@ const DoctorDashboard = () => {
           // Trouver le RDV correspondant - PRIORITÉ à appointment_id si disponible
           let matchingAppointment = null;
           if (item.appointment_id) {
-            // Si on a un appointment_id, on cherche le RDV exact
-            matchingAppointment = (appointmentsData || []).find(
+            // D'abord chercher dans linkedAppointments (appointments liés via appointment_id)
+            matchingAppointment = linkedAppointments.find(
               appt => appt.id === item.appointment_id
             );
+            // Sinon dans les RDV d'aujourd'hui
+            if (!matchingAppointment) {
+              matchingAppointment = (appointmentsData || []).find(
+                appt => appt.id === item.appointment_id
+              );
+            }
           } else {
             // Sinon on cherche par patient_id (fallback)
             matchingAppointment = (appointmentsData || []).find(
@@ -194,7 +222,9 @@ const DoctorDashboard = () => {
             status: item.status,
             patient_prenom: item.patient?.prenom || 'Inconnu',
             patient_nom: item.patient?.nom || 'Patient',
-            motif_consultation: item.motif_consultation,
+            motif_consultation: item.motif_consultation || matchingAppointment?.motif || '',
+            rdv_motif: matchingAppointment?.motif || '',
+            rdv_type: matchingAppointment?.type_rdv || '',
             priority: item.priority || 'normale',
             rdv_date_heure: matchingAppointment?.date_heure || null,
             temps_attente_minutes: item.arrived_at ? Math.max(0, Math.floor((Date.now() - new Date(item.arrived_at).getTime())/60000)) : 0,
@@ -495,7 +525,7 @@ const DoctorDashboard = () => {
           try {
             const { data: wq, error: wqErr } = await supabase
               .from('waiting_queue')
-              .select('patient_id, medecin_id, consultation_id')
+              .select('patient_id, medecin_id, consultation_id, appointment_id, motif_consultation')
               .eq('id', patientId)
               .single();
             
@@ -509,7 +539,7 @@ const DoctorDashboard = () => {
                 startOfDay.setHours(0,0,0,0);
                 const { data: existing, error: findErr } = await supabase
                   .from('consultations')
-                  .select('id')
+                  .select('id, appointment_id, motif_consultation, motif')
                   .eq('patient_id', wq.patient_id)
                   .eq('medecin_id', wq.medecin_id)
                   .gte('date_consultation', startOfDay.toISOString())
@@ -518,7 +548,19 @@ const DoctorDashboard = () => {
                   .limit(1);
                 
                 if (findErr) throw findErr;
-                consultationId = existing && existing.length > 0 ? existing[0].id : null;
+                const existingConsultation = existing && existing.length > 0 ? existing[0] : null;
+                consultationId = existingConsultation?.id || null;
+
+                if (consultationId && (wq.appointment_id || wq.motif_consultation) && (!existingConsultation.appointment_id || !existingConsultation.motif_consultation)) {
+                  await supabase
+                    .from('consultations')
+                    .update({
+                      appointment_id: existingConsultation.appointment_id || wq.appointment_id || null,
+                      motif_consultation: existingConsultation.motif_consultation || existingConsultation.motif || wq.motif_consultation || null,
+                      motif: existingConsultation.motif || existingConsultation.motif_consultation || wq.motif_consultation || null
+                    })
+                    .eq('id', consultationId);
+                }
               }
               
               if (!consultationId) {
@@ -528,6 +570,9 @@ const DoctorDashboard = () => {
                     patient_id: wq.patient_id,
                     medecin_id: wq.medecin_id,
                     date_consultation: new Date().toISOString(),
+                    appointment_id: wq.appointment_id || null,
+                    motif_consultation: wq.motif_consultation || null,
+                    motif: wq.motif_consultation || null,
                     statut: 'en_cours'
                   })
                   .select('id')
@@ -562,7 +607,7 @@ const DoctorDashboard = () => {
           try {
             const { data: wq, error: wqErr } = await supabase
               .from('waiting_queue')
-              .select('patient_id, medecin_id, consultation_id')
+              .select('patient_id, medecin_id, consultation_id, appointment_id, motif_consultation')
               .eq('id', patientId)
               .single();
             
@@ -576,7 +621,7 @@ const DoctorDashboard = () => {
                 startOfDay.setHours(0,0,0,0);
                 const { data: existing, error: findErr } = await supabase
                   .from('consultations')
-                  .select('id')
+                  .select('id, appointment_id, motif_consultation, motif')
                   .eq('patient_id', wq.patient_id)
                   .eq('medecin_id', wq.medecin_id)
                   .gte('date_consultation', startOfDay.toISOString())
@@ -585,7 +630,19 @@ const DoctorDashboard = () => {
                   .limit(1);
                 
                 if (findErr) throw findErr;
-                consultationId = existing && existing.length > 0 ? existing[0].id : null;
+                const existingConsultation = existing && existing.length > 0 ? existing[0] : null;
+                consultationId = existingConsultation?.id || null;
+
+                if (consultationId && (wq.appointment_id || wq.motif_consultation) && (!existingConsultation.appointment_id || !existingConsultation.motif_consultation)) {
+                  await supabase
+                    .from('consultations')
+                    .update({
+                      appointment_id: existingConsultation.appointment_id || wq.appointment_id || null,
+                      motif_consultation: existingConsultation.motif_consultation || existingConsultation.motif || wq.motif_consultation || null,
+                      motif: existingConsultation.motif || existingConsultation.motif_consultation || wq.motif_consultation || null
+                    })
+                    .eq('id', consultationId);
+                }
               }
               
               if (!consultationId) {
@@ -595,6 +652,9 @@ const DoctorDashboard = () => {
                     patient_id: wq.patient_id,
                     medecin_id: wq.medecin_id,
                     date_consultation: new Date().toISOString(),
+                    appointment_id: wq.appointment_id || null,
+                    motif_consultation: wq.motif_consultation || null,
+                    motif: wq.motif_consultation || null,
                     statut: 'en_cours'
                   })
                   .select('id')
@@ -1006,6 +1066,26 @@ const DoctorDashboard = () => {
 </span>
 </div>
 
+{/* Type de rendez-vous */}
+{currentPatient.rdv_type && (
+<div className="flex items-center mt-2">
+<span className="text-sm font-medium text-gray-700 mr-2">Type:</span>
+<span className={`text-sm font-medium px-3 py-1 rounded-full ${
+  currentPatient.rdv_type === 'consultation' ? 'bg-purple-100 text-purple-800' :
+  currentPatient.rdv_type === 'suivi' ? 'bg-cyan-100 text-cyan-800' :
+  currentPatient.rdv_type === 'urgence' ? 'bg-red-100 text-red-800' :
+  currentPatient.rdv_type === 'preventif' ? 'bg-green-100 text-green-800' :
+  'bg-gray-100 text-gray-700'
+}`}>
+{currentPatient.rdv_type === 'consultation' ? '🏥 Consultation' :
+ currentPatient.rdv_type === 'suivi' ? '📋 Suivi' :
+ currentPatient.rdv_type === 'urgence' ? '🚑 Urgence' :
+ currentPatient.rdv_type === 'preventif' ? '💚 Préventif' :
+ currentPatient.rdv_type}
+</span>
+</div>
+)}
+
 {/* Priorité */}
 <div className="flex items-center mt-2">
 <span className="text-sm font-medium text-gray-700 mr-2">Priorité:</span>
@@ -1092,7 +1172,7 @@ onClick={async () => {
     const waitingQueueId = currentPatient.waiting_queue_id || currentPatient.id;
     const { data: wq, error: wqErr } = await supabase
       .from('waiting_queue')
-      .select('patient_id, medecin_id, consultation_id')
+      .select('patient_id, medecin_id, consultation_id, appointment_id, motif_consultation')
       .eq('id', waitingQueueId)
       .single();
     
@@ -1106,7 +1186,7 @@ onClick={async () => {
         startOfDay.setHours(0,0,0,0);
         const { data: existing, error: findErr } = await supabase
           .from('consultations')
-          .select('id')
+          .select('id, appointment_id, motif_consultation, motif')
           .eq('patient_id', wq.patient_id)
           .eq('medecin_id', wq.medecin_id)
           .gte('date_consultation', startOfDay.toISOString())
@@ -1115,7 +1195,19 @@ onClick={async () => {
           .limit(1);
         
         if (findErr) throw findErr;
-        consultationId = existing && existing.length > 0 ? existing[0].id : null;
+        const existingConsultation = existing && existing.length > 0 ? existing[0] : null;
+        consultationId = existingConsultation?.id || null;
+
+        if (consultationId && (wq.appointment_id || wq.motif_consultation) && (!existingConsultation.appointment_id || !existingConsultation.motif_consultation)) {
+          await supabase
+            .from('consultations')
+            .update({
+              appointment_id: existingConsultation.appointment_id || wq.appointment_id || null,
+              motif_consultation: existingConsultation.motif_consultation || existingConsultation.motif || wq.motif_consultation || null,
+              motif: existingConsultation.motif || existingConsultation.motif_consultation || wq.motif_consultation || null
+            })
+            .eq('id', consultationId);
+        }
       }
       
       if (!consultationId) {
@@ -1125,6 +1217,9 @@ onClick={async () => {
             patient_id: wq.patient_id,
             medecin_id: wq.medecin_id,
             date_consultation: new Date().toISOString(),
+            appointment_id: wq.appointment_id || null,
+            motif_consultation: wq.motif_consultation || null,
+            motif: wq.motif_consultation || null,
             statut: 'en_cours'
           })
           .select('id')

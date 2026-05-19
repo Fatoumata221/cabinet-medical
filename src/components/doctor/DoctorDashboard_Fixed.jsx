@@ -75,7 +75,36 @@ const DoctorDashboard = () => {
         .order('order_position', { ascending: true });
 
       if (queueError) throw queueError;
-      setWaitingQueue(queueData || []);
+
+      const appointmentIds = Array.from(new Set((queueData || [])
+        .filter(item => item.appointment_id)
+        .map(item => item.appointment_id)));
+
+      let linkedAppointments = [];
+      if (appointmentIds.length > 0) {
+        const { data: linkedData, error: linkedError } = await supabase
+          .from('appointments')
+          .select('id, date_heure, motif, type_rdv, patient_id')
+          .in('id', appointmentIds);
+
+        if (linkedError) {
+          console.warn('Erreur récupération appointments liés:', linkedError);
+        } else {
+          linkedAppointments = linkedData || [];
+        }
+      }
+
+      const enrichedQueue = (queueData || []).map(item => {
+        const matchingAppointment = linkedAppointments.find(appt => appt.id === item.appointment_id);
+        return {
+          ...item,
+          rdv_motif: matchingAppointment?.motif || item.motif_consultation || item.rdv_motif || '',
+          rdv_type: matchingAppointment?.type_rdv || item.type_rdv || item.rdv_type || '',
+          rdv_date_heure: matchingAppointment?.date_heure || item.rdv_date_heure || null
+        };
+      });
+
+      setWaitingQueue(enrichedQueue);
 
       // Récupérer les RDV du jour
       const today = new Date();
@@ -152,7 +181,7 @@ const DoctorDashboard = () => {
             // Trouver ou créer une consultation et rediriger directement
             const { data: wq, error: wqErr } = await supabase
               .from('waiting_queue')
-              .select('patient_id, medecin_id')
+              .select('patient_id, medecin_id, appointment_id, motif_consultation')
               .eq('id', patientId)
               .single();
             
@@ -164,7 +193,7 @@ const DoctorDashboard = () => {
               startOfDay.setHours(0,0,0,0);
               const { data: existing, error: findErr } = await supabase
                 .from('consultations')
-                .select('id')
+                .select('id, appointment_id, motif_consultation, motif')
                 .eq('patient_id', wq.patient_id)
                 .eq('medecin_id', wq.medecin_id)
                 .gte('date_consultation', startOfDay.toISOString())
@@ -173,7 +202,19 @@ const DoctorDashboard = () => {
                 .limit(1);
               
               if (findErr) throw findErr;
-              let consultationId = existing && existing.length > 0 ? existing[0].id : null;
+              const existingConsultation = existing && existing.length > 0 ? existing[0] : null;
+              let consultationId = existingConsultation?.id || null;
+
+              if (consultationId && (wq.appointment_id || wq.motif_consultation) && (!existingConsultation.appointment_id || !existingConsultation.motif_consultation)) {
+                await supabase
+                  .from('consultations')
+                  .update({
+                    appointment_id: existingConsultation.appointment_id || wq.appointment_id || null,
+                    motif_consultation: existingConsultation.motif_consultation || existingConsultation.motif || wq.motif_consultation || null,
+                    motif: existingConsultation.motif || existingConsultation.motif_consultation || wq.motif_consultation || null
+                  })
+                  .eq('id', consultationId);
+              }
               
               // Créer une consultation si elle n'existe pas
               if (!consultationId) {
@@ -184,7 +225,9 @@ const DoctorDashboard = () => {
                     patient_id: wq.patient_id,
                     medecin_id: wq.medecin_id,
                     date_consultation: new Date().toISOString(),
-                    motif_consultation: patientData?.motif_consultation || null,
+                    appointment_id: wq.appointment_id || null,
+                    motif_consultation: patientData?.rdv_motif || patientData?.motif_consultation || wq.motif_consultation || null,
+                    motif: patientData?.rdv_motif || patientData?.motif_consultation || wq.motif_consultation || null,
                     statut: 'en_cours'
                   })
                   .select('id')
@@ -577,6 +620,24 @@ const DoctorDashboard = () => {
                           {currentPatient.rdv_motif || currentPatient.motif_consultation || 'Non renseigné'}
                         </span>
                       </div>
+                      {(currentPatient.rdv_type || currentPatient.type_rdv) && (
+                        <div className="flex items-center mt-2">
+                          <span className="text-xs font-medium text-gray-600 mr-2">Type:</span>
+                          <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                            (currentPatient.rdv_type || currentPatient.type_rdv) === 'consultation' ? 'bg-purple-100 text-purple-700' :
+                            (currentPatient.rdv_type || currentPatient.type_rdv) === 'suivi' ? 'bg-cyan-100 text-cyan-700' :
+                            (currentPatient.rdv_type || currentPatient.type_rdv) === 'urgence' ? 'bg-red-100 text-red-700' :
+                            (currentPatient.rdv_type || currentPatient.type_rdv) === 'preventif' ? 'bg-green-100 text-green-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {(currentPatient.rdv_type || currentPatient.type_rdv) === 'consultation' && '🏥 Consultation'}
+                            {(currentPatient.rdv_type || currentPatient.type_rdv) === 'suivi' && '📋 Suivi'}
+                            {(currentPatient.rdv_type || currentPatient.type_rdv) === 'urgence' && '🚑 Urgence'}
+                            {(currentPatient.rdv_type || currentPatient.type_rdv) === 'preventif' && '💚 Préventif'}
+                            {['consultation','suivi','urgence','preventif'].includes(currentPatient.rdv_type || currentPatient.type_rdv) ? '' : (currentPatient.rdv_type || currentPatient.type_rdv)}
+                          </span>
+                        </div>
+                      )}
                       {currentPatient.rdv_date_heure && (
                         <p className="text-xs text-gray-400">
                           RDV prévu : {new Date(currentPatient.rdv_date_heure).toLocaleTimeString('fr-FR', { 
@@ -780,8 +841,15 @@ const DoctorDashboard = () => {
 
             {/* RDV du jour */}
             <div className="bg-white rounded-lg shadow-md border border-gray-200 mt-6">
-              <div className="p-4 border-b border-gray-200">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between gap-3">
                 <h3 className="text-lg font-semibold text-gray-900">RDV du jour ({todayAppointments.length})</h3>
+                <button
+                  type="button"
+                  onClick={() => navigate('/my-calendar')}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                >
+                  Voir mon calendrier
+                </button>
               </div>
               <div className="p-4 max-h-64 overflow-y-auto">
                 {todayAppointments.length > 0 ? (

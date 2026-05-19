@@ -48,6 +48,7 @@ const defaultQuickBooking = {
   patient_prenom: '',
   patient_telephone: '',
   patient_email: '',
+  patient_sexe: 'M',
   create_patient: false
 };
 
@@ -643,6 +644,8 @@ const RdvCreationModal = ({
             nom: quickBooking.patient_nom,
             prenom: quickBooking.patient_prenom,
             telephone: quickBooking.patient_telephone,
+            email: quickBooking.patient_email || null,
+            sexe: quickBooking.patient_sexe || 'M',
             actif: true,
             created_at: new Date().toISOString()
           }])
@@ -709,7 +712,8 @@ const RdvCreationModal = ({
                 appointment_id: newAppointment.id,
                 status: 'waiting',
                 arrived_at: new Date().toISOString(),
-                order_position: nextPosition
+                order_position: nextPosition,
+                motif_consultation: newAppointment.motif
               };
 
               const { error: qError } = await supabase

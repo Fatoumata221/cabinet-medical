@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useConsultationsPage } from '../../hooks/consultation/useConsultationsPage';
+import { getConsultationMotif, getConsultationTypeLabel } from '../../utils/consultationUtils';
 import { 
   Plus, 
   Search, 
@@ -283,7 +284,7 @@ const Consultations = () => {
               <option value="standard">Standard</option>
               <option value="suivi">Suivi</option>
               <option value="urgence">Urgence</option>
-              <option value="preventive">Préventive</option>
+              <option value="preventif">Préventive</option>
             </select>
           </div>
           
@@ -356,7 +357,7 @@ const Consultations = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 max-w-xs truncate">
-                      {consultation.motif_consultation}
+                      {getConsultationMotif(consultation)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -373,7 +374,7 @@ const Consultations = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {consultation.type_consultation}
+                    {getConsultationTypeLabel(consultation.type_consultation || consultation.type_rdv || consultation.rdv_type)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
@@ -522,7 +523,7 @@ const Consultations = () => {
                     <option value="standard">Standard</option>
                     <option value="suivi">Suivi</option>
                     <option value="urgence">Urgence</option>
-                    <option value="preventive">Préventive</option>
+                    <option value="preventif">Préventive</option>
                   </select>
                 </div>
               </div>

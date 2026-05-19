@@ -371,7 +371,7 @@ const profileError = null;
     }
   };
 
-  const isAuthenticated = () => !!currentUser && !!session;
+  const isAuthenticated = !!currentUser && !!session;
 
   const getAccessToken = () => {
     if (!session?.access_token) return null;

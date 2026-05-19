@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Clock, Stethoscope } from 'lucide-react';
 import PropTypes from 'prop-types';
+import { getConsultationMotif } from '../../utils/consultationUtils';
 
 const ConsultationsTable = ({ consultations, loading, onViewDetails, searchTerm }) => {
   if (loading) {
@@ -57,7 +58,7 @@ const ConsultationsTable = ({ consultations, loading, onViewDetails, searchTerm 
               </td>
               <td className="px-6 py-4">
                 <div className="text-sm text-gray-900 max-w-xs truncate">
-                  {consultation.motif_consultation || consultation.motif || consultation.type_consultation || consultation.notes_generales || 'Non spécifié'}
+                  {getConsultationMotif(consultation) || consultation.type_consultation || consultation.notes_generales || 'Non spécifié'}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

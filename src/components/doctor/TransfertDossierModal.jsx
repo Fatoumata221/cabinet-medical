@@ -3,6 +3,7 @@ import { useConsultations } from '../../hooks/consultation/useConsultations';
 import { supabase } from '../../lib/supabase';
 import transfertDossierService from '../../services/transfertDossierService';
 import { useAlert } from '../../contexts/AlertContext';
+import { getConsultationMotif } from '../../utils/consultationUtils';
 import { X, CheckCircle, ArrowRight, ArrowLeft, FileText, Building2, Hospital, User, Save } from 'lucide-react';
 
 /**
@@ -437,7 +438,7 @@ const TransfertDossierModal = ({
                           />
                           <span className="ml-2 text-sm text-gray-700">
                             {new Date(consultation.date_consultation).toLocaleDateString('fr-FR')} - 
-                            {consultation.motif_consultation || 'Sans motif'}
+                            {getConsultationMotif(consultation) || 'Sans motif'}
                           </span>
                         </label>
                       ))}

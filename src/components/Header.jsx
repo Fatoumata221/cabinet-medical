@@ -545,10 +545,10 @@ const Header = () => {
   return (
     <>
       <header 
-        className="border-b shadow-sm transition-colors duration-200"
+        className="transition-colors duration-200"
         style={{
-          backgroundColor: settings.couleur_header_fond || '#ffffff',
-          borderColor: settings.couleur_bordure || '#e5e7eb'
+          backgroundColor: settings.couleur_header_fond || 'transparent',
+          borderColor: settings.couleur_bordure || 'transparent'
         }}
       >
         <div className="px-6 py-4">
@@ -786,21 +786,12 @@ const Header = () => {
             </div>
           </div>
         </div>
-        
-
-        
       </header>
-
-      <div className="px-6 py-2">
-        <h2 className="text-sm text-gray-500">
-          {getPageTitle()}
-        </h2>
-      </div>
       {/* Composant de recherche globale */}
-        <GlobalSearch 
-          isOpen={showGlobalSearch}
-          onClose={() => setShowGlobalSearch(false)}
-        />
+      <GlobalSearch 
+        isOpen={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
+      />
     </>
   );
 };

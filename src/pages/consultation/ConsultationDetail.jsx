@@ -7,6 +7,7 @@ import { useConsultationData } from '../../hooks/consultation/useConsultationDat
 import { createConsultationFromModele } from '../../services/consultation/referenceDataService';
 import ConstantesTab from '../../components/consultation/ConstantesTab';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { getConsultationMotif } from '../../utils/consultationUtils';
 
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { useAlert } from '../../contexts/AlertContext';
@@ -509,7 +510,7 @@ const ConsultationDetail = () => {
 
           <div className="text-right">
             <p className="text-sm text-gray-600">Motif de consultation</p>
-            <p className="text-gray-900 font-medium">{consultation.motif_consultation}</p>
+            <p className="text-gray-900 font-medium">{getConsultationMotif(consultation) || 'Aucun motif spécifié'}</p>
             <div className="mt-3 flex items-center justify-end gap-2 flex-wrap">
               {consultationStarted && consultation?.heure_debut_consultation && !consultation?.heure_fin_consultation && (
                 <div className="flex items-center px-3 py-1.5 rounded-md bg-blue-50 text-blue-700 text-sm border border-blue-200">
