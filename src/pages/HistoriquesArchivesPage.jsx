@@ -54,9 +54,9 @@ import {
   Folder,
   File
 } from 'lucide-react';
-import ArchiveStatsCard from '../../components/archives/ArchiveStatsCard';
-import DocumentRow from '../../components/archives/DocumentRow';
-import ActivityRow from '../../components/archives/ActivityRow';
+import ArchiveStatsCard from '../components/archives/ArchiveStatsCard';
+import DocumentRow from '../components/archives/DocumentRow';
+import ActivityRow from '../components/archives/ActivityRow';
 
 const HistoriquesArchivesPage = () => {
   const [activeTab, setActiveTab] = useState('documents');
