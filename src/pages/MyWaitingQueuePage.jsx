@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { sendNotification, NOTIFICATION_TYPES, subscribeToNotifications, unsubscribeFromNotifications } from '../lib/notifications';
+import {
+  confirmSkippedWorkflowSteps,
+  validateQueueTransition,
+} from '../utils/workflowGuards';
 import WebSocketDiagnostic from '../components/WebSocketDiagnostic';
 import { 
   Clock, 
@@ -327,6 +331,8 @@ const MyWaitingQueuePage = () => {
 
   const handlePatientAction = async (patientId, action) => {
     try {
+      const currentPatient = waitingQueue.find((p) => p.id === patientId);
+
       // Vérifier s'il y a déjà une consultation en cours
       if (action === 'consultation' && consultationEnCours) {
         // Afficher un toast d'avertissement
@@ -379,6 +385,16 @@ const MyWaitingQueuePage = () => {
         default:
           console.log('⚠️ [MyWaitingQueue] Action non reconnue:', action);
           return;
+      }
+
+      if (currentPatient) {
+        const transition = validateQueueTransition(currentPatient.status, newStatus);
+        if (
+          transition.needsConfirmation &&
+          !confirmSkippedWorkflowSteps(transition.skippedSteps, 'changer le statut du patient')
+        ) {
+          return;
+        }
       }
 
       console.log('🔄 [MyWaitingQueue] Action patient:', action, 'pour patient:', patientId, 'nouveau statut:', newStatus);

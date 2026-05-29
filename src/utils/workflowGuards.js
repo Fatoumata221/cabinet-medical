@@ -1,39 +1,42 @@
 import { normalizeQueueStatus } from './waitingQueueStatus';
 
-const WORKFLOW_ORDER = [
-  'waiting',
-  'en_attente',
-  'present',
-  'arrive',
-  'authorized',
-  'appele',
-  'called',
-  'medecin_pret',
-  'en_route',
-  'entre',
-  'in_consultation',
-  'en_consultation',
+const WORKFLOW_PHASES = [
+  {
+    key: 'waiting',
+    label: 'En attente',
+    statuses: ['waiting', 'en_attente'],
+  },
+  {
+    key: 'present',
+    label: 'Patient présent',
+    statuses: ['present', 'arrive', 'authorized'],
+  },
+  {
+    key: 'called',
+    label: 'Patient appelé / en route',
+    statuses: ['appele', 'called', 'medecin_pret', 'en_route'],
+  },
+  {
+    key: 'consultation',
+    label: 'Consultation',
+    statuses: ['entre', 'in_consultation', 'en_consultation'],
+  },
+  {
+    key: 'finished',
+    label: 'Fin de parcours',
+    statuses: ['finished', 'termine', 'absent', 'reporte', 'annule', 'cancelled'],
+  },
 ];
 
-const STEP_LABELS = {
-  waiting: 'Enregistrement en file',
-  en_attente: 'En attente',
-  present: 'Patient présent',
-  arrive: 'Patient arrivé',
-  authorized: 'Autorisation',
-  appele: 'Patient appelé',
-  called: 'Patient appelé',
-  medecin_pret: 'Médecin prêt',
-  en_route: 'Envoi vers le médecin',
-  entre: 'Entrée au cabinet',
-  in_consultation: 'Consultation',
-  en_consultation: 'Consultation',
+const resolvePhase = (status) => {
+  const normalized = normalizeQueueStatus(status);
+  return WORKFLOW_PHASES.find((phase) => phase.statuses.includes(normalized)) || null;
 };
 
 const indexOfStatus = (status) => {
-  const n = normalizeQueueStatus(status);
-  const idx = WORKFLOW_ORDER.indexOf(n);
-  return idx === -1 ? -1 : idx;
+  const phase = resolvePhase(status);
+  if (!phase) return -1;
+  return WORKFLOW_PHASES.findIndex((candidate) => candidate.key === phase.key);
 };
 
 /**
@@ -45,8 +48,8 @@ export const getSkippedWorkflowSteps = (fromStatus, toStatus) => {
   if (fromIdx < 0 || toIdx < 0 || toIdx <= fromIdx + 1) {
     return [];
   }
-  return WORKFLOW_ORDER.slice(fromIdx + 1, toIdx).map(
-    (key) => STEP_LABELS[key] || key,
+  return WORKFLOW_PHASES.slice(fromIdx + 1, toIdx).map(
+    (phase) => phase.label,
   );
 };
 

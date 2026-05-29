@@ -26,6 +26,8 @@ import { supabase } from '../../lib/supabase';
 import SearchableSelect from '../../components/common/SearchableSelect';
 import { useAlert } from '../../contexts/AlertContext';
 import { generateFacturePDF } from '../../services/impression/facturePdf.js';
+import ExamenCard from '../../components/facturation/ExamenCard';
+import ExamenDetailsModal from '../../components/facturation/ExamenDetailsModal';
 
 const FacturationExamens = () => {
   const { showError, showSuccess, showWarning, showInfo } = useAlert();
@@ -531,88 +533,88 @@ const FacturationExamens = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* En-tête */}
+    <div className="space-y-4 p-3 sm:p-4">
+      {/* En-tête compact */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Facturation des Examens</h1>
-          <p className="text-gray-600">Gestion et facturation des examens médicaux</p>
+          <h1 className="text-2xl font-bold text-gray-900">Facturation des Examens</h1>
+          <p className="text-sm text-gray-600">Gestion et facturation des examens médicaux</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex space-x-2">
           <button 
             onClick={() => setShowForm(true)}
-            className="flex items-center px-4 py-2 bg-medical-primary text-white rounded-lg hover:bg-medical-primary-dark transition-colors"
+            className="flex items-center px-3 py-2 bg-medical-primary text-white rounded-lg hover:bg-medical-primary-dark transition-colors text-sm"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Programmer examen
+            <Plus className="w-4 h-4 mr-1.5" />
+            Programmer
           </button>
         </div>
       </div>
 
-      {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+      {/* Statistiques compact */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="bg-white rounded-lg shadow-md p-3 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <FileSearch className="w-8 h-8 text-blue-600" />
+              <FileSearch className="w-6 h-6 text-blue-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total examens</p>
-              <p className="text-2xl font-semibold text-gray-900">{facturationExamens.length}</p>
+            <div className="ml-3">
+              <p className="text-xs font-medium text-gray-500">Total</p>
+              <p className="text-xl font-semibold text-gray-900">{facturationExamens.length}</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <div className="bg-white rounded-lg shadow-md p-3 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Réalisés</p>
-              <p className="text-2xl font-semibold text-gray-900">
+            <div className="ml-3">
+              <p className="text-xs font-medium text-gray-500">Réalisés</p>
+              <p className="text-xl font-semibold text-gray-900">
                 {facturationExamens.filter(f => f.statut === 'payee').length}
               </p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <div className="bg-white rounded-lg shadow-md p-3 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Calendar className="w-8 h-8 text-blue-600" />
+              <Calendar className="w-6 h-6 text-blue-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Programmés</p>
-              <p className="text-2xl font-semibold text-gray-900">
+            <div className="ml-3">
+              <p className="text-xs font-medium text-gray-500">Programmés</p>
+              <p className="text-xl font-semibold text-gray-900">
                 {facturationExamens.filter(f => f.statut === 'programme').length}
               </p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <div className="bg-white rounded-lg shadow-md p-3 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Activity className="w-8 h-8 text-yellow-600" />
+              <Activity className="w-6 h-6 text-yellow-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">En cours</p>
-              <p className="text-2xl font-semibold text-gray-900">
+            <div className="ml-3">
+              <p className="text-xs font-medium text-gray-500">En cours</p>
+              <p className="text-xl font-semibold text-gray-900">
                 {facturationExamens.filter(f => f.statut === 'en_cours').length}
               </p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <div className="bg-white rounded-lg shadow-md p-3 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <DollarSign className="w-8 h-8 text-medical-primary" />
+              <DollarSign className="w-6 h-6 text-medical-primary" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Chiffre d'affaires</p>
-              <p className="text-2xl font-semibold text-gray-900">
+            <div className="ml-3">
+              <p className="text-xs font-medium text-gray-500">CA</p>
+              <p className="text-xl font-semibold text-gray-900">
                 {facturationExamens.reduce((sum, f) => sum + f.total, 0).toLocaleString()} FCFA
               </p>
             </div>
@@ -620,33 +622,33 @@ const FacturationExamens = () => {
         </div>
       </div>
 
-      {/* Barre de recherche et filtres */}
-      <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Barre de recherche et filtres compact */}
+      <div className="bg-white rounded-lg shadow-md p-3 border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Rechercher</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Rechercher</label>
             <div className="flex">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="N° facture, patient, médecin..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
               />
-              <button className="px-4 py-2 bg-medical-primary text-white rounded-r-lg hover:bg-medical-primary-dark transition-colors">
+              <button className="px-3 py-1.5 bg-medical-primary text-white rounded-r-lg hover:bg-medical-primary-dark transition-colors">
                 <Search className="w-4 h-4" />
               </button>
             </div>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Statut</label>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+              className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
             >
-              <option value="all">Tous les statuts</option>
+              <option value="all">Tous</option>
               <option value="payee">Réalisés</option>
               <option value="programme">Programmés</option>
               <option value="en_cours">En cours</option>
@@ -655,13 +657,13 @@ const FacturationExamens = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Type d'examen</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+              className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
             >
-              <option value="all">Tous les types</option>
+              <option value="all">Tous</option>
               {categories.map(category => (
                 <option key={category} value={category}>{category}</option>
               ))}
@@ -669,9 +671,9 @@ const FacturationExamens = () => {
           </div>
           
           <div className="flex items-end">
-            <button className="flex items-center px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-              <Filter className="w-4 h-4 mr-2" />
-              Filtres avancés
+            <button className="flex items-center px-3 py-1.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+              <Filter className="w-4 h-4 mr-1.5" />
+              Filtres
             </button>
           </div>
         </div>
@@ -951,36 +953,36 @@ const FacturationExamens = () => {
         </div>
       )}
 
-      {/* Liste des examens */}
+      {/* Liste des examens compact */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Examens programmés et réalisés</h2>
-          <p className="text-sm text-gray-600">{filteredFacturations.length} examen(s) trouvé(s)</p>
+        <div className="p-3 border-b border-gray-200">
+          <h2 className="text-base font-semibold text-gray-900">Examens programmés et réalisés</h2>
+          <p className="text-xs text-gray-600">{filteredFacturations.length} examen(s) trouvé(s)</p>
         </div>
         
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  N° Facture
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  N°
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Patient
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Examens
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date réalisation
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Montant
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Statut
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -988,210 +990,45 @@ const FacturationExamens = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center">
+                  <td colSpan="7" className="px-4 py-8 text-center">
                     <div className="flex flex-col items-center justify-center">
-                      <Clock className="w-8 h-8 text-gray-400 animate-spin mb-2" />
-                      <p className="text-gray-500">Chargement des examens...</p>
+                      <Clock className="w-6 h-6 text-gray-400 animate-spin mb-2" />
+                      <p className="text-sm text-gray-500">Chargement...</p>
                     </div>
                   </td>
                 </tr>
               ) : filteredFacturations.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center">
+                  <td colSpan="7" className="px-4 py-8 text-center">
                     <div className="flex flex-col items-center justify-center">
-                      <FileSearch className="w-12 h-12 text-gray-300 mb-3" />
-                      <p className="text-gray-500 font-medium">Aucun examen trouvé</p>
-                      <p className="text-sm text-gray-400 mt-1">
-                        {searchTerm || selectedStatus !== 'all' || selectedType !== 'all'
-                          ? 'Essayez de modifier vos filtres de recherche'
-                          : 'Programmez votre premier examen'}
-                      </p>
+                      <FileSearch className="w-10 h-10 text-gray-300 mb-2" />
+                      <p className="text-sm text-gray-500 font-medium">Aucun examen</p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 filteredFacturations.map((facture) => (
-                <tr key={facture.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{facture.numero}</div>
-                      <div className="text-sm text-gray-500">{new Date(facture.date).toLocaleDateString('fr-FR')}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {facture.patient.prenom} {facture.patient.nom}
-                      </div>
-                      <div className="text-sm text-gray-500">{facture.patient.assurance}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {facture.examens.map((item, index) => (
-                        <div key={index} className="mb-1 flex items-center">
-                          <span>{item.examen.libelle}</span>
-                          {item.realise && <CheckCircle className="w-4 h-4 text-green-500 ml-2" />}
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {new Date(facture.dateRealisation).toLocaleDateString('fr-FR')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {facture.total.toLocaleString()} FCFA
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Patient: {facture.montantPatient.toLocaleString()} FCFA
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(facture.statut)}`}>
-                      {getStatusText(facture.statut)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button 
-                        onClick={() => setShowDetails(facture)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Voir détails"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleEdit(facture)}
-                        className="text-medical-primary hover:text-medical-primary-dark"
-                        title="Modifier"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDownload(facture)}
-                        className="text-green-600 hover:text-green-900"
-                        title="Télécharger"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(facture)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                  <ExamenCard
+                    key={facture.id}
+                    facture={facture}
+                    onView={setShowDetails}
+                    onEdit={handleEdit}
+                    onDownload={handleDownload}
+                    onDelete={handleDelete}
+                  />
+                ))
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal de détails */}
-      {showDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Détails de l'examen {showDetails.numero}
-                </h3>
-                <button
-                  onClick={() => setShowDetails(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* Informations patient */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Informations patient</h4>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p><span className="font-medium">Nom :</span> {showDetails.patient.prenom} {showDetails.patient.nom}</p>
-                  <p><span className="font-medium">Assurance :</span> {showDetails.patient.assurance}</p>
-                  <p><span className="font-medium">Médecin :</span> {showDetails.medecin}</p>
-                  <p><span className="font-medium">Date réalisation :</span> {new Date(showDetails.dateRealisation).toLocaleDateString('fr-FR')}</p>
-                </div>
-              </div>
-              
-              {/* Examens programmés */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Examens programmés</h4>
-                <div className="space-y-2">
-                  {showDetails.examens.map((item, index) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded flex justify-between items-center">
-                      <div>
-                        <span className="font-medium">{item.examen.libelle}</span>
-                        <span className="text-sm text-gray-500 block">{item.examen.categorie} - {item.examen.duree}min</span>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <span className="font-medium">{item.tarifUnitaire.toLocaleString()} FCFA</span>
-                        {item.realise && <CheckCircle className="w-5 h-5 text-green-500" />}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Détails financiers */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Détails financiers</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Sous-total :</span>
-                    <span>{showDetails.sousTotal.toLocaleString()} FCFA</span>
-                  </div>
-                  {showDetails.remise > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Remise :</span>
-                      <span>-{showDetails.remise.toLocaleString()} FCFA</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span>Part assurance :</span>
-                    <span>{showDetails.montantAssurance.toLocaleString()} FCFA</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Part patient :</span>
-                    <span>{showDetails.montantPatient.toLocaleString()} FCFA</span>
-                  </div>
-                  <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>Total :</span>
-                    <span>{showDetails.total.toLocaleString()} FCFA</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDetails(null)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Fermer
-              </button>
-              <button 
-                onClick={() => handleDownload(showDetails)}
-                className="px-4 py-2 bg-medical-primary text-white rounded-lg hover:bg-medical-primary-dark"
-              >
-                Télécharger
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal de détails compact */}
+      <ExamenDetailsModal
+        facture={showDetails}
+        onClose={() => setShowDetails(null)}
+        onDownload={handleDownload}
+      />
     </div>
   );
 };

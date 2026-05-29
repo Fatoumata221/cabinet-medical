@@ -9,16 +9,18 @@ class RealtimeNotificationService {
   async getUnifiedNotifications(userId) {
     try {
       const profileId = await this.resolveProfileId(userId);
-      // Récupérer le rôle de l'utilisateur (profil)
+      // Récupérer le rôle + tenant_id de l'utilisateur (profil)
       let userRole = null;
+      let tenantId = null;
       try {
         if (profileId) {
           const { data: roleRow } = await supabase
             .from('users')
-            .select('role')
+            .select('role, tenant_id')
             .eq('id', profileId)
             .single();
           userRole = roleRow?.role || null;
+          tenantId = roleRow?.tenant_id || null;
         } else {
           // Dernier recours: métadonnées de session
           const { data: { session } } = await supabase.auth.getSession();
@@ -39,11 +41,36 @@ class RealtimeNotificationService {
       }
 
       let msPromise;
-      if (userRole === 'secretary' || userRole === 'admin') {
-        msPromise = supabase
+      if (userRole === 'admin') {
+        let query = supabase
           .from('notifications_medecin_secretaire')
           .select('*')
           .order('created_at', { ascending: false });
+
+        // Limiter au cabinet si possible (évite de voir les données d'autres tenants)
+        if (tenantId) {
+          query = query.eq('tenant_id', tenantId);
+        }
+
+        msPromise = query;
+      } else if (userRole === 'secretary') {
+        // IMPORTANT: une secrétaire ne doit voir QUE ses notifications.
+        if (!profileId) {
+          msPromise = Promise.resolve({ data: [] });
+        } else {
+          let query = supabase
+            .from('notifications_medecin_secretaire')
+            .select('*')
+            .eq('secretaire_id', profileId)
+            .order('created_at', { ascending: false });
+
+          // Renforcer l'isolation multi-tenant si le champ existe / est disponible
+          if (tenantId) {
+            query = query.eq('tenant_id', tenantId);
+          }
+
+          msPromise = query;
+        }
       } else if (profileId) {
         msPromise = supabase
           .from('notifications_medecin_secretaire')

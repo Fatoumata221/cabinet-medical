@@ -54,6 +54,9 @@ import {
   Folder,
   File
 } from 'lucide-react';
+import ArchiveStatsCard from '../../components/archives/ArchiveStatsCard';
+import DocumentRow from '../../components/archives/DocumentRow';
+import ActivityRow from '../../components/archives/ActivityRow';
 
 const HistoriquesArchivesPage = () => {
   const [activeTab, setActiveTab] = useState('documents');
@@ -623,124 +626,86 @@ const HistoriquesArchivesPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="p-3 sm:p-4 space-y-4 max-w-7xl mx-auto">
+      {/* Header compact */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Archive className="w-8 h-8 text-medical-primary" />
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Archive className="w-6 h-6 text-medical-primary" />
             Historiques & Archives
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-sm text-gray-600 mt-1">
             Consultez et gérez l'historique des documents et archives du cabinet
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        <div className="flex items-center gap-2">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
             <RefreshCw className="w-4 h-4" />
             Actualiser
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-medical-primary text-white rounded-lg hover:bg-medical-primary/90 transition-colors">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-medical-primary text-white rounded-lg hover:bg-medical-primary/90 transition-colors text-sm">
             <Download className="w-4 h-4" />
             Exporter
           </button>
         </div>
       </div>
 
-      {/* Statistiques étendues */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-4 rounded-lg border border-gray-200"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Documents</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalDocuments}</p>
-            </div>
-            <FileText className="w-8 h-8 text-blue-500" />
-          </div>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white p-4 rounded-lg border border-gray-200"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Archivés</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.archivedDocuments}</p>
-            </div>
-            <Archive className="w-8 h-8 text-blue-500" />
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white p-4 rounded-lg border border-gray-200"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Actifs</p>
-              <p className="text-2xl font-bold text-green-600">{stats.activeDocuments}</p>
-            </div>
-            <CheckCircle className="w-8 h-8 text-green-500" />
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white p-4 rounded-lg border border-gray-200"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Espace utilisé</p>
-              <p className="text-2xl font-bold text-purple-600">{stats.totalSize}</p>
-            </div>
-            <BarChart3 className="w-8 h-8 text-purple-500" />
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white p-4 rounded-lg border border-gray-200"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Activité récente</p>
-              <p className="text-2xl font-bold text-orange-600">{stats.recentActivity}</p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-orange-500" />
-          </div>
-        </motion.div>
+      {/* Statistiques compact */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <ArchiveStatsCard
+          icon={<FileText className="w-6 h-6 text-blue-500" />}
+          label="Total"
+          value={stats.totalDocuments}
+          color="text-gray-900"
+          delay={0}
+        />
+        <ArchiveStatsCard
+          icon={<Archive className="w-6 h-6 text-blue-500" />}
+          label="Archivés"
+          value={stats.archivedDocuments}
+          color="text-blue-600"
+          delay={0.1}
+        />
+        <ArchiveStatsCard
+          icon={<CheckCircle className="w-6 h-6 text-green-500" />}
+          label="Actifs"
+          value={stats.activeDocuments}
+          color="text-green-600"
+          delay={0.2}
+        />
+        <ArchiveStatsCard
+          icon={<BarChart3 className="w-6 h-6 text-purple-500" />}
+          label="Espace"
+          value={stats.totalSize}
+          color="text-purple-600"
+          delay={0.3}
+        />
+        <ArchiveStatsCard
+          icon={<TrendingUp className="w-6 h-6 text-orange-500" />}
+          label="Activité"
+          value={stats.recentActivity}
+          color="text-orange-600"
+          delay={0.4}
+        />
       </div>
 
-      {/* Statistiques détaillées par catégorie */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Statistiques détaillées compact */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white p-6 rounded-lg border border-gray-200"
+          className="bg-white p-4 rounded-lg border border-gray-200"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Folder className="w-5 h-5 text-blue-500" />
+          <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Folder className="w-4 h-4 text-blue-500" />
             Répartition par Catégorie
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {Object.entries(stats.categories).map(([category, count]) => (
               <div key={category} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{getCategoryLabel(category)}</span>
-                <span className="text-sm font-medium bg-gray-100 px-2 py-1 rounded">{count}</span>
+                <span className="text-xs text-gray-600">{getCategoryLabel(category)}</span>
+                <span className="text-xs font-medium bg-gray-100 px-2 py-0.5 rounded">{count}</span>
               </div>
             ))}
           </div>
@@ -750,40 +715,40 @@ const HistoriquesArchivesPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white p-6 rounded-lg border border-gray-200"
+          className="bg-white p-4 rounded-lg border border-gray-200"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-yellow-500" />
+          <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-yellow-500" />
             État des Archives
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Taux d'archivage</span>
-              <span className="text-sm font-medium text-blue-600">
+              <span className="text-xs text-gray-600">Taux d'archivage</span>
+              <span className="text-xs font-medium text-blue-600">
                 {Math.round((stats.archivedDocuments / stats.totalDocuments) * 100)}%
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Espace optimisé</span>
-              <span className="text-sm font-medium text-green-600">
+              <span className="text-xs text-gray-600">Espace optimisé</span>
+              <span className="text-xs font-medium text-green-600">
                 ~{Math.round(stats.archivedDocuments * 0.3)} MB économisés
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Dernière activité</span>
-              <span className="text-sm font-medium text-gray-600">Aujourd'hui</span>
+              <span className="text-xs text-gray-600">Dernière activité</span>
+              <span className="text-xs font-medium text-gray-600">Aujourd'hui</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Documents partagés</span>
-              <span className="text-sm font-medium text-purple-600">{stats.sharedDocuments}</span>
+              <span className="text-xs text-gray-600">Documents partagés</span>
+              <span className="text-xs font-medium text-purple-600">{stats.sharedDocuments}</span>
             </div>
           </div>
         </motion.div>
       </div>
 
-      {/* Onglets */}
+      {/* Onglets compact */}
       <div className="border-b border-gray-200">
-        <nav className="flex space-x-8">
+        <nav className="flex space-x-6">
           <button
             onClick={() => setActiveTab('documents')}
             className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
@@ -792,7 +757,7 @@ const HistoriquesArchivesPage = () => {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <FileText className="w-4 h-4" />
               Documents ({filteredDocuments.length})
             </div>
@@ -805,7 +770,7 @@ const HistoriquesArchivesPage = () => {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Activity className="w-4 h-4" />
               Activités ({filteredActivities.length})
             </div>
@@ -818,7 +783,7 @@ const HistoriquesArchivesPage = () => {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <BarChart3 className="w-4 h-4" />
               Analytiques
             </div>
@@ -826,8 +791,8 @@ const HistoriquesArchivesPage = () => {
         </nav>
       </div>
 
-      {/* Barre de recherche et filtres */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      {/* Barre de recherche et filtres compact */}
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
@@ -835,12 +800,12 @@ const HistoriquesArchivesPage = () => {
             placeholder="Rechercher par nom, patient..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+            className="w-full pl-10 pr-4 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
           />
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
         >
           <Filter className="w-4 h-4" />
           Filtres
@@ -848,19 +813,19 @@ const HistoriquesArchivesPage = () => {
         </button>
       </div>
 
-      {/* Filtres simplifiés - Approche par étapes */}
+      {/* Filtres simplifiés compact */}
       {showFilters && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200 shadow-sm"
+          className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 shadow-sm"
         >
           {/* Titre des filtres */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-800">Filtres de recherche</h3>
+              <Filter className="w-4 h-4 text-blue-600" />
+              <h3 className="text-sm font-semibold text-gray-800">Filtres de recherche</h3>
             </div>
             <button
               onClick={() => {
@@ -870,51 +835,51 @@ const HistoriquesArchivesPage = () => {
                 setSortBy('date');
                 setSortOrder('desc');
               }}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
             >
               Réinitialiser tout
             </button>
           </div>
 
           {/* Filtres principaux - 3 colonnes simples */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             {/* Filtre Catégorie principale */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <Folder className="w-4 h-4 text-blue-500" />
+            <div className="bg-white p-3 rounded-lg border border-gray-200">
+              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                <Folder className="w-3 h-3 text-blue-500" />
                 Catégorie
               </label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
               >
-                <option value="all">📋 Toutes les catégories</option>
+                <option value="all">📋 Toutes</option>
                 <option value="dossiers_patients">📁 Dossiers Patients</option>
                 <option value="consultations">🩺 Consultations</option>
                 <option value="examens">🔬 Examens & Analyses</option>
                 <option value="ordonnances">💊 Ordonnances</option>
                 <option value="certificats">📜 Certificats</option>
-                <option value="syntheses">� Synthèses</option>
+                <option value="syntheses">📊 Synthèses</option>
                 <option value="facturation">💰 Facturation</option>
                 <option value="administratif">📑 Administratif</option>
                 <option value="cabinet">🏥 Cabinet</option>
-                <option value="securite">� Sécurité</option>
+                <option value="securite">🔒 Sécurité</option>
               </select>
             </div>
 
             {/* Filtre Statut */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+            <div className="bg-white p-3 rounded-lg border border-gray-200">
+              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                <CheckCircle className="w-3 h-3 text-green-500" />
                 Statut
               </label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-xs"
               >
-                <option value="all">📊 Tous les statuts</option>
+                <option value="all">📊 Tous</option>
                 <option value="active">✅ Actif</option>
                 <option value="archived">📦 Archivé</option>
                 <option value="deleted">🗑️ Supprimé</option>
@@ -922,17 +887,17 @@ const HistoriquesArchivesPage = () => {
             </div>
 
             {/* Filtre Période */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-purple-500" />
+            <div className="bg-white p-3 rounded-lg border border-gray-200">
+              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                <Calendar className="w-3 h-3 text-purple-500" />
                 Période
               </label>
               <select
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-xs"
               >
-                <option value="all">📅 Toutes les périodes</option>
+                <option value="all">📅 Toutes</option>
                 <option value="7d">📆 7 derniers jours</option>
                 <option value="30d">📆 30 derniers jours</option>
                 <option value="90d">📆 90 derniers jours</option>
@@ -942,14 +907,14 @@ const HistoriquesArchivesPage = () => {
           </div>
 
           {/* Options avancées - Section simplifiée */}
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-orange-500" />
+          <div className="bg-white p-3 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                <BarChart3 className="w-3 h-3 text-orange-500" />
                 Options de tri
               </label>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-gray-600 mb-1">Tri par</label>
                 <select
@@ -959,7 +924,7 @@ const HistoriquesArchivesPage = () => {
                     setSortBy(sort);
                     setSortOrder(order);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-xs"
                 >
                   <option value="date-desc">📅 Date (récent)</option>
                   <option value="date-asc">📅 Date (ancien)</option>
@@ -973,23 +938,23 @@ const HistoriquesArchivesPage = () => {
           </div>
 
           {/* Résumé des filtres actifs */}
-          <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
+          <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-3 text-xs">
                 <span className="text-gray-600">Filtres actifs:</span>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   {selectedCategory !== 'all' && (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
                       Catégorie: {getCategoryLabel(selectedCategory)}
                     </span>
                   )}
                   {selectedStatus !== 'all' && (
-                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                       Statut: {selectedStatus}
                     </span>
                   )}
                   {selectedPeriod !== 'all' && (
-                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
                       Période: {selectedPeriod}
                     </span>
                   )}
@@ -998,7 +963,7 @@ const HistoriquesArchivesPage = () => {
                   )}
                 </div>
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-xs text-gray-600">
                 {filteredDocuments.length} document(s) trouvé(s)
               </div>
             </div>
@@ -1011,21 +976,21 @@ const HistoriquesArchivesPage = () => {
         <div className="bg-white rounded-lg border border-gray-200">
           {/* Actions groupées */}
           {selectedItems.length > 0 && (
-            <div className="border-b border-gray-200 p-4 bg-blue-50">
+            <div className="border-b border-gray-200 p-3 bg-blue-50">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-800">
+                <span className="text-xs text-blue-800">
                   {selectedItems.length} document(s) sélectionné(s)
                 </span>
-                <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-2 px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50">
+                <div className="flex items-center gap-1.5">
+                  <button className="flex items-center gap-1 px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50">
                     <Archive className="w-3 h-3" />
                     Archiver
                   </button>
-                  <button className="flex items-center gap-2 px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50">
+                  <button className="flex items-center gap-1 px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50">
                     <Download className="w-3 h-3" />
                     Télécharger
                   </button>
-                  <button className="flex items-center gap-2 px-3 py-1 text-sm bg-white border border-red-300 text-red-600 rounded hover:bg-red-50">
+                  <button className="flex items-center gap-1 px-2 py-1 text-xs bg-white border border-red-300 text-red-600 rounded hover:bg-red-50">
                     <Trash2 className="w-3 h-3" />
                     Supprimer
                   </button>
@@ -1034,12 +999,12 @@ const HistoriquesArchivesPage = () => {
             </div>
           )}
 
-          {/* Tableau des documents */}
+          {/* Tableau des documents compact */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left">
+                  <th className="px-4 py-2 text-left">
                     <input
                       type="checkbox"
                       checked={selectedItems.length === filteredDocuments.length && filteredDocuments.length > 0}
@@ -1047,118 +1012,52 @@ const HistoriquesArchivesPage = () => {
                       className="rounded border-gray-300"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Document
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Catégorie
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Patient
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Taille
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Statut
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Rétention
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Accès
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredDocuments.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.includes(doc.id)}
-                        onChange={() => handleSelectItem(doc.id)}
-                        className="rounded border-gray-300"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-start">
-                        {getDocumentIcon(doc.type)}
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">{doc.name}</div>
-                          <div className="text-xs text-gray-500">{getCategoryLabel(doc.category)}</div>
-                          {doc.contains && doc.contains.length > 0 && (
-                            <div className="text-xs text-gray-400 mt-1">
-                              Contient: {doc.contains.slice(0, 2).join(', ')}
-                              {doc.contains.length > 2 && ` +${doc.contains.length - 2} autres`}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        {getCategoryLabel(doc.category)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 text-gray-400 mr-2" />
-                        <div>
-                          <span className="text-sm text-gray-900">{doc.patient}</span>
-                          {doc.subCategory && (
-                            <div className="text-xs text-gray-500">{doc.subCategory}</div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{doc.date}</div>
-                      {doc.archivedAt && (
-                        <div className="text-xs text-blue-600">Archivé: {doc.archivedAt}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{doc.size}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        {getStatusIcon(doc.status)}
-                        <span className="ml-2 text-sm text-gray-900 capitalize">{doc.status}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className={`text-xs font-medium ${getRetentionInfo(doc.retentionDate, doc.status).color}`}>
-                        {getRetentionInfo(doc.retentionDate, doc.status).text}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        {getAccessLevelIcon(doc.accessLevel)}
-                        {doc.shared && <Share2 className="w-3 h-3 text-purple-500 ml-2" />}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        <button className="p-1 text-gray-400 hover:text-medical-primary">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-1 text-gray-400 hover:text-medical-primary">
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button className="p-1 text-gray-400 hover:text-medical-primary">
-                          <Share2 className="w-4 h-4" />
-                        </button>
-                        <button className="p-1 text-gray-400 hover:text-red-600">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  <DocumentRow
+                    key={doc.id}
+                    doc={doc}
+                    selected={selectedItems.includes(doc.id)}
+                    onSelect={() => handleSelectItem(doc.id)}
+                    onView={() => {}}
+                    onDownload={() => {}}
+                    onShare={() => {}}
+                    onDelete={() => {}}
+                    getDocumentIcon={getDocumentIcon}
+                    getStatusIcon={getStatusIcon}
+                    getCategoryLabel={getCategoryLabel}
+                    getRetentionInfo={getRetentionInfo}
+                    getAccessLevelIcon={getAccessLevelIcon}
+                  />
                 ))}
               </tbody>
             </table>
@@ -1172,42 +1071,30 @@ const HistoriquesArchivesPage = () => {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date & Heure
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Action
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Cible
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Utilisateur
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Détails
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredActivities.map((activity) => (
-                  <tr key={activity.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900">{activity.date}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        {getActivityIcon(activity.type)}
-                        <span className="ml-2 text-sm font-medium text-gray-900">{activity.action}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{activity.target}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{activity.user}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{activity.details}</td>
-                  </tr>
+                  <ActivityRow
+                    key={activity.id}
+                    activity={activity}
+                    getActivityIcon={getActivityIcon}
+                  />
                 ))}
               </tbody>
             </table>
@@ -1216,48 +1103,48 @@ const HistoriquesArchivesPage = () => {
       )}
 
       {activeTab === 'analytics' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Évolution des archives</h3>
-            <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900 mb-3">Évolution des archives</h3>
+            <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Documents archivés ce mois</span>
-                <span className="text-lg font-bold text-blue-600">+24</span>
+                <span className="text-xs text-gray-600">Documents archivés ce mois</span>
+                <span className="text-base font-bold text-blue-600">+24</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Espace économisé</span>
-                <span className="text-lg font-bold text-green-600">1.2 GB</span>
+                <span className="text-xs text-gray-600">Espace économisé</span>
+                <span className="text-base font-bold text-green-600">1.2 GB</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Taux d'archivage</span>
-                <span className="text-lg font-bold text-purple-600">68%</span>
+                <span className="text-xs text-gray-600">Taux d'archivage</span>
+                <span className="text-base font-bold text-purple-600">68%</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Répartition par type</h3>
-            <div className="space-y-3">
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900 mb-3">Répartition par type</h3>
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-600">Consultations</span>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                  <span className="text-xs text-gray-600">Consultations</span>
                 </div>
-                <span className="text-sm font-medium">45%</span>
+                <span className="text-xs font-medium">45%</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-600">Imagerie</span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  <span className="text-xs text-gray-600">Imagerie</span>
                 </div>
-                <span className="text-sm font-medium">30%</span>
+                <span className="text-xs font-medium">30%</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-600">Ordonnances</span>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                  <span className="text-xs text-gray-600">Ordonnances</span>
                 </div>
-                <span className="text-sm font-medium">25%</span>
+                <span className="text-xs font-medium">25%</span>
               </div>
             </div>
           </div>

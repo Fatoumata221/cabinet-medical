@@ -17,11 +17,11 @@ const supabase = createClient(
 const doctors = [
   // ── Cabinet Dentaire Dakar Centre ──────────────────────────────
   {
-    email: 'dr.oumar.fall@cabinet-dakar.com',
-    password: 'Dakar2024!',
-    username: 'dr.oumar.fall',
-    nom: 'Fall',
-    prenom: 'Oumar',
+    email: 'dr.habib.diallo@cabinet.com',
+    password: '12345678',
+    username: 'dr.habib.diallo',
+    nom: 'Diallo',
+    prenom: 'Habib',
     role: 'doctor',
     specialite: 'Dentiste généraliste',
     duree_consultation: 30,
@@ -29,7 +29,7 @@ const doctors = [
   },
   {
     email: 'dr.mariama.diallo@cabinet-dakar.com',
-    password: 'Dakar2024!',
+    password: '12345678',
     username: 'dr.mariama.diallo',
     nom: 'Diallo',
     prenom: 'Mariama',
@@ -40,7 +40,7 @@ const doctors = [
   },
   {
     email: 'dr.ibou.ndiaye@cabinet-dakar.com',
-    password: 'Dakar2024!',
+    password: '12345678',
     username: 'dr.ibou.ndiaye',
     nom: 'Ndiaye',
     prenom: 'Ibou',
@@ -52,36 +52,25 @@ const doctors = [
 
   // ── Cabinet Dentaire Plateau ────────────────────────────────────
   {
-    email: 'dr.fatou.seck@cabinet-plateau.com',
-    password: 'Plateau2024!',
-    username: 'dr.fatou.seck',
-    nom: 'Seck',
-    prenom: 'Fatou',
+    email: 'dr.aicha.ndiaye@cabinet.com',
+    password: '12345678',
+    username: 'dr.aicha.ndiaye',
+    nom: 'Ndiaye',
+    prenom: 'Aicha',
     role: 'doctor',
-    specialite: 'Dentiste généraliste',
+    specialite: 'Parodontiste',
     duree_consultation: 30,
     tenant_id: 'a9b69401-8d44-4921-9154-81b4135254f4'
   },
   {
-    email: 'dr.cheikh.ba@cabinet-plateau.com',
-    password: 'Plateau2024!',
-    username: 'dr.cheikh.ba',
-    nom: 'Ba',
-    prenom: 'Cheikh',
-    role: 'doctor',
-    specialite: 'Parodontiste',
-    duree_consultation: 45,
-    tenant_id: 'a9b69401-8d44-4921-9154-81b4135254f4'
-  },
-  {
     email: 'dr.aminata.sow@cabinet-plateau.com',
-    password: 'Plateau2024!',
+    password: '12345678',
     username: 'dr.aminata.sow',
     nom: 'Sow',
     prenom: 'Aminata',
     role: 'doctor',
     specialite: 'Endodontiste',
-    duree_consultation: 60,
+    duree_consultation: 45,
     tenant_id: 'a9b69401-8d44-4921-9154-81b4135254f4'
   }
 ]
@@ -109,6 +98,9 @@ async function createDoctors() {
         console.log(`  ✅ Auth créé`)
       } else {
         authId = already.id
+        await supabase.auth.admin.updateUserById(authId, {
+          password: doc.password,
+        })
         console.log(`  ⚠️  Auth existe déjà`)
       }
 
@@ -123,7 +115,17 @@ async function createDoctors() {
         console.log(`  ⚠️  Déjà en base de données, mise à jour de la spécialité...`)
         await supabase
           .from('users')
-          .update({ specialite: doc.specialite })
+          .update({
+            username: doc.username,
+            nom: doc.nom,
+            prenom: doc.prenom,
+            role: doc.role,
+            specialite: doc.specialite,
+            duree_consultation: doc.duree_consultation,
+            tenant_id: doc.tenant_id,
+            auth_id: authId,
+            actif: true,
+          })
           .eq('email', doc.email)
         console.log(`  ✅ Spécialité mise à jour\n`)
         continue
@@ -156,13 +158,12 @@ async function createDoctors() {
   console.log('✅ Script terminé !')
   console.log('\n📋 Résumé des médecins créés :')
   console.log('  Cabinet Dakar Centre :')
-  console.log('    - Dr. Oumar Fall (Dentiste généraliste) — dr.oumar.fall / Dakar2024!')
-  console.log('    - Dr. Mariama Diallo (Orthodontiste) — dr.mariama.diallo / Dakar2024!')
-  console.log('    - Dr. Ibou Ndiaye (Chirurgien buccal) — dr.ibou.ndiaye / Dakar2024!')
+  console.log('    - Dr. Habib Diallo (Dentiste généraliste) — dr.habib.diallo / 12345678')
+  console.log('    - Dr. Mariama Diallo (Orthodontiste) — dr.mariama.diallo / 12345678')
+  console.log('    - Dr. Ibou Ndiaye (Chirurgien buccal) — dr.ibou.ndiaye / 12345678')
   console.log('  Cabinet Plateau :')
-  console.log('    - Dr. Fatou Seck (Dentiste généraliste) — dr.fatou.seck / Plateau2024!')
-  console.log('    - Dr. Cheikh Ba (Parodontiste) — dr.cheikh.ba / Plateau2024!')
-  console.log('    - Dr. Aminata Sow (Endodontiste) — dr.aminata.sow / Plateau2024!')
+  console.log('    - Dr. Aicha Ndiaye (Parodontiste) — dr.aicha.ndiaye / 12345678')
+  console.log('    - Dr. Aminata Sow (Endodontiste) — dr.aminata.sow / 12345678')
 }
 
 createDoctors()

@@ -1048,7 +1048,7 @@ const RdvCreationModal = ({
                   onClick={onReportPast}
                   className="px-4 py-2 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-50 transition-colors"
                 >
-                  Reporter / masquer
+                  Annuler
                 </button>
               )}
               {editingAppointment && onDelete && (

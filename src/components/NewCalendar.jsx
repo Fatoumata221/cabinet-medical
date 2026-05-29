@@ -403,14 +403,18 @@ const NewCalendar = ({
             ? async () => {
                 if (
                   !window.confirm(
-                    'Reporter ce rendez-vous ? Il sera masqué du calendrier (statut annulé). Vous pourrez en créer un nouveau.',
+                    'Annuler ce rendez-vous passé ? Il sera masqué du calendrier (statut annulé). Vous pourrez en créer un nouveau.',
                   )
                 ) {
                   return
                 }
-                await reportPastAppointment(editingAppointment.id)
-                setShowAppointmentModal(false)
-                setEditingAppointment(null)
+                try {
+                  await reportPastAppointment(editingAppointment.id)
+                  setShowAppointmentModal(false)
+                  setEditingAppointment(null)
+                } catch (error) {
+                  alert(`Erreur: ${error.message}`)
+                }
               }
             : undefined
         }

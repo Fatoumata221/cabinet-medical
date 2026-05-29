@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { formatDoctorSpecialties } from '../../utils/doctorUtils';
+import {
+  confirmSkippedWorkflowSteps,
+  validateQueueTransition,
+} from '../../utils/workflowGuards';
 
 const SalleAttente = () => {
   const [waitingQueue, setWaitingQueue] = useState([]);
@@ -196,6 +200,17 @@ const SalleAttente = () => {
 
   const handleStatusChange = async (queueId, newStatus) => {
     try {
+      const currentPatient = waitingQueue.find(p => p.id === queueId);
+      if (!currentPatient) {
+        console.error('Patient non trouvé');
+        return;
+      }
+
+      const transition = validateQueueTransition(currentPatient.status, newStatus);
+      if (transition.needsConfirmation && !confirmSkippedWorkflowSteps(transition.skippedSteps, 'changer le statut')) {
+        return;
+      }
+
       const { error } = await supabase
         .from('waiting_queue')
         .update({ status: newStatus })

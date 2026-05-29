@@ -12,6 +12,23 @@ const NotificationPanel = ({ onNotificationAction }) => {
   const navigate = useNavigate(); // Initialisez useNavigate
   const [isVisible, setIsVisible] = useState(false);
 
+  const getNotificationMeta = (notification) => {
+    const raw = notification?.metadata ?? notification?.data ?? null;
+    if (!raw) return null;
+
+    if (typeof raw === 'object') return raw;
+
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     if (userProfile?.id && userProfile?.role) {
       loadNotifications();
@@ -75,7 +92,8 @@ const NotificationPanel = ({ onNotificationAction }) => {
 
   const handleScheduleAction = async (notification) => {
     if (onNotificationAction) {
-      onNotificationAction('open_rdv_modal', notification.data);
+      const meta = getNotificationMeta(notification);
+      onNotificationAction('open_rdv_modal', meta || {});
     }
     await markAsRead(notification.id);
     loadNotifications();
@@ -97,6 +115,12 @@ const NotificationPanel = ({ onNotificationAction }) => {
   return (
     <div className="fixed top-4 right-4 z-50 space-y-3 max-w-sm">
       {notifications.map((notification) => (
+        (() => {
+          const meta = getNotificationMeta(notification);
+          const originalType = meta?.original_type;
+          const patientName = meta?.patientName || meta?.patient_name;
+
+          return (
         <div
           key={notification.id}
           className={`bg-white border-l-4 rounded-lg shadow-lg p-4 animate-pulse ${
@@ -136,16 +160,16 @@ const NotificationPanel = ({ onNotificationAction }) => {
                 <p className="text-sm text-gray-600">
                   {notification.message}
                 </p>
-                {notification.data?.patientName && (
+                {patientName && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Patient: {notification.data.patientName}
+                    Patient: {patientName}
                   </p>
                 )}
               </div>
             </div>
             
             <div className="flex gap-2">
-              {(notification.type_notification === 'patient_called' || notification.data?.original_type === 'call_patient') && (
+              {(notification.type_notification === 'patient_called' || originalType === 'call_patient') && (
                 <button
                   onClick={() => handleConfirmCall(notification)}
                   className="px-3 py-1 bg-green-600 text-white text-xs rounded-full hover:bg-green-700 transition-colors flex items-center gap-1"
@@ -185,13 +209,15 @@ const NotificationPanel = ({ onNotificationAction }) => {
           </div>
           
           {/* Animation de clignotement pour les appels urgents */}
-          {(notification.type_notification === 'patient_called' || notification.data?.original_type === 'call_patient') && (
+          {(notification.type_notification === 'patient_called' || originalType === 'call_patient') && (
             <div className="mt-2 flex items-center gap-2 text-xs text-orange-600">
               <AlertCircle className="w-3 h-3 animate-pulse" />
               <span>Action requise - Appeler le patient</span>
             </div>
           )}
         </div>
+          );
+        })()
       ))}
     </div>
   );

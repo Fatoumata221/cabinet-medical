@@ -16,13 +16,10 @@ const supabase = createClient(
 const doctorEmails = [
   // Cabinet Dakar Centre
   'dr.habib.diallo@cabinet.com',
-  'dr.oumar.fall@cabinet-dakar.com',
   'dr.mariama.diallo@cabinet-dakar.com',
   'dr.ibou.ndiaye@cabinet-dakar.com',
   // Cabinet Plateau
   'dr.aicha.ndiaye@cabinet.com',
-  'dr.fatou.seck@cabinet-plateau.com',
-  'dr.cheikh.ba@cabinet-plateau.com',
   'dr.aminata.sow@cabinet-plateau.com',
 ]
 
@@ -59,13 +56,10 @@ async function updatePasswords() {
   console.log('\n📋 Identifiants de connexion :')
   console.log('\n  Cabinet Dentaire Dakar Centre :')
   console.log('    - dr.habib.diallo       / 12345678  (Dentiste généraliste)')
-  console.log('    - dr.oumar.fall         / 12345678  (Dentiste généraliste)')
   console.log('    - dr.mariama.diallo     / 12345678  (Orthodontiste)')
   console.log('    - dr.ibou.ndiaye        / 12345678  (Chirurgien buccal)')
   console.log('\n  Cabinet Dentaire Plateau :')
-  console.log('    - dr.aicha.ndiaye       / 12345678  (Dentiste généraliste)')
-  console.log('    - dr.fatou.seck         / 12345678  (Dentiste généraliste)')
-  console.log('    - dr.cheikh.ba          / 12345678  (Parodontiste)')
+  console.log('    - dr.aicha.ndiaye       / 12345678  (Parodontiste)')
   console.log('    - dr.aminata.sow        / 12345678  (Endodontiste)')
 }
 

@@ -26,6 +26,8 @@ import { notificationService } from '../services/notificationService';
 import { getLibellePraticiens, getTitrePraticien } from '../utils/traductions';
 import { formatDoctorDisplay, formatDoctorSpecialties, getDoctorInitials } from '../utils/doctorUtils';
 import NotificationPanel from '../components/secretary/NotificationPanel';
+import PatientQueueCard from '../components/waitingqueue/PatientQueueCard';
+import AppointmentCard from '../components/waitingqueue/AppointmentCard';
 
 const WaitingQueuePage = () => {
   const [patients, setPatients] = useState([]);
@@ -861,14 +863,14 @@ const WaitingQueuePage = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="p-3 sm:p-4 space-y-4">
+      {/* Header compact */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <ClockIcon className="w-8 h-8 text-medical-primary" />
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <ClockIcon className="w-6 h-6 text-medical-primary" />
             File d'Attente
-            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
               realtimeStatus === 'connected' 
                 ? 'bg-green-100 text-green-800 animate-pulse' 
                 : realtimeStatus === 'error'
@@ -885,83 +887,49 @@ const WaitingQueuePage = () => {
               {realtimeStatus === 'connected' 
                 ? 'Temps réel' 
                 : realtimeStatus === 'error'
-                ? 'Erreur WebSocket'
-                : 'Connexion WebSocket...'
+                ? 'Erreur'
+                : 'Connexion...'
               }
             </span>
-            {diagnosticStatus && (
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                diagnosticStatus.allOk 
-                  ? 'bg-green-100 text-green-800' 
-                  : diagnosticStatus.hasError
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                <div className={`w-2 h-2 rounded-full mr-1 ${
-                  diagnosticStatus.allOk 
-                    ? 'bg-green-500' 
-                    : diagnosticStatus.hasError
-                    ? 'bg-red-500'
-                    : 'bg-yellow-500'
-                }`}></div>
-                {diagnosticStatus.allOk 
-                  ? 'Diagnostic OK' 
-                  : diagnosticStatus.hasError
-                  ? 'Problèmes détectés'
-                  : 'Diagnostic en cours'
-                }
-              </span>
-            )}
           </h1>
-          <p className="text-gray-600 mt-2">
-            Gérez la file d'attente des patients en temps réel avec WebSockets
+          <p className="text-sm text-gray-600 mt-1">
+            Gestion en temps réel
           </p>
         </div>
         
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button 
             onClick={loadData}
-            className="btn btn-secondary flex items-center gap-2"
-            title="Actualiser les données"
+            className="btn btn-secondary flex items-center gap-1 text-sm"
+            title="Actualiser"
           >
-            <ArrowPathIcon className="w-5 h-5" />
+            <ArrowPathIcon className="w-4 h-4" />
             Actualiser
-          </button>
-          <button 
-            onClick={() => setShowDiagnostic(!showDiagnostic)}
-            className={`btn flex items-center gap-2 ${
-              realtimeStatus === 'error' ? 'btn-danger' : 'btn-outline'
-            }`}
-            title="Diagnostic WebSocket"
-          >
-            <XCircleIcon className="w-5 h-5" />
-            Diagnostic
           </button>
           {realtimeStatus === 'error' && (
             <button 
               onClick={forceReconnect}
-              className="btn btn-warning flex items-center gap-2"
-              title="Forcer la reconnexion"
+              className="btn btn-warning flex items-center gap-1 text-sm"
+              title="Reconnexion"
             >
-              <ArrowPathIcon className="w-5 h-5" />
+              <ArrowPathIcon className="w-4 h-4" />
               Reconnexion
             </button>
           )}
           <div className="relative">
             <button 
               onClick={() => setShowDoctorSearch(!showDoctorSearch)}
-              className="btn btn-secondary flex items-center gap-2"
+              className="btn btn-secondary flex items-center gap-1 text-sm"
             >
-              <FunnelIcon className="w-5 h-5" />
-              {selectedDoctor ? formatDoctorSpecialties(selectedDoctor) : 'Filtrer par spécialité'}
+              <FunnelIcon className="w-4 h-4" />
+              {selectedDoctor ? formatDoctorSpecialties(selectedDoctor) : 'Filtrer'}
             </button>
             
-            {/* Recherche dynamique des praticiens */}
             {showDoctorSearch && (
-              <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <div className="p-4 border-b border-gray-200">
+              <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <div className="p-3 border-b border-gray-200">
                 </div>
-                <div className="mt-3 max-h-64 overflow-y-auto">
+                <div className="mt-2 max-h-64 overflow-y-auto">
                   {doctors
                     .filter(doctor => 
                       doctor.nom.toLowerCase().includes(doctorSearchTerm.toLowerCase()) ||
@@ -976,33 +944,32 @@ const WaitingQueuePage = () => {
                           setShowDoctorSearch(false);
                           setDoctorSearchTerm('');
                         }}
-                        className={`w-full text-left px-4 py-3 rounded-lg mb-2 flex items-center gap-3 ${
+                        className={`w-full text-left px-3 py-2 rounded-lg mb-1 flex items-center gap-2 ${
                           selectedDoctor?.id === doctor.id 
                             ? 'bg-blue-50 border-2 border-blue-500' 
                             : 'hover:bg-gray-50 border-2 border-transparent'
                         }`}
                       >
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-xs">
                           {getDoctorInitials(doctor)}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{formatDoctorSpecialties(doctor)}</p>
-                          <p className="text-sm text-gray-600">Dr. {doctor.prenom} {doctor.nom}</p>
+                          <p className="font-medium text-gray-900 text-sm">{formatDoctorSpecialties(doctor)}</p>
+                          <p className="text-xs text-gray-600">Dr. {doctor.prenom} {doctor.nom}</p>
                         </div>
                       </button>
                     ))}
                 </div>
-                
-                <div className="p-3 border-t border-gray-200">
+                <div className="p-2 border-t border-gray-200">
                   <button
                     onClick={() => {
                       setSelectedDoctor(null);
                       setShowDoctorSearch(false);
                       setDoctorSearchTerm('');
                     }}
-                    className="w-full text-center text-sm text-gray-600 hover:text-gray-900 py-2 hover:bg-gray-50 rounded-md transition-colors"
+                    className="w-full text-center text-xs text-gray-600 hover:text-gray-900 py-1.5 hover:bg-gray-50 rounded transition-colors"
                   >
-                    Afficher tous les patients
+                    Tous les patients
                   </button>
                 </div>
               </div>
@@ -1011,295 +978,141 @@ const WaitingQueuePage = () => {
         </div>
       </div>
 
-      {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="card card-medical">
+      {/* Statistiques compact */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="card card-medical p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                {selectedDoctor ? `En attente - ${selectedDoctor.prenom}` : 'Total en attente'}
+              <p className="text-xs font-medium text-gray-600">
+                {selectedDoctor ? `Attente - ${selectedDoctor.prenom}` : 'Total attente'}
               </p>
-              <p className="text-2xl font-bold text-gray-900">{patientsEnAttente.length}</p>
+              <p className="text-xl font-bold text-gray-900">{patientsEnAttente.length}</p>
             </div>
-            <ClockIcon className="w-8 h-8 text-medical-primary" />
+            <ClockIcon className="w-6 h-6 text-medical-primary" />
           </div>
         </div>
         
-        <div className="card card-success">
+        <div className="card card-success p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                {selectedDoctor ? `En consultation - ${selectedDoctor.prenom}` : 'En consultation'}
+              <p className="text-xs font-medium text-gray-600">
+                {selectedDoctor ? `Consultation - ${selectedDoctor.prenom}` : 'En consultation'}
               </p>
-              <p className="text-2xl font-bold text-gray-900">{patientsEnConsultation.length}</p>
+              <p className="text-xl font-bold text-gray-900">{patientsEnConsultation.length}</p>
             </div>
-            <CheckCircleIcon className="w-8 h-8 text-green-600" />
+            <CheckCircleIcon className="w-6 h-6 text-green-600" />
           </div>
         </div>
         
-        <div className="card card-warning">
+        <div className="card card-warning p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Temps moyen</p>
-              <p className="text-2xl font-bold text-gray-900">18 min</p>
+              <p className="text-xs font-medium text-gray-600">Temps moyen</p>
+              <p className="text-xl font-bold text-gray-900">18 min</p>
             </div>
-            <XCircleIcon className="w-8 h-8 text-yellow-600" />
+            <XCircleIcon className="w-6 h-6 text-yellow-600" />
           </div>
         </div>
         
-        <div className="card card-danger">
+        <div className="card card-danger p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Urgences</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-xs font-medium text-gray-600">Urgences</p>
+              <p className="text-xl font-bold text-gray-900">
                 {patients.filter(p => p.priorite === 'urgente' || p.priorite === 'tres_urgente').length}
               </p>
             </div>
-            <XCircleIcon className="w-8 h-8 text-red-600" />
+            <XCircleIcon className="w-6 h-6 text-red-600" />
           </div>
         </div>
       </div>
 
-      {/* File d'attente */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Patients en attente */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              <ClockIcon className="w-5 h-5 text-yellow-600" />
-              En Attente ({patientsEnAttente.length})
-              {selectedDoctor && (
-                <span className="text-sm font-normal text-gray-500">
-                  - {selectedDoctor.prenom} {selectedDoctor.nom}
-                </span>
-              )}
-              <span className="text-xs text-green-600 font-medium">• Mise à jour automatique</span>
-            </h2>
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field pl-10 text-sm"
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-3 overflow-y-auto max-h-96">
-            {filteredPatientsEnAttente.map((patient, index) => {
-              const doctor = doctors.find(d => d.id === patient.medecin_id);
-              const isFromAppointment = isPatientPresent(patient.id);
-              const isCalled = patient.status === 'called';
-              
-              // Déterminer les classes CSS selon le status
-              let cardClass = 'border-gray-200';
-              let avatarClass = 'bg-gradient-to-br from-medical-primary to-medical-secondary';
-              
-              if (isFromAppointment) {
-                cardClass = 'border-green-200 bg-green-50';
-                avatarClass = 'bg-gradient-to-br from-green-500 to-green-600';
-              } else if (isCalled) {
-                cardClass = 'border-orange-200 bg-orange-50';
-                avatarClass = 'bg-gradient-to-br from-orange-500 to-orange-600';
-              }
-              
-              return (
-                <div key={patient.id} className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${cardClass} ${isCalled ? 'animate-pulse' : ''}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${avatarClass}`}>
-                        {patient.prenom[0]}{patient.nom[0]}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900">
-                            {patient.prenom} {patient.nom}
-                          </p>
-                          {doctor && (
-                            <p className="text-xs text-gray-500">Dr. {doctor.prenom} {doctor.nom} {doctor.specialite ? `- ${doctor.specialite}` : ''}</p>
-                          )}
-                          {isFromAppointment && (
-                            <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
-                              <CalendarIcon className="w-3 h-3" />
-                              RDV
-                            </span>
-                          )}
-                          {isCalled && (
-                            <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
-                              <PhoneIcon className="w-3 h-3" />
-                              Appelé
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">{patient.motif}</p>
-                      </div>
-                    </div>
-                  
-                  <div className="text-right">
-                    <div className="flex items-center gap-2 mb-1">
-                      {getPriorityBadge(patient.priorite)}
-                      <span className="text-sm text-gray-500">
-                        {patient.tempsAttente} min
-                      </span>
-                    </div>
-                      <p className="text-xs text-gray-400">
-                        Arrivé à {patient.heureArrivee}
-                      </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <PhoneIcon className="w-4 h-4" />
-                      {patient.telephone || 'Non renseigné'}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CalendarIcon className="w-4 h-4" />
-                      {patient.heureArrivee}
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => (isCalled ? handleMarkCalledPatientPresent(patient.id) : handleMarkPresent(patient.id))}
-                      className="flex items-center gap-1 px-3 py-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-                      title="Marquer présent"
-                    >
-                      <CheckCircleIcon className="w-4 h-4" />
-                      Présent
-                    </button>
-                    <button 
-                      onClick={() => handleCancelPatient(patient.id)}
-                      className="flex items-center gap-1 px-3 py-2 text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                      title="Marquer absent"
-                    >
-                      <XCircleIcon className="w-4 h-4" />
-                      Absent
-                    </button>
-                  </div>
-                </div>
-              </div>
-              );
-            })}
-            
-            {filteredPatientsEnAttente.length === 0 && (
-              <div className="text-center py-8">
-                <ClockIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">Aucun patient en attente</p>
-              </div>
+      {/* File d'attente compact */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <ClockIcon className="w-4 h-4 text-yellow-600" />
+            En Attente ({patientsEnAttente.length})
+            {selectedDoctor && (
+              <span className="text-xs font-normal text-gray-500">
+                - {selectedDoctor.prenom} {selectedDoctor.nom}
+              </span>
             )}
+          </h2>
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+            <input
+              type="text"
+              placeholder="Rechercher..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input-field pl-9 text-xs"
+            />
           </div>
         </div>
-
         
+        <div className="space-y-2 overflow-y-auto max-h-96">
+          {filteredPatientsEnAttente.map((patient) => {
+            const doctor = doctors.find(d => d.id === patient.medecin_id);
+            const isFromAppointment = isPatientPresent(patient.id);
+            const isCalled = patient.status === 'called';
+            
+            return (
+              <PatientQueueCard
+                key={patient.id}
+                patient={patient}
+                doctor={doctor}
+                isFromAppointment={isFromAppointment}
+                isCalled={isCalled}
+                onMarkPresent={(id) => isCalled ? handleMarkCalledPatientPresent(id) : handleMarkPresent(id)}
+                onCancel={handleCancelPatient}
+              />
+            );
+          })}
+          
+          {filteredPatientsEnAttente.length === 0 && (
+            <div className="text-center py-6">
+              <ClockIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm text-gray-500">Aucun patient en attente</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Section Rendez-vous - Visible seulement après sélection d'un praticien */}
+      {/* Section Rendez-vous compact */}
       {selectedDoctor && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
-              <Calendar className="w-6 h-6 text-medical-primary" />
-              Rendez-vous de {selectedDoctor.prenom} {selectedDoctor.nom} ({filteredAppointments.length})
-              <span className="text-xs text-green-600 font-medium">• Mise à jour automatique</span>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4 text-medical-primary" />
+              RDV {selectedDoctor.prenom} {selectedDoctor.nom} ({filteredAppointments.length})
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Filtré pour : <span className="font-medium">{selectedDoctor.prenom} {selectedDoctor.nom}</span> - {selectedDoctor.specialite}
+            <p className="text-xs text-gray-600">
+              {selectedDoctor.specialite}
             </p>
           </div>
           
-          <div className="p-4">
+          <div>
             {filteredAppointments.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-96">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto max-h-96">
                 {filteredAppointments.map((appointment) => {
                   const isPresent = isPatientPresent(appointment.id);
                   return (
-                    <div key={appointment.id} className={`rounded-lg p-4 border transition-colors ${
-                      isPresent 
-                        ? 'bg-green-50 border-green-200 hover:bg-green-100' 
-                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                    }`}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm ${
-                          isPresent ? 'bg-green-500' : 'bg-medical-primary'
-                        }`}>
-                          {appointment.patient_prenom[0]}{appointment.patient_nom[0]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-900">
-                              {appointment.patient_prenom} {appointment.patient_nom}
-                            </h3>
-                            {isPresent && (
-                              <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" />
-                                Présent
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600">Tél: {appointment.patient?.telephone || 'Non renseigné'}</p>
-                        </div>
-                      </div>
-                    
-                    <div className="space-y-2">
-                      <p className="text-sm text-gray-500">{appointment.motif}</p>
-                      
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <div className="flex items-center gap-1">
-                          <PhoneIcon className="w-3 h-3" />
-                          {appointment.patient?.telephone || 'Non renseigné'}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="w-3 h-3" />
-                          {new Date(appointment.date_heure).toLocaleTimeString('fr-FR', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Programmé
-                        </span>
-                      </div>
-                      
-                      <div className="text-xs text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          {selectedDoctor.prenom} {selectedDoctor.nom}
-                        </div>
-                        <div className="text-gray-500">{selectedDoctor.specialite}</div>
-                      </div>
-                      
-                      {/* Bouton Présent pour ajouter à la file d'attente */}
-                      <div className="pt-2 border-t border-gray-200">
-                        {isPresent ? (
-                          <div className="w-full bg-green-100 text-green-800 text-xs font-medium py-2 px-3 rounded-md flex items-center justify-center gap-2">
-                            <CheckCircle className="w-3 h-3" />
-                            Déjà présent dans la file d'attente
-                          </div>
-                        ) : (
-                          <div className="w-full bg-blue-50 text-blue-800 text-xs font-medium py-2 px-3 rounded-md flex items-center justify-center gap-2">
-                            Ajout automatique à la file d'attente activé
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                    <AppointmentCard
+                      key={appointment.id}
+                      appointment={appointment}
+                      selectedDoctor={selectedDoctor}
+                      isPresent={isPresent}
+                    />
                   );
                 })}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">
-                  Aucun rendez-vous pour {selectedDoctor.prenom} {selectedDoctor.nom}
+              <div className="text-center py-8">
+                <CalendarIcon className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">
+                  Aucun RDV pour {selectedDoctor.prenom} {selectedDoctor.nom}
                 </p>
-                <p className="text-gray-400">Ce {getTitrePraticien(selectedDoctor.specialite).toLowerCase()} n'a pas de patients en attente actuellement</p>
               </div>
             )}
           </div>

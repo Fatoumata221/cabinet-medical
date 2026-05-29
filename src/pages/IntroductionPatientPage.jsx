@@ -19,30 +19,21 @@ import { shouldHidePastAppointment } from '../utils/appointmentDisplay';
 import { 
   UserPlus, 
   Calendar, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  FileText,
-  Save,
-  X,
-  CheckCircle,
-  AlertTriangle,
-  AlertCircle,
   Search,
-  User,
-  Eye,
-  Edit,
   Clock,
   UserCheck,
   Bell,
-  CheckSquare,
   Users,
-  Shield,
-  UserX,
   Loader2,
-  Activity
+  AlertCircle,
+  FileText,
+  Save,
+  AlertTriangle
 } from 'lucide-react';
 import { unifiedNotificationService } from '../services/unifiedNotificationService';
+import PatientCard from '../components/introduction/PatientCard';
+import WaitingQueueItem from '../components/introduction/WaitingQueueItem';
+import NotificationPanel from '../components/introduction/NotificationPanel';
 import 'react-toastify/dist/ReactToastify.css';
 
 const IntroductionPatientPage = () => {
@@ -240,13 +231,10 @@ const IntroductionPatientPage = () => {
   // Compter les patients en consultation (stat carte)
   const fetchConsultationCount = useCallback(async () => {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
       const { count, error } = await supabase
         .from('waiting_queue')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'in_consultation')
-        .gte('created_at', today.toISOString());
+        .eq('status', 'in_consultation');
       if (error) throw error;
       setConsultationCount(count || 0);
     } catch (error) {
@@ -826,7 +814,7 @@ const IntroductionPatientPage = () => {
 
   // Rendu principal
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-4">
       {/* Notification Toast */}
       <div className="fixed top-4 right-4 z-50">
         <div className="toast toast-top toast-end"></div>
@@ -835,137 +823,76 @@ const IntroductionPatientPage = () => {
       {/* Indicateur de chargement global */}
       {isLoading.actions && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl flex items-center">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin mr-3" />
-            <span className="text-gray-700">Traitement en cours...</span>
+          <div className="bg-white p-4 rounded-lg shadow-xl flex items-center">
+            <Loader2 className="w-6 h-6 text-blue-500 animate-spin mr-2" />
+            <span className="text-gray-700 text-sm">Traitement en cours...</span>
           </div>
         </div>
       )}
       <div className="max-w-7xl mx-auto">
-        {/* En-tête */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Introduction Patient</h1>
-          <p className="text-gray-600">
-            {mode === 'arrivals' ? 'Gérez les arrivées des patients et la communication avec les médecins' :
-             mode === 'select' ? 'Sélectionnez un patient existant ou créez-en un nouveau' : 
+        {/* En-tête compact */}
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Introduction Patient</h1>
+          <p className="text-sm text-gray-600">
+            {mode === 'arrivals' ? 'Gérez les arrivées des patients' :
+             mode === 'select' ? 'Sélectionnez un patient existant' : 
              'Enregistrement d\'un nouveau patient'}
           </p>
         </div>
 
         {/* Notifications médecin-secrétaire */}
-        {notifications.length > 0 && (
-          <div className="mb-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center mb-3">
-                <Bell className="w-5 h-5 text-blue-600 mr-2" />
-                <h3 className="text-lg font-semibold text-blue-900">
-                  Notifications ({notifications.length})
-                </h3>
-              </div>
-              <div className="space-y-2">
-                {notifications.slice(0, 3).map((notification) => (
-                  <div 
-                    key={notification.id} 
-                    className={`bg-white p-3 rounded border border-blue-100 ${
-                      (notification.type_notification === 'doctor_request' || notification.type_notification === 'demande_autorisation')
-                        ? 'cursor-pointer hover:bg-blue-50 transition-colors' 
-                        : ''
-                    }`}
-                    onClick={async () => {
-                      // Marquer comme lu automatiquement lors du clic
-                      if (!notification.lu) {
-                        try {
-                          await supabase
-                            .from('notifications_medecin_secretaire')
-                            .update({ lu: true, lu_at: new Date().toISOString() })
-                            .eq('id', notification.id);
-                          fetchNotifications();
-                        } catch (error) {
-                          console.error('Erreur marquage notification:', error);
-                        }
-                      }
-                    }}
-                  >
-                    <p className="text-sm text-gray-800">{notification.message}</p>
-                    {(notification.type_notification === 'doctor_request' || notification.type_notification === 'demande_autorisation') && (
-                      <p className="text-xs text-blue-600 mt-1 font-medium">
-                        👆 Cliquez pour marquer comme lu
-                      </p>
-                    )}
-                    <div className="flex justify-between items-center mt-2">
-                      <p className="text-xs text-gray-500">
-                        {new Date(notification.created_at).toLocaleTimeString('fr-FR', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </p>
-                      {!notification.lu && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                          Non lu
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {notifications.length > 3 && (
-                  <p className="text-xs text-blue-600 text-center">
-                    +{notifications.length - 3} autres notifications
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <NotificationPanel notifications={notifications} onRefresh={fetchNotifications} />
 
-        {/* Boutons de mode */}
-        <div className="mb-6 flex space-x-4">
+        {/* Boutons de mode compact */}
+        <div className="mb-4 flex space-x-2">
           <button
             onClick={() => setMode('arrivals')}
-            className={`flex items-center px-6 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
               mode === 'arrivals' 
                 ? 'bg-medical-primary text-white' 
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
             }`}
           >
-            <UserCheck className="w-5 h-5 mr-2" />
-            Gestion des arrivées
+            <UserCheck className="w-4 h-4 mr-1.5" />
+            Arrivées
           </button>
           <button
             onClick={() => setMode('select')}
-            className={`flex items-center px-6 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
               mode === 'select' 
                 ? 'bg-medical-primary text-white' 
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
             }`}
           >
-            <Search className="w-5 h-5 mr-2" />
-            Sélectionner un patient
+            <Search className="w-4 h-4 mr-1.5" />
+            Rechercher
           </button>
           <button
             onClick={() => setMode('create')}
-            className={`flex items-center px-6 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
               mode === 'create' 
                 ? 'bg-medical-primary text-white' 
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
             }`}
           >
-            <UserPlus className="w-5 h-5 mr-2" />
-            Nouveau patient
+            <UserPlus className="w-4 h-4 mr-1.5" />
+            Nouveau
           </button>
         </div>
 
         {mode === 'arrivals' && (
-          <div className="space-y-6">
-            {/* Statistiques rapides */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="space-y-4">
+            {/* Statistiques rapides compact */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <ClickableStatCard
                 tone="blue"
                 bordered
                 icon={Calendar}
-                label="RDV Aujourd'hui"
+                label="RDV"
                 value={visibleTodayAppointments.length}
                 onClick={() => navigate('/secretary-calendar')}
                 title="Ouvrir le calendrier"
+                size="sm"
               />
               <ClickableStatCard
                 tone="orange"
@@ -976,155 +903,57 @@ const IntroductionPatientPage = () => {
                 onClick={() => toggleArrivalsFilter('bench')}
                 active={arrivalsStatFilter === 'bench'}
                 title="Filtrer les patients en salle"
+                size="sm"
               />
               <ClickableStatCard
                 tone="green"
                 bordered
                 icon={Users}
-                label="En consultation"
+                label="Consultation"
                 value={consultationCount}
                 onClick={() => toggleArrivalsFilter('consultation')}
                 active={arrivalsStatFilter === 'consultation'}
                 title="Filtrer les patients en consultation"
+                size="sm"
               />
               <ClickableStatCard
                 tone="purple"
                 bordered
                 icon={Bell}
-                label="Médecins prêts"
+                label="Prêts"
                 value={waitingQueue.filter((q) => q.medecin_disponible).length}
                 onClick={() => toggleArrivalsFilter('doctors_ready')}
                 active={arrivalsStatFilter === 'doctors_ready'}
                 title="Filtrer les médecins disponibles"
+                size="sm"
               />
             </div>
 
-            {/* Salle d'attente */}
+            {/* Salle d'attente compact */}
             <div
               ref={waitingSectionRef}
-              className="bg-white rounded-lg shadow-md p-6 border border-gray-200 scroll-mt-4"
+              className="bg-white rounded-lg shadow-md p-4 border border-gray-200 scroll-mt-4"
             >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <Clock className="w-5 h-5 mr-2" />
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-base font-semibold text-gray-900 flex items-center">
+                  <Clock className="w-4 h-4 mr-2" />
                   Salle d'attente ({waitingQueueStats.inWaitingRoom})
                 </h3>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {displayedWaitingQueue.map((item, index) => (
-                  <div key={item.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-medical-primary text-white rounded-full flex items-center justify-center font-semibold">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <p className="font-medium text-gray-900">
-                              {item.patient?.prenom} {item.patient?.nom}
-                            </p>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              item.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
-                              item.status === 'present' ? 'bg-blue-100 text-blue-800' :
-                              item.status === 'called' ? 'bg-orange-100 text-orange-800' :
-                              item.status === 'medecin_pret' ? 'bg-cyan-100 text-cyan-800' :
-                              item.status === 'en_route' ? 'bg-purple-100 text-purple-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {item.status === 'waiting' ? 'En attente' :
-                               item.status === 'present' ? 'Présent' :
-                               item.status === 'called' ? 'Appelé' :
-                               item.status === 'medecin_pret' ? 'Médecin prêt' :
-                               item.status === 'en_route' ? 'En route' : item.status}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-500">
-                            Dr. {item.medecin?.prenom} {item.medecin?.nom} {item.medecin?.specialite ? `- ${item.medecin?.specialite}` : ''}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        {item.created_at && (
-                          <p className="text-xs text-gray-400">Arrivé: {new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                      {/* Indicateur de statut */}
-                      <div className="flex items-center">
-                        {item.status === 'arrive' ? (
-                          <div className="px-3 py-1 rounded-lg bg-orange-100 text-orange-800 flex items-center gap-2">
-                            <Clock className="w-4 h-4" />
-                            En attente du médecin
-                          </div>
-                        ) : item.status === 'medecin_pret' ? (
-                          <div className="px-3 py-1 rounded-lg bg-green-100 text-green-800 flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4" />
-                            Médecin prêt
-                          </div>
-                        ) : item.status === 'en_route' ? (
-                          <div className="px-3 py-1 rounded-lg bg-blue-100 text-blue-800 flex items-center gap-2">
-                            <UserCheck className="w-4 h-4" />
-                            Patient en route
-                          </div>
-                        ) : item.status === 'in_consultation' ? (
-                          <div className="px-3 py-1 rounded-lg bg-purple-100 text-purple-800 flex items-center gap-2">
-                            <Activity className="w-4 h-4" />
-                            En consultation
-                          </div>
-                        ) : item.status === 'appele' ? (
-                          <div className="px-3 py-1 rounded-lg bg-yellow-100 text-yellow-800 flex items-center gap-2">
-                            <Phone className="w-4 h-4" />
-                            Patient appelé
-                          </div>
-                        ) : item.status === 'authorized' ? (
-                          <div className="px-3 py-1 rounded-lg bg-indigo-100 text-indigo-800 flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4" />
-                            Médecin va recevoir
-                          </div>
-                        ) : (
-                          <div className="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 flex items-center gap-2">
-                            <Bell className="w-4 h-4" />
-                            {item.status}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Bouton autoriser toujours présent */}
-                      <button
-                        onClick={() => handleAuthorizePatient(item.id)}
-                        disabled={isLoading.actions || ['en_route', 'in_consultation'].includes(item.status)}
-                        className={`px-4 py-2 rounded-lg text-white transition-colors flex items-center gap-2 ${
-                          ['medecin_pret', 'authorized'].includes(item.status)
-                            ? 'bg-green-600 hover:bg-green-700' 
-                            : ['en_route', 'in_consultation'].includes(item.status)
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-orange-500 hover:bg-orange-600'
-                        } ${isLoading.actions ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        title={
-                          item.status === 'medecin_pret' 
-                            ? "Introduire patient" 
-                            : item.status === 'authorized'
-                            ? "Médecin va recevoir - Autoriser maintenant"
-                            : item.status === 'en_route'
-                            ? "Patient déjà en route"
-                            : item.status === 'in_consultation'
-                            ? "Patient déjà en consultation"
-                            : "Le médecin doit d'abord se rendre disponible"
-                        }
-                      >
-                        <CheckSquare className="w-4 h-4" />
-                        {item.status === 'en_route' ? 'En route' : 
-                         item.status === 'in_consultation' ? 'En consultation' :
-                         'Introduire patient'}
-                      </button>
-                    </div>
-                  </div>
+                  <WaitingQueueItem
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    onAuthorize={handleAuthorizePatient}
+                    isLoading={isLoading}
+                  />
                 ))}
                 {displayedWaitingQueue.length === 0 && (
-                  <div className="text-center py-8">
-                    <Users className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600">Aucun patient en salle d'attente</p>
+                  <div className="text-center py-6">
+                    <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Aucun patient en salle d'attente</p>
                   </div>
                 )}
               </div>
@@ -1132,128 +961,48 @@ const IntroductionPatientPage = () => {
           </div>
         )}
 
-        {/* Mode Sélection */}
+        {/* Mode Sélection compact */}
         {mode === 'select' && (
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Rechercher un patient</label>
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rechercher un patient</label>
               <div className="flex">
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Nom, prénom, numéro de dossier ou téléphone..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                 />
                 <button
                   type="button"
-                  className="px-6 py-2 bg-medical-primary text-white rounded-r-lg hover:bg-medical-primary-dark"
+                  className="px-4 py-2 bg-medical-primary text-white rounded-r-lg hover:bg-medical-primary-dark"
                 >
-                  <Search className="w-5 h-5" />
+                  <Search className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm text-gray-600 mb-4">{filteredPatients.length} patient(s) trouvé(s)</p>
+              <p className="text-xs text-gray-600 mb-2">{filteredPatients.length} patient(s) trouvé(s)</p>
               {filteredPatients.map((patient) => (
-                <div
+                <PatientCard
                   key={patient.id}
-                  className={`p-4 border border-gray-200 rounded-lg transition-colors ${
-                    selectedPatient?.id === patient.id ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div 
-                      className="flex items-center space-x-4 flex-1 cursor-pointer"
-                      onClick={() => handlePatientSelect(patient)}
-                    >
-                      <div className="h-12 w-12 rounded-full bg-medical-primary flex items-center justify-center">
-                        <User className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{patient.prenom} {patient.nom}</p>
-                        <p className="text-sm text-gray-500">
-                          {patient.date_naissance && new Date(patient.date_naissance).toLocaleDateString('fr-FR')} • 
-                          {patient.telephone || 'Pas de téléphone'}
-                        </p>
-                        <p className="text-xs text-gray-500">N° Dossier: {patient.numero_dossier || '-'} • {patient.numero_ipm || 'Pas de N° IPM'}</p>
-                      </div>
-                    </div>
-                    
-                    {/* Boutons d'action */}
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewPatientDetails(patient);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                        title="Voir les détails"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditPatient(patient);
-                        }}
-                        className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
-                        title="Modifier"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCreateAppointment(patient);
-                        }}
-                        className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors"
-                        title="Prendre rendez-vous"
-                      >
-                        <Calendar className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Actions rapides pour le patient sélectionné */}
-                  {selectedPatient?.id === patient.id && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <p className="text-sm font-medium text-gray-700 mb-3">Actions rapides :</p>
-                      <div className="flex space-x-3">
-                        <button
-                          onClick={() => handleViewPatientDetails(patient)}
-                          className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Voir détails
-                        </button>
-                        <button
-                          onClick={() => handleEditPatient(patient)}
-                          className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Modifier
-                        </button>
-                        <button
-                          onClick={() => handleCreateAppointment(patient)}
-                          className="flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-                        >
-                          <Calendar className="w-4 h-4 mr-2" />
-                          Prendre RDV
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  patient={patient}
+                  selectedPatient={selectedPatient}
+                  onSelect={handlePatientSelect}
+                  onView={handleViewPatientDetails}
+                  onEdit={handleEditPatient}
+                  onAppointment={handleCreateAppointment}
+                />
               ))}
               {filteredPatients.length === 0 && (
-                <div className="text-center py-12">
-                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Aucun patient trouvé</p>
+                <div className="text-center py-8">
+                  <AlertCircle className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                  <p className="text-sm text-gray-600">Aucun patient trouvé</p>
                   <button
                     onClick={() => setMode('create')}
-                    className="mt-4 text-medical-primary hover:underline"
+                    className="mt-2 text-medical-primary hover:underline text-sm"
                   >
                     Créer un nouveau patient
                   </button>
@@ -1263,107 +1012,107 @@ const IntroductionPatientPage = () => {
           </div>
         )}
 
-        {/* Mode Création */}
+        {/* Mode Création compact */}
         {mode === 'create' && (
           <>
             {/* Message de succès */}
             {showSuccess && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center mb-6">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center mb-4">
+                <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
                 <div>
                   <h3 className="text-sm font-medium text-green-800">Patient enregistré avec succès !</h3>
-                  <p className="text-sm text-green-700">Le dossier patient a été créé et est maintenant disponible.</p>
+                  <p className="text-xs text-green-700">Le dossier patient a été créé.</p>
                 </div>
               </div>
             )}
 
-            {/* Formulaire */}
-            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Formulaire compact */}
+            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Informations personnelles */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <UserPlus className="w-5 h-5 mr-2" />
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center">
+                    <UserPlus className="w-4 h-4 mr-1.5" />
                     Informations personnelles
                   </h3>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Nom *</label>
                     <input
                       type="text"
                       name="nom"
                       value={formData.nom}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                       placeholder="Nom de famille"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Prénom *</label>
                     <input
                       type="text"
                       name="prenom"
                       value={formData.prenom}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                       placeholder="Prénom"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date de naissance *</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Date de naissance *</label>
                     <input
                       type="date"
                       name="date_naissance"
                       value={formData.date_naissance}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Téléphone</label>
                     <input
                       type="tel"
                       name="telephone"
                       value={formData.telephone}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                       placeholder="77 123 45 67"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Adresse</label>
                     <input
                       type="text"
                       name="adresse"
                       value={formData.adresse}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                       placeholder="Quartier, Ville"
                     />
                   </div>
                 </div>
 
                 {/* Informations médicales */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <FileText className="w-5 h-5 mr-2" />
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center">
+                    <FileText className="w-4 h-4 mr-1.5" />
                     Informations médicales
                   </h3>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Assurance</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Assurance</label>
                     <select
                       name="assurance"
                       value={formData.assurance}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                     >
                       <option value="">Sélectionner une assurance</option>
                       <option value="IPM">IPM</option>
@@ -1373,12 +1122,12 @@ const IntroductionPatientPage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Groupe sanguin</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Groupe sanguin</label>
                     <select
                       name="groupe_sanguin"
                       value={formData.groupe_sanguin}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                     >
                       <option value="">Sélectionner</option>
                       <option value="A+">A+</option>
@@ -1393,25 +1142,25 @@ const IntroductionPatientPage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Allergies</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Allergies</label>
                     <textarea
                       name="allergies"
                       value={formData.allergies}
                       onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                      rows={2}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                       placeholder="Allergies connues du patient..."
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Antécédents médicaux</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Antécédents médicaux</label>
                     <textarea
                       name="antecedents"
                       value={formData.antecedents}
                       onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
+                      rows={2}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                       placeholder="Antécédents médicaux du patient..."
                     />
                   </div>
@@ -1419,45 +1168,43 @@ const IntroductionPatientPage = () => {
               </div>
 
               {/* Boutons d'action */}
-              <div className="flex justify-end space-x-4 mt-8 pt-6 border-t border-gray-200">
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex items-center px-6 py-2 bg-medical-primary text-white rounded-lg hover:bg-medical-primary-dark transition-colors disabled:opacity-50"
+                  className="flex items-center px-4 py-2 bg-medical-primary text-white rounded-lg hover:bg-medical-primary-dark transition-colors disabled:opacity-50 text-sm"
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                       Enregistrement...
                     </>
                   ) : (
                     <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Enregistrer le patient
+                      <Save className="w-3 h-3 mr-2" />
+                      Enregistrer
                     </>
                   )}
                 </button>
               </div>
             </form>
 
-            {/* Informations importantes */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+            {/* Informations importantes compact */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
               <div className="flex items-start">
-                <AlertCircle className="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 text-blue-600 mr-2 mt-0.5" />
                 <div>
-                  <h3 className="text-sm font-medium text-blue-800">Informations importantes</h3>
-                  <ul className="mt-2 text-sm text-blue-700 space-y-1">
+                  <h3 className="text-xs font-medium text-blue-800">Informations importantes</h3>
+                  <ul className="mt-1 text-xs text-blue-700 space-y-0.5">
                     <li>• Les champs marqués d'un * sont obligatoires</li>
-                    <li>• Le numéro IPM/CSS est optionnel mais recommandé</li>
                     <li>• Les informations médicales peuvent être complétées ultérieurement</li>
-                    <li>• Un dossier patient sera automatiquement créé après enregistrement</li>
                   </ul>
                 </div>
               </div>

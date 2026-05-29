@@ -35,6 +35,10 @@ import {
   isCalledInQueueStatus,
   isInConsultationQueueStatus,
 } from '../utils/waitingQueueStatus';
+import {
+  confirmSkippedWorkflowSteps,
+  validateQueueTransition,
+} from '../utils/workflowGuards';
 
 const SalleAttentePage = () => {
   const { currentUser } = useAuth();
@@ -46,15 +50,43 @@ const SalleAttentePage = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedPatientForUpload, setSelectedPatientForUpload] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [leftPanelWidth, setLeftPanelWidth] = useState(300);
+  const [isResizing, setIsResizing] = useState(false);
 
   useEffect(() => {
     fetchPatientsEnAttente();
     setupRealtimeSubscription();
-    
+
     // Actualisation automatique toutes les 30 secondes
     const interval = setInterval(fetchPatientsEnAttente, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Gestion du redimensionnement du panneau
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (isResizing) {
+        const newWidth = e.clientX;
+        if (newWidth >= 200 && newWidth <= 500) {
+          setLeftPanelWidth(newWidth);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   const setupRealtimeSubscription = () => {
     const channel = supabase.channel('salle_attente_changes')
@@ -158,16 +190,27 @@ const SalleAttentePage = () => {
 
   const updatePatientStatus = async (patientId, newStatus) => {
     try {
+      const currentPatient = patientsEnAttente.find(p => p.id === patientId);
+      if (!currentPatient) {
+        addNotification('Patient non trouvé', 'error');
+        return;
+      }
+
+      const transition = validateQueueTransition(currentPatient.status, newStatus);
+      if (transition.needsConfirmation && !confirmSkippedWorkflowSteps(transition.skippedSteps, 'changer le statut')) {
+        return;
+      }
+
       const { error } = await supabase
         .from('waiting_queue')
-        .update({ 
+        .update({
           status: newStatus,
           updated_at: new Date().toISOString()
         })
         .eq('id', patientId);
 
       if (error) throw error;
-      
+
       // Ajouter une notification
       addNotification(`Patient ${newStatus === 'in_consultation' ? 'en consultation' : 'appelé'}`, 'success');
       fetchPatientsEnAttente();
@@ -266,58 +309,50 @@ const SalleAttentePage = () => {
   const statCardClass =
     'bg-white rounded-lg shadow-md p-4 border border-gray-200 cursor-pointer transition-all hover:shadow-lg hover:ring-2 hover:ring-medical-primary/25';
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement de la salle d'attente...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* En-tête avec notifications */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Salle d'Attente</h1>
-          <p className="text-gray-600">Gestion en temps réel des patients présents</p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Users className="w-5 h-5 text-gray-400" />
-            <span className="text-sm text-gray-600">
-              {queueStats.inWaitingRoom} patient
-              {queueStats.inWaitingRoom > 1 ? 's' : ''} en salle
-            </span>
+    <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
+      {/* En-tête compact */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Salle d'Attente</h1>
+            <p className="text-xs text-gray-600">Gestion en temps réel des patients présents</p>
           </div>
-          <button 
-            onClick={fetchPatientsEnAttente}
-            className="flex items-center px-4 py-2 bg-medical-primary text-white rounded-lg hover:bg-medical-primary-dark transition-colors"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Actualiser
-          </button>
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-1.5">
+              <Users className="w-4 h-4 text-gray-400" />
+              <span className="text-xs text-gray-600">
+                {queueStats.inWaitingRoom} patient
+                {queueStats.inWaitingRoom > 1 ? 's' : ''} en salle
+              </span>
+            </div>
+            <button 
+              onClick={fetchPatientsEnAttente}
+              className="flex items-center px-3 py-1.5 bg-medical-primary text-white rounded-lg hover:bg-medical-primary-dark transition-colors text-xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Actualiser
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Notifications en temps réel */}
+      {/* Notifications compact */}
       {notifications.length > 0 && (
-        <div className="space-y-2">
+        <div className="flex-shrink-0 px-4 py-2 space-y-1">
           {notifications.map(notification => (
             <div 
               key={notification.id}
-              className={`p-3 rounded-lg border-l-4 ${
+              className={`p-2 rounded border-l-4 text-xs ${
                 notification.type === 'success' 
                   ? 'bg-green-50 border-green-500 text-green-800' 
                   : 'bg-red-50 border-red-500 text-red-800'
               }`}
             >
               <div className="flex items-center">
-                <Bell className="w-4 h-4 mr-2" />
-                <span className="text-sm font-medium">{notification.message}</span>
+                <Bell className="w-3 h-3 mr-1.5" />
+                <span className="font-medium">{notification.message}</span>
                 <span className="ml-auto text-xs opacity-75">
                   {notification.timestamp.toLocaleTimeString()}
                 </span>
@@ -327,18 +362,18 @@ const SalleAttentePage = () => {
         </div>
       )}
 
-      {/* Statistiques rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Statistiques compact */}
+      <div className="flex-shrink-0 px-4 py-2 grid grid-cols-4 gap-2">
         <button
           type="button"
           onClick={() => setStatusFilter(statusFilter === 'waiting' ? 'all' : 'waiting')}
-          className={`text-left ${statCardClass} ${statusFilter === 'waiting' ? 'ring-2 ring-yellow-400' : ''}`}
+          className={`text-left p-2 bg-white rounded shadow border border-gray-200 hover:shadow-md transition-all ${statusFilter === 'waiting' ? 'ring-2 ring-yellow-400' : ''}`}
         >
           <div className="flex items-center">
-            <Clock className="w-8 h-8 text-yellow-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">En attente</p>
-              <p className="text-2xl font-bold text-gray-900">{queueStats.waiting}</p>
+            <Clock className="w-5 h-5 text-yellow-600" />
+            <div className="ml-2">
+              <p className="text-xs font-medium text-gray-500">En attente</p>
+              <p className="text-lg font-bold text-gray-900">{queueStats.waiting}</p>
             </div>
           </div>
         </button>
@@ -346,13 +381,13 @@ const SalleAttentePage = () => {
         <button
           type="button"
           onClick={() => setStatusFilter(statusFilter === 'present' ? 'all' : 'present')}
-          className={`text-left ${statCardClass} ${statusFilter === 'present' ? 'ring-2 ring-blue-400' : ''}`}
+          className={`text-left p-2 bg-white rounded shadow border border-gray-200 hover:shadow-md transition-all ${statusFilter === 'present' ? 'ring-2 ring-blue-400' : ''}`}
         >
           <div className="flex items-center">
-            <UserCheck className="w-8 h-8 text-blue-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Présents</p>
-              <p className="text-2xl font-bold text-gray-900">{queueStats.present}</p>
+            <UserCheck className="w-5 h-5 text-blue-600" />
+            <div className="ml-2">
+              <p className="text-xs font-medium text-gray-500">Présents</p>
+              <p className="text-lg font-bold text-gray-900">{queueStats.present}</p>
             </div>
           </div>
         </button>
@@ -360,13 +395,13 @@ const SalleAttentePage = () => {
         <button
           type="button"
           onClick={() => setStatusFilter(statusFilter === 'called' ? 'all' : 'called')}
-          className={`text-left ${statCardClass} ${statusFilter === 'called' ? 'ring-2 ring-orange-400' : ''}`}
+          className={`text-left p-2 bg-white rounded shadow border border-gray-200 hover:shadow-md transition-all ${statusFilter === 'called' ? 'ring-2 ring-orange-400' : ''}`}
         >
           <div className="flex items-center">
-            <Bell className="w-8 h-8 text-orange-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Appelés</p>
-              <p className="text-2xl font-bold text-gray-900">{queueStats.called}</p>
+            <Bell className="w-5 h-5 text-orange-600" />
+            <div className="ml-2">
+              <p className="text-xs font-medium text-gray-500">Appelés</p>
+              <p className="text-lg font-bold text-gray-900">{queueStats.called}</p>
             </div>
           </div>
         </button>
@@ -378,13 +413,13 @@ const SalleAttentePage = () => {
               statusFilter === 'in_consultation' ? 'all' : 'in_consultation',
             )
           }
-          className={`text-left ${statCardClass} ${statusFilter === 'in_consultation' ? 'ring-2 ring-green-400' : ''}`}
+          className={`text-left p-2 bg-white rounded shadow border border-gray-200 hover:shadow-md transition-all ${statusFilter === 'in_consultation' ? 'ring-2 ring-green-400' : ''}`}
         >
           <div className="flex items-center">
-            <Stethoscope className="w-8 h-8 text-green-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">En consultation</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <Stethoscope className="w-5 h-5 text-green-600" />
+            <div className="ml-2">
+              <p className="text-xs font-medium text-gray-500">En consultation</p>
+              <p className="text-lg font-bold text-gray-900">
                 {queueStats.inConsultation}
               </p>
             </div>
@@ -392,98 +427,167 @@ const SalleAttentePage = () => {
         </button>
       </div>
 
-      {/* Liste des patients */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Patients en salle d'attente</h2>
-        </div>
-        
-        <div className="divide-y divide-gray-200">
-          {displayedPatients.map((item, index) => (
-            <div 
-              key={item.id} 
-              className={`p-6 border-l-4 ${getPriorityColor(item.priorite)} hover:bg-gray-50 transition-colors`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-medical-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {index + 1}
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {item.patient?.prenom} {item.patient?.nom}
-                      </h3>
-                      {getStatusBadge(item.status)}
-                    </div>
-                    
-                    <div className="mt-2 flex items-center space-x-6 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <Stethoscope className="w-4 h-4 mr-1" />
-                        {formatDoctorSpecialties(item.medecin)}
-                      </div>
-                      <div className="flex items-center">
-                        <Timer className="w-4 h-4 mr-1" />
-                        Attente: {getWaitingTime(item.created_at)}
-                      </div>
-                      <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-1" />
-                        {item.patient?.telephone}
-                      </div>
-                    </div>
-                    
-                    {item.motif_consultation && (
-                      <div className="mt-2 text-sm text-gray-700">
-                        <span className="font-medium">Motif:</span> {item.motif_consultation}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  {item.status === 'called' && (
-                    <button
-                      onClick={() => updatePatientStatus(item.id, 'in_consultation')}
-                      className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-                    >
-                      En consultation
-                    </button>
-                  )}
-                  
-                  {/* Bouton pour scanner des documents */}
-                  <button
-                    onClick={() => {
-                      setSelectedPatientForUpload(item.patient);
-                      setShowUploadModal(true);
-                    }}
-                    className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
-                    title="Scanner des documents médicaux"
-                  >
-                    <FileImage className="w-4 h-4 mr-2" />
-                    Scanner
-                  </button>
-                  
-                  <button
-                    onClick={() => handlePatientDetails(item)}
-                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                    title="Voir détails"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                </div>
+      {/* Contenu principal avec panneau redimensionnable */}
+      <div className="flex-1 flex overflow-hidden px-4 pb-4">
+        {/* Panneau latéral redimensionnable */}
+        <div 
+          style={{ width: `${leftPanelWidth}px`, minWidth: '200px', maxWidth: '500px' }}
+          className="flex-shrink-0 bg-white rounded-lg shadow border border-gray-200 overflow-hidden flex flex-col"
+        >
+          <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <h3 className="text-sm font-semibold text-gray-900">Filtres</h3>
+          </div>
+          <div className="p-3 flex-1 overflow-y-auto">
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Statut</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs"
+                >
+                  <option value="all">Tous</option>
+                  <option value="waiting">En attente</option>
+                  <option value="present">Présents</option>
+                  <option value="called">Appelés</option>
+                  <option value="in_consultation">En consultation</option>
+                </select>
               </div>
             </div>
-          ))}
+          </div>
+        </div>
+
+        {/* Handle de redimensionnement */}
+        <div
+          className="w-1 bg-gray-200 hover:bg-medical-primary cursor-col-resize flex-shrink-0 transition-colors"
+          onMouseDown={(e) => {
+            setIsResizing(true);
+            e.preventDefault();
+          }}
+        />
+
+        {/* Panneau principal */}
+        <div className="flex-1 bg-white rounded-lg shadow border border-gray-200 overflow-hidden flex flex-col">
+          <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <h2 className="text-sm font-semibold text-gray-900">Patients en salle d'attente</h2>
+          </div>
           
-          {patientsEnAttente.length === 0 && (
-            <div className="text-center py-12">
-              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Aucun patient en salle d'attente</p>
+          <div className="flex-1 overflow-y-auto">
+            <div className="divide-y divide-gray-200">
+              {loading ? (
+                // Skeletons pendant le chargement
+                Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="p-3 border-l-4 border-gray-300">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                          <div className="flex space-x-4">
+                            <div className="h-3 bg-gray-200 rounded animate-pulse w-1/4"></div>
+                            <div className="h-3 bg-gray-200 rounded animate-pulse w-1/4"></div>
+                            <div className="h-3 bg-gray-200 rounded animate-pulse w-1/4"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex space-x-1">
+                        <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-6 w-12 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                displayedPatients.map((item, index) => (
+                <div 
+                  key={item.id} 
+                  className={`p-3 border-l-4 ${getPriorityColor(item.priorite)} hover:bg-gray-50 transition-colors`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-medical-primary rounded-full flex items-center justify-center text-white font-bold text-xs">
+                          {index + 1}
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="text-sm font-semibold text-gray-900">
+                            {item.patient?.prenom} {item.patient?.nom}
+                          </h3>
+                          {getStatusBadge(item.status)}
+                        </div>
+                        
+                        <div className="mt-1 flex items-center space-x-4 text-xs text-gray-600">
+                          <div className="flex items-center">
+                            <Stethoscope className="w-3 h-3 mr-1" />
+                            {formatDoctorSpecialties(item.medecin)}
+                          </div>
+                          <div className="flex items-center">
+                            <Timer className="w-3 h-3 mr-1" />
+                            Attente: {getWaitingTime(item.created_at)}
+                          </div>
+                          <div className="flex items-center">
+                            <Phone className="w-3 h-3 mr-1" />
+                            {item.patient?.telephone}
+                          </div>
+                        </div>
+                        
+                        {item.motif_consultation && (
+                          <div className="mt-1 text-xs text-gray-700">
+                            <span className="font-medium">Motif:</span> {item.motif_consultation}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-1">
+                      {item.status === 'called' && (
+                        <button
+                          onClick={() => updatePatientStatus(item.id, 'in_consultation')}
+                          className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs"
+                        >
+                          En consultation
+                        </button>
+                      )}
+                      
+                      <button
+                        onClick={() => {
+                          setSelectedPatientForUpload(item.patient);
+                          setShowUploadModal(true);
+                        }}
+                        className="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs"
+                        title="Scanner des documents médicaux"
+                      >
+                        <FileImage className="w-3 h-3 mr-1" />
+                        Scanner
+                      </button>
+                      
+                      <button
+                        onClick={() => handlePatientDetails(item)}
+                        className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Voir détails"
+                      >
+                        <Eye className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+  
+              
+              {!loading && patientsEnAttente.length === 0 && (
+                <div className="text-center py-8">
+                  <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">Aucun patient en salle d'attente</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
 

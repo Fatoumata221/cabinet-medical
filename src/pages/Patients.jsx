@@ -31,6 +31,7 @@ const PatientsPage = () => {
   const { hasRole } = useAuth();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [consultationsCount, setConsultationsCount] = useState(0);
   
   // Vérifier si l'utilisateur est secrétaire (ne peut pas supprimer)
   const isSecretary = hasRole('secretary');
@@ -78,6 +79,7 @@ const PatientsPage = () => {
   // Charger les patients depuis la base de données
   useEffect(() => {
     fetchPatients();
+    fetchConsultationsCount();
   }, []);
 
   // Gérer les paramètres URL pour l'édition/visualisation
@@ -134,6 +136,21 @@ const PatientsPage = () => {
       console.error('Erreur lors du chargement des patients:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchConsultationsCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('waiting_queue')
+        .select('id')
+        .eq('status', 'in_consultation');
+
+      if (error) throw error;
+      setConsultationsCount(data?.length || 0);
+    } catch (error) {
+      console.error('Erreur lors du chargement des consultations:', error);
+      setConsultationsCount(0);
     }
   };
 
@@ -476,7 +493,7 @@ const PatientsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Consultations</p>
-              <p className="text-2xl font-bold text-gray-900">45</p>
+              <p className="text-2xl font-bold text-gray-900">{consultationsCount}</p>
             </div>
             <FileText className="w-8 h-8 text-purple-600" />
           </div>
