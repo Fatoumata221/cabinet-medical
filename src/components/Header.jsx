@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bell, 
@@ -21,7 +21,13 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { usePersonnalisation } from '../contexts/PersonnalisationContext';
 import { getRoleDisplayName } from '../utils/permissions';
 import useUserProfile from '../hooks/useUserProfile';
-import { getUnreadNotifications, getAllNotifications, markAsRead, subscribeToNotifications, unsubscribeFromNotifications } from '../lib/notifications';
+import {
+  getDisplayNotifications,
+  markAsRead,
+  subscribeToNotifications,
+  unsubscribeFromNotifications,
+  isNotificationForUser,
+} from '../lib/notifications';
 import { unifiedNotificationService } from '../services/unifiedNotificationService';
 import GlobalSearch from './GlobalSearch';
 
@@ -89,23 +95,46 @@ const Header = () => {
   const [cabinetName, setCabinetName] = useState('Cabinet Médical');
   const location = useLocation();
   const navigate = useNavigate();
+  const reloadNotificationsTimeoutRef = useRef(null);
+  const lastToastNotificationIdRef = useRef(null);
+  const notificationsPanelRef = useRef(null);
 
-  // Charger les notifications
-  useEffect(() => {
-    // Vérifier si les notifications sont activées
-    const notificationsEnabled = localStorage.getItem('notifications_enabled') !== 'false';
-    
-    if (currentUser?.id && userProfile?.id && notificationsEnabled) {
-      loadNotifications();
-      const channel = setupNotificationSubscription();
-      
-      return () => {
-        if (channel) {
-          unsubscribeFromNotifications(channel);
+  const loadNotifications = useCallback(async () => {
+    try {
+      if (!userProfile?.id || !userProfile?.role) {
+        return;
+      }
+
+      const displayNotifications = await getDisplayNotifications(
+        userProfile.id,
+        userProfile.role,
+        10
+      );
+      const list = displayNotifications || [];
+      const newUnreadCount = list.filter((n) => !n.lu).length;
+
+      setNotifications((prev) => {
+        if (newUnreadCount > prev.filter((n) => !n.lu).length && prev.length > 0) {
+          playNotificationSound();
         }
-      };
+        return list;
+      });
+      setUnreadCount(newUnreadCount);
+    } catch (error) {
+      console.error('❌ [Header] Erreur lors du chargement des notifications:', error);
+      setNotifications([]);
+      setUnreadCount(0);
     }
-  }, [currentUser?.id, userProfile?.id]);
+  }, [userProfile?.id, userProfile?.role]);
+
+  const scheduleLoadNotifications = useCallback(() => {
+    if (reloadNotificationsTimeoutRef.current) {
+      clearTimeout(reloadNotificationsTimeoutRef.current);
+    }
+    reloadNotificationsTimeoutRef.current = setTimeout(() => {
+      loadNotifications();
+    }, 400);
+  }, [loadNotifications]);
 
   const [cabinetLogo, setCabinetLogo] = useState(null);
 
@@ -152,130 +181,93 @@ const Header = () => {
     loadCabinet();
   }, [userProfile?.tenant_id]);
 
-  const loadNotifications = async () => {
-    try {
-      if (!userProfile?.id || !userProfile?.role) {
-        console.log('⚠️ [Header] Profil utilisateur non disponible');
-        return;
-      }
-
-      console.log('📥 [Header] Chargement des notifications pour:', userProfile.id, userProfile.role);
-      
-      // Charger toutes les notifications récentes (lues et non lues)
-      const allNotificationsData = await getAllNotifications(userProfile.id, userProfile.role, 10);
-      
-      // Vérifier les notifications reçues (pour les secrétaires)
-      if (userProfile.role === 'secretary' && allNotificationsData && allNotificationsData.length > 0) {
-        console.log('📊 [Header] Notifications reçues pour secrétaire:', allNotificationsData.length);
-        console.log('📊 [Header] Détails des notifications (secretaire_id):', 
-          allNotificationsData.map(n => ({ 
-            id: n.id, 
-            type: n.type_notification, 
-            secretaire_id: n.secretaire_id,
-            lu: n.lu 
-          }))
-        );
-        const consultationEnded = allNotificationsData.filter(n => n.type_notification === 'consultation_ended');
-        if (consultationEnded.length > 0) {
-          console.log('📊 [Header] Notifications consultation_ended trouvées:', consultationEnded.length);
-          console.log('📊 [Header] Détails consultation_ended:', 
-            consultationEnded.map(n => ({ id: n.id, secretaire_id: n.secretaire_id, lu: n.lu }))
-          );
-        }
-      }
-      
-      // Compter les non lues
-      const unreadNotifications = allNotificationsData.filter(n => !n.lu);
-      
-      // Si on a des notifications non lues et que c'est le premier chargement, jouer le son
-      const previousUnreadCount = unreadCount;
-      const newUnreadCount = unreadNotifications.length;
-      
-      // Jouer le son seulement si de nouvelles notifications non lues apparaissent
-      if (newUnreadCount > previousUnreadCount && previousUnreadCount > 0) {
-        playNotificationSound();
-      }
-      
-      console.log('✅ [Header] Notifications chargées:', allNotificationsData.length, '| Non lues:', newUnreadCount);
-      setNotifications(allNotificationsData || []);
-      setUnreadCount(newUnreadCount);
-    } catch (error) {
-      console.error('❌ [Header] Erreur lors du chargement des notifications:', error);
-      setNotifications([]);
-      setUnreadCount(0);
-    }
-  };
-
-  const setupNotificationSubscription = () => {
+  const setupNotificationSubscription = useCallback(() => {
     if (!userProfile?.id || !userProfile?.role) {
-      console.log('⚠️ [Header] Profil non disponible pour l\'abonnement');
       return null;
     }
 
-    console.log('📡 [Header] Configuration abonnement notifications pour:', userProfile.id, userProfile.role);
-    
-    // S'abonner aux notifications en temps réel
-    const channel = subscribeToNotifications(userProfile.id, userProfile.role, (payload) => {
-      console.log('🔔 [Header] Notification reçue:', payload);
-      
-      // Jouer le son de notification pour chaque nouvelle notification
-      if (payload.new && payload.eventType === 'INSERT') {
-        playNotificationSound();
+    return subscribeToNotifications(userProfile.id, userProfile.role, (payload) => {
+      const record = payload.new || payload.old;
+      if (record && !isNotificationForUser(record, userProfile.id, userProfile.role)) {
+        return;
       }
-      
-      // Afficher un toast pour les secrétaires quand une notification consultation_ended est reçue
-      if (userProfile.role === 'secretary' && payload.new && payload.eventType === 'INSERT') {
-        const notificationType = payload.new.type_notification;
-        if (notificationType === 'consultation_ended' || notificationType === 'consultation_terminee') {
-          const titre = payload.new.titre || 'Consultation terminée';
-          const message = payload.new.message || 'Une consultation a été terminée. Cliquez pour compléter la facturation.';
-          
-          console.log('🍞 [Header] Affichage toast pour notification consultation_ended');
-          
-          // Afficher un toast avec le style approprié
-          const toastContent = (
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <div className="flex-1">
-                <div className="text-sm font-semibold text-gray-900">{titre}</div>
-                <div className="text-xs text-gray-600 mt-1">{message}</div>
-              </div>
-            </div>
-          );
-          
-          unifiedNotificationService.success(toastContent, {
-            autoClose: 8000,
-            style: {
-              borderRadius: '8px',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-              borderLeft: '4px solid #10b981',
-              backgroundColor: '#ecfdf5'
-            }
-          });
+
+      if (payload.eventType === 'INSERT' && payload.new) {
+        if (lastToastNotificationIdRef.current !== payload.new.id) {
+          lastToastNotificationIdRef.current = payload.new.id;
+          playNotificationSound();
+
+          if (
+            userProfile.role === 'secretary' &&
+            (payload.new.type_notification === 'consultation_ended' ||
+              payload.new.type_notification === 'consultation_terminee')
+          ) {
+            const titre = payload.new.titre || 'Consultation terminée';
+            const message =
+              payload.new.message ||
+              'Une consultation a été terminée. Cliquez pour compléter la facturation.';
+
+            unifiedNotificationService.success(
+              (
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-gray-900">{titre}</div>
+                    <div className="text-xs text-gray-600 mt-1">{message}</div>
+                  </div>
+                </div>
+              ),
+              {
+                autoClose: 8000,
+                toastId: `notif-${payload.new.id}`,
+              }
+            );
+          }
         }
       }
-      
-      // Recharger les notifications
-      loadNotifications();
-    });
 
-    return channel;
-  };
+      scheduleLoadNotifications();
+    });
+  }, [userProfile?.id, userProfile?.role, scheduleLoadNotifications]);
+
+  useEffect(() => {
+    const notificationsEnabled = localStorage.getItem('notifications_enabled') !== 'false';
+
+    if (currentUser?.id && userProfile?.id && userProfile?.role && notificationsEnabled) {
+      loadNotifications();
+      const channel = setupNotificationSubscription();
+
+      return () => {
+        if (reloadNotificationsTimeoutRef.current) {
+          clearTimeout(reloadNotificationsTimeoutRef.current);
+        }
+        if (channel) {
+          unsubscribeFromNotifications(channel);
+        }
+      };
+    }
+  }, [
+    currentUser?.id,
+    userProfile?.id,
+    userProfile?.role,
+    loadNotifications,
+    setupNotificationSubscription,
+  ]);
 
   const handleNotificationClick = async (notification) => {
     try {
       console.log('🔔 [Header] Notification cliquée:', notification);
       console.log('🔔 [Header] Type de notification:', notification.type_notification);
       
-      // Marquer la notification comme lue
       if (!notification.lu) {
+        const readAt = new Date().toISOString();
         await markAsRead(notification.id);
-        
-        // Mettre à jour l'état local - garder la notification mais la marquer comme lue
-        setNotifications(prev => prev.map(n => 
-          n.id === notification.id ? { ...n, lu: true, lu_at: new Date().toISOString() } : n
-        ));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notification.id ? { ...n, lu: true, lu_at: readAt } : n
+          )
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
       }
 
       // Gérer la redirection selon le type de notification
@@ -488,6 +480,22 @@ const Header = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    if (!showNotifications) return;
+
+    const handleClickOutside = (event) => {
+      if (
+        notificationsPanelRef.current &&
+        !notificationsPanelRef.current.contains(event.target)
+      ) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifications]);
+
   const { settings } = usePersonnalisation();
 
   const uploadCabinetLogo = async () => {
@@ -623,9 +631,10 @@ const Header = () => {
             {/* Section droite - Actions utilisateur */}
             <div className="flex items-center space-x-3">
               {/* Notifications */}
-              <div className="relative">
+              <div className="relative" ref={notificationsPanelRef}>
                 <button
-                  onClick={() => setShowNotifications(!showNotifications)}
+                  type="button"
+                  onClick={() => setShowNotifications((open) => !open)}
                   className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <Bell size={20} className="text-gray-600" />
@@ -647,33 +656,39 @@ const Header = () => {
                   >
                     <div className="p-4 border-b border-gray-200">
                       <h3 className="font-semibold text-gray-900">Notifications</h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Non lues et lues depuis moins de 24 h
+                      </p>
                     </div>
                     <div className="max-h-64 overflow-y-auto">
                       {notifications.length === 0 ? (
                         <div className="p-4 text-center text-gray-500">
                           <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                          <p className="text-sm">Aucune notification</p>
+                          <p className="text-sm">Aucune nouvelle notification</p>
                         </div>
                       ) : (
-                        notifications.map((notification) => (
+                        notifications.map((notification) => {
+                          const isRead = Boolean(notification.lu);
+                          return (
                           <div
                             key={notification.id}
                             className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
-                              notification.lu ? 'bg-white' : 'bg-blue-50'
+                              isRead ? 'bg-gray-50 opacity-80' : 'bg-blue-50'
                             }`}
                             onClick={() => handleNotificationClick(notification)}
                           >
                             <div className="flex items-start space-x-3">
                               {getNotificationIcon(notification.type_notification)}
                               <div className="flex-1">
-                                <p className={`text-sm font-medium ${notification.lu ? 'text-gray-700' : 'text-gray-900'}`}>
+                                <p className={`text-sm font-medium ${isRead ? 'text-gray-600' : 'text-gray-900'}`}>
                                   {notification.titre}
                                 </p>
-                                <p className={`text-sm mt-1 ${notification.lu ? 'text-gray-600' : 'text-gray-700'}`}>
+                                <p className="text-sm mt-1 text-gray-700">
                                   {notification.message}
                                 </p>
                                 <p className="text-xs text-gray-500 mt-1">
                                   {formatNotificationTime(notification.created_at)}
+                                  {isRead ? ' · Lu' : ''}
                                 </p>
                                 {notification.patient && (
                                   <p className="text-xs text-blue-600 mt-1">
@@ -681,12 +696,13 @@ const Header = () => {
                                   </p>
                                 )}
                               </div>
-                              {!notification.lu && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                              {!isRead && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
                               )}
                             </div>
                           </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                     <div className="p-3 border-t border-gray-200">

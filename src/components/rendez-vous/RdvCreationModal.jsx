@@ -63,6 +63,8 @@ const RdvCreationModal = ({
   editingAppointment = null,
   onSuccess,
   onDelete,
+  onReportPast,
+  isPastAppointment = false,
   restrictToCurrentDoctor = false,
   createAppointment,
   updateAppointment,
@@ -1039,7 +1041,16 @@ const RdvCreationModal = ({
             >
               Étape précédente
             </button>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 flex-wrap justify-end gap-2">
+              {isPastAppointment && onReportPast && (
+                <button
+                  type="button"
+                  onClick={onReportPast}
+                  className="px-4 py-2 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-50 transition-colors"
+                >
+                  Annuler
+                </button>
+              )}
               {editingAppointment && onDelete && (
                 <button
                   type="button"
@@ -1056,6 +1067,21 @@ const RdvCreationModal = ({
               >
                 Annuler
               </button>
+              {currentStep < 2 && !editingAppointment && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const ok = window.confirm(
+                      'Passer les contrôles de cette étape ? Assurez-vous que les informations essentielles sont renseignées.',
+                    );
+                    if (!ok) return;
+                    setCurrentStep((prev) => Math.min(prev + 1, 2));
+                  }}
+                  className="px-3 py-2 rounded-lg text-sm border border-slate-300 text-slate-600 hover:bg-slate-50"
+                >
+                  Passer l&apos;étape
+                </button>
+              )}
               {currentStep < 2 ? (
                 <button
                   type="button"

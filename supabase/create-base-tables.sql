@@ -187,9 +187,7 @@ ON CONFLICT (email) DO NOTHING;
 INSERT INTO patients (nom, prenom, date_naissance, sexe, telephone, email, numero_dossier) VALUES
 ('Koné', 'Fatou', '1985-03-15', 'F', '+22670111111', 'fatou.kone@email.com', 'P001'),
 ('Traoré', 'Moussa', '1990-07-22', 'M', '+22670222222', 'moussa.traore@email.com', 'P002'),
-('Ouattara', 'Aminata', '1988-11-08', 'F', '+22670333333', 'aminata.ouattara@email.com', 'P003'),
-('Bamba', 'Kouassi', '1992-04-30', 'M', '+22670444444', 'kouassi.bamba@email.com', 'P004'),
-('Sanogo', 'Mariam', '1987-09-12', 'F', '+22670555555', 'mariam.sanogo@email.com', 'P005')
+('Ouattara', 'Aminata', '1988-11-08', 'F', '+22670333333', 'aminata.ouattara@email.com', 'P003')
 ON CONFLICT (numero_dossier) DO NOTHING;
 
 -- Insertion des types d'actes de base

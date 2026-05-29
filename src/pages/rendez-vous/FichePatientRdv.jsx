@@ -4,7 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { unifiedNotificationService } from '../../services/unifiedNotificationService';
 import notificationService from '../../services/notificationService';
-import motifsConsultationService from '../../services/motifsConsultationService';
+import { appointmentService } from '../../lib/services';
+import AppointmentTypeMotifFields, { resolveAppointmentMotif } from '../../components/common/AppointmentTypeMotifFields';
 import { 
   User, 
   Calendar, 
@@ -44,21 +45,21 @@ const FichePatientRdv = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [showConsultationHistory, setShowConsultationHistory] = useState(false);
-  const [motifsList, setMotifsList] = useState([]);
-  
   const [appointmentForm, setAppointmentForm] = useState({
     medecin_id: '',
     date_heure: '',
     motif: '',
+    motif_autre: '',
+    type_rdv: 'consultation',
+    priorite: 'normale',
     duree: 30,
     statut: 'confirme',
-    notes: ''
+    notes: '',
   });
 
   useEffect(() => {
     fetchPatients();
     fetchMedecins();
-    loadMotifs();
     
     // Si un ID patient est fourni dans l'URL
     const patientId = searchParams.get('id');
@@ -95,18 +96,6 @@ const FichePatientRdv = () => {
       setMedecins(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des médecins:', error);
-    }
-  };
-
-  const loadMotifs = async () => {
-    try {
-      const motifs = await motifsConsultationService.getMotifsForSelect('Dentiste');
-      setMotifsList(motifs);
-    } catch (error) {
-      console.error('Erreur lors du chargement des motifs:', error);
-      // Utiliser les motifs par défaut en cas d'erreur
-      const defaultMotifs = motifsConsultationService.getDefaultMotifsForSelect();
-      setMotifsList(defaultMotifs);
     }
   };
 
@@ -174,15 +163,21 @@ const FichePatientRdv = () => {
     if (!selectedPatient) return;
 
     try {
-      const { error } = await supabase
-        .from('appointments')
-        .insert([{
-          ...appointmentForm,
-          patient_id: selectedPatient.id,
-          created_by: currentUser.id
-        }]);
+      const result = await appointmentService.create({
+        patient_id: selectedPatient.id,
+        medecin_id: appointmentForm.medecin_id,
+        date_heure: appointmentForm.date_heure,
+        motif: resolveAppointmentMotif(appointmentForm.motif, appointmentForm.motif_autre),
+        type_rdv: appointmentForm.type_rdv || 'consultation',
+        priorite: appointmentForm.priorite || 'normale',
+        duree: appointmentForm.duree || 30,
+        statut: appointmentForm.statut || 'confirme',
+        notes: appointmentForm.notes || '',
+      }, currentUser);
 
-      if (error) throw error;
+      if (!result?.appointment) {
+        throw new Error('Erreur lors de la création du rendez-vous');
+      }
       
       // Envoyer une notification au médecin
       if (appointmentForm.medecin_id && currentUser.role === 'secretary') {
@@ -206,9 +201,12 @@ const FichePatientRdv = () => {
         medecin_id: '',
         date_heure: '',
         motif: '',
+        motif_autre: '',
+        type_rdv: 'consultation',
+        priorite: 'normale',
         duree: 30,
         statut: 'confirme',
-        notes: ''
+        notes: '',
       });
       
       // Recharger les rendez-vous
@@ -522,22 +520,15 @@ const FichePatientRdv = () => {
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Motif de la consultation</label>
-                <select
-                  value={appointmentForm.motif}
-                  onChange={(e) => setAppointmentForm({...appointmentForm, motif: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
-                >
-                  <option value="">Sélectionner un motif...</option>
-                  {motifsList.map((motif) => (
-                    <option key={motif.value} value={motif.value}>
-                      {motif.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
+              <AppointmentTypeMotifFields
+                typeRdv={appointmentForm.type_rdv}
+                motif={appointmentForm.motif}
+                motifAutre={appointmentForm.motif_autre}
+                priorite={appointmentForm.priorite}
+                showPriorite
+                onChange={(fields) => setAppointmentForm((prev) => ({ ...prev, ...fields }))}
+              />
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Durée (minutes)</label>
                 <select

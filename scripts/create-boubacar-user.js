@@ -26,7 +26,7 @@ async function createBoubacarUser() {
     // 1. Créer l'utilisateur dans Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: 'boubacar.bathily@cabinet.com',
-      password: 'Compta1',
+      password: '12345678',
       email_confirm: true,
       user_metadata: {
         nom: 'Bathily',
@@ -68,7 +68,7 @@ async function createBoubacarUser() {
     console.log('📝 Identifiants:');
     console.log('   Email: boubacar.bathily@cabinet.com');
     console.log('   Username: boubacar.bathily');
-    console.log('   Password: Compta1');
+    console.log('   Password: 12345678');
     console.log('   Role: accounting');
     console.log('');
     console.log('🚀 Vous pouvez maintenant vous connecter avec le bloc "Comptabilité"!');

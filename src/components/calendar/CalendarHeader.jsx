@@ -8,6 +8,8 @@ import {
   X,
   FileText,
   CalendarDays,
+  EyeOff,
+  Eye,
 } from 'lucide-react'
 
 const VIEW_OPTIONS = [
@@ -45,9 +47,16 @@ const CalendarHeader = ({
   setSelectedSpecialty,
   setEditingAppointment,
   setShowAppointmentModal,
+  hidePastAppointments = true,
+  onToggleHidePastAppointments,
+  compact = false,
 }) => {
   return (
-    <div className="calendar-header px-4 py-3 border-b border-slate-200 bg-white">
+    <div
+      className={`calendar-header border-b border-slate-200 bg-white flex-shrink-0 ${
+        compact ? 'px-2 py-1.5' : 'px-4 py-3'
+      }`}
+    >
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -268,7 +277,27 @@ const CalendarHeader = ({
           ) : null}
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 flex-wrap">
+          {onToggleHidePastAppointments && (
+            <button
+              type="button"
+              onClick={onToggleHidePastAppointments}
+              title={
+                hidePastAppointments
+                  ? 'Afficher les RDV passés'
+                  : 'Masquer les RDV passés'
+              }
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                hidePastAppointments
+                  ? 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}
+            >
+              {hidePastAppointments ? <EyeOff size={16} /> : <Eye size={16} />}
+              {hidePastAppointments ? 'RDV passés masqués' : 'RDV passés visibles'}
+            </button>
+          )}
+
           <div className="bg-slate-100 p-1 rounded-lg border border-slate-200">
             <div className="flex gap-1">
               {VIEW_OPTIONS.map((view) => (

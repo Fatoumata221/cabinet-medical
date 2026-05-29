@@ -1,5 +1,63 @@
 import { supabase } from './supabase'
 
+/**
+ * Vérifie si une notification est destinée à l'utilisateur connecté.
+ */
+export const isNotificationForUser = (notification, userId, userRole) => {
+  if (!notification || !userId || !userRole) return false;
+
+  if (userRole === 'doctor') {
+    return Number(notification.medecin_id) === Number(userId);
+  }
+  if (userRole === 'secretary') {
+    return Number(notification.secretaire_id) === Number(userId);
+  }
+  if (userRole === 'caissier' || userRole === 'cashier') {
+    return Number(notification.caissier_id) === Number(userId);
+  }
+  return false;
+};
+
+/**
+ * Supprime les doublons par id (et par contenu si besoin).
+ */
+export const deduplicateNotifications = (notifications) => {
+  if (!Array.isArray(notifications)) return [];
+
+  const seenIds = new Set();
+  const seenKeys = new Set();
+  const result = [];
+
+  const sorted = [...notifications].sort(
+    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  );
+
+  for (const notification of sorted) {
+    if (notification.id != null) {
+      if (seenIds.has(notification.id)) continue;
+      seenIds.add(notification.id);
+      result.push(notification);
+      continue;
+    }
+
+    const key = [
+      notification.type_notification,
+      notification.medecin_id,
+      notification.secretaire_id,
+      notification.patient_id,
+      notification.consultation_id,
+      notification.waiting_queue_id,
+      notification.message,
+    ].join('|');
+
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    result.push(notification);
+  }
+
+  return result;
+};
+
 // Types de notifications
 export const NOTIFICATION_TYPES = {
   PATIENT_READY: 'patient_ready',         // Médecin → Secrétaire : "Je reçois le patient"
@@ -256,6 +314,70 @@ export const markAsRead = async (notificationId) => {
   }
 };
 
+/** Durée d'affichage des notifications lues dans le panneau cloche (ms) */
+export const READ_NOTIFICATION_RETENTION_MS = 24 * 60 * 60 * 1000;
+
+const applyNotificationRoleFilters = (query, userId, userRole) => {
+  if (userRole === 'doctor') {
+    return query
+      .eq('medecin_id', userId)
+      .in('type_notification', ['patient_on_way', 'doctor_request', 'demande_autorisation']);
+  }
+  if (userRole === 'secretary') {
+    return query
+      .eq('secretaire_id', userId)
+      .neq('type_notification', 'patient_on_way')
+      .neq('type_notification', 'doctor_request');
+  }
+  if (userRole === 'caissier' || userRole === 'cashier') {
+    return query.eq('caissier_id', userId);
+  }
+  return query;
+};
+
+/**
+ * Notifications visibles dans le panneau cloche : non lues + lues depuis moins de 24 h
+ */
+export const getDisplayNotifications = async (userId, userRole, limit = 10) => {
+  try {
+    const { data: user } = await supabase.from('users').select('tenant_id').eq('id', userId).single();
+    const cabinetId = user?.tenant_id;
+    const readCutoff = new Date(Date.now() - READ_NOTIFICATION_RETENTION_MS).toISOString();
+
+    let query = supabase
+      .from('notifications_medecin_secretaire')
+      .select(`
+        *,
+        medecin:users!notifications_medecin_secretaire_medecin_id_fkey(id, nom, prenom),
+        secretaire:users!notifications_medecin_secretaire_secretaire_id_fkey(id, nom, prenom),
+        patient:patients(id, nom, prenom)
+      `)
+      .or(`lu.eq.false,and(lu.eq.true,lu_at.gte.${readCutoff})`)
+      .order('created_at', { ascending: false })
+      .limit(limit * 3);
+
+    if (cabinetId) {
+      query = query.eq('tenant_id', cabinetId);
+    }
+
+    query = applyNotificationRoleFilters(query, userId, userRole);
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('❌ [Notifications] Erreur requête getDisplayNotifications:', error);
+      throw error;
+    }
+
+    return deduplicateNotifications(
+      (data || []).filter((n) => isNotificationForUser(n, userId, userRole))
+    ).slice(0, limit);
+  } catch (error) {
+    console.error('❌ [Notifications] Erreur récupération notifications affichables:', error);
+    return [];
+  }
+};
+
 /**
  * Récupérer les notifications non lues d'un utilisateur
  * @param {string} userId - ID de l'utilisateur
@@ -281,22 +403,7 @@ export const getUnreadNotifications = async (userId, userRole) => {
       query = query.eq('tenant_id', cabinetId);
     }
 
-    // Filtrer selon le rôle
-    if (userRole === 'doctor') {
-      // Le médecin reçoit UNIQUEMENT les notifications "patient_on_way" et "demande_autorisation"
-      query = query
-        .eq('medecin_id', userId)
-        .in('type_notification', ['patient_on_way', 'doctor_request', 'demande_autorisation']);
-    } else if (userRole === 'secretary') {
-      query = query
-        //.not('secretaire_id', 'is', null) // uniquement les notifications destinées aux secrétaires
-        .neq('type_notification', 'patient_on_way') // exclure celles pour médecins
-        .neq('type_notification', 'doctor_request');
-    } else if (userRole === 'caissier' || userRole === 'cashier') {
-      // Le caissier reçoit uniquement les notifications qui lui sont destinées
-      query = query
-        .eq('caissier_id', userId);
-    }
+    query = applyNotificationRoleFilters(query, userId, userRole);
 
     const { data, error } = await query;
 
@@ -305,22 +412,10 @@ export const getUnreadNotifications = async (userId, userRole) => {
       throw error;
     }
     
-    console.log('✅ [Notifications] Notifications non lues récupérées (brutes):', data?.length || 0);
-    
-    // Filtrer côté client pour les secrétaires
-    let filteredData = data || [];
-    if (userRole === 'secretary' && data && data.length > 0) {
-      // Exclure uniquement les notifications destinées aux médecins
-      /*filteredData = data.filter(n => 
-        n.type_notification !== 'patient_on_way' && 
-        n.type_notification !== 'doctor_request'
-      );*/
-      console.log('🔵 [Notifications] Notifications non lues filtrées côté client (secrétaire):', filteredData.length, 'sur', data.length);
-      if (filteredData.length > 0) {
-        console.log('📊 [Notifications] Types de notifications trouvées pour secrétaire:', filteredData.map(n => n.type_notification));
-      }
-    }
-    
+    const filteredData = deduplicateNotifications(
+      (data || []).filter((n) => isNotificationForUser(n, userId, userRole))
+    );
+
     return filteredData;
   } catch (error) {
     console.error('❌ [Notifications] Erreur récupération notifications:', error);
@@ -362,23 +457,14 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
         .in('type_notification', ['patient_on_way', 'doctor_request', 'demande_autorisation']);
     } else if (userRole === 'secretary') {
       query = query
-       // .not('secretaire_id', 'is', null)
+        .eq('secretaire_id', userId)
         .neq('type_notification', 'patient_on_way')
         .neq('type_notification', 'doctor_request');
     } else if (userRole === 'caissier' || userRole === 'cashier') {
       // Le caissier reçoit uniquement les notifications qui lui sont destinées
       query = query
         .eq('caissier_id', userId);
-    } 
-    /*else if (userRole === 'secretary') {
-      // TOUTES les secrétaires voient TOUTES les notifications destinées aux secrétaires
-      // IMPORTANT: On ne filtre PAS par secretaire_id pour que toutes les secrétaires voient toutes les notifications
-      // On ne filtre PAS non plus par type_notification côté serveur - on filtrera côté client
-      // Cela garantit qu'on récupère TOUTES les notifications, puis on filtre
-      console.log('🔵 [Notifications] Filtre secrétaire (getAllNotifications): AUCUN filtre côté serveur - récupération de TOUTES les notifications');
-      console.log('🔵 [Notifications] User ID passé:', userId, '- Ce paramètre n\'est PAS utilisé pour filtrer les notifications secrétaire');
-      // Pas de filtre - on récupère tout et on filtre côté client
-    }*/
+    }
 
     console.log('🔍 [Notifications] Exécution de la requête getAllNotifications...');
     const { data, error } = await query;
@@ -389,31 +475,12 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
       throw error;
     }
     
-    console.log('✅ [Notifications] Notifications récupérées (brutes):', data?.length || 0);
-    
-    // Filtrer côté client pour les secrétaires
-    let filteredData = data || [];
-    if (userRole === 'secretary' && data && data.length > 0) {
-      // Exclure uniquement les notifications destinées aux médecins
-      /*filteredData = data.filter(n => 
-        n.type_notification !== 'patient_on_way' && 
-        n.type_notification !== 'doctor_request'
-      );*/
-      console.log('🔵 [Notifications] Notifications filtrées côté client (secrétaire):', filteredData.length, 'sur', data.length);
-      console.log('📊 [Notifications] Types de notifications trouvées pour secrétaire:', filteredData.map(n => n.type_notification));
-      console.log('📊 [Notifications] IDs des notifications avec secretaire_id:', filteredData.map(n => ({ id: n.id, type: n.type_notification, secretaire_id: n.secretaire_id })));
-      
-      // Vérifier si toutes les notifications consultation_ended sont présentes
-      const consultationEnded = filteredData.filter(n => n.type_notification === 'consultation_ended');
-      console.log('📊 [Notifications] Notifications consultation_ended trouvées:', consultationEnded.length);
-      if (consultationEnded.length > 0) {
-        console.log('📊 [Notifications] Détails consultation_ended:', consultationEnded.map(n => ({ id: n.id, secretaire_id: n.secretaire_id, created_at: n.created_at })));
-      }
-      
-      // Limiter à la limite demandée après filtrage
-      filteredData = filteredData.slice(0, limit);
-    }
-    
+    let filteredData = deduplicateNotifications(
+      (data || []).filter((n) => isNotificationForUser(n, userId, userRole))
+    );
+
+    filteredData = filteredData.slice(0, limit);
+
     return filteredData;
   } catch (error) {
     console.error('❌ [Notifications] Erreur récupération toutes notifications:', error);
@@ -450,12 +517,10 @@ export const markAllAsRead = async (userId, userRole) => {
         .eq('medecin_id', userId)
         .in('type_notification', ['patient_on_way', 'doctor_request', 'demande_autorisation']);
     } else if (userRole === 'secretary') {
-      // TOUTES les secrétaires peuvent marquer toutes les notifications secrétaire comme lues
-      // On exclut uniquement les notifications destinées aux médecins
       query = query
+        .eq('secretaire_id', userId)
         .neq('type_notification', 'patient_on_way')
         .neq('type_notification', 'doctor_request');
-      // Note: On ne filtre PAS par secretaire_id pour que toutes les secrétaires puissent marquer toutes les notifications
     }
 
     const { error } = await query;
@@ -550,31 +615,18 @@ export const subscribeToNotifications = (userId, userRole, callback) => {
         return channel;
       });
     } else if (userRole === 'secretary') {
-        // Filtrer par tenant_id via getUnreadNotifications callback logic ou au moment de récupérer les events.
-      // Pour une vraie isolation RLS, la souscription doit être associée au filtre eq.tenant_id ou via supabase.auth
-      // Etant donné la limitation du channel public, nous filtrons toutes les notifications sauf celles des médecins
       const channel = supabase
-        .channel(`notifications_secretaires_shared`)
+        .channel(`notifications_secretary_${userId}`)
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'notifications_medecin_secretaire',
-          //filter: 'secretaire_id=not.is.null'
-          // Pas de filtre strict sur cabinet ici pour ne pas avoir de problème d'async dans setup, on gèrera via db view/rls
+          filter: `secretaire_id=eq.${userId}`,
         }, (payload) => {
-          console.log('🔔 [Notifications] Changement détecté:', payload);
-          
-          // Filtrer côté client pour les secrétaires (exclure les notifications médecins)
-          if (payload.new) {
-            const notificationType = payload.new.type_notification;
-            const isForDoctors = ['patient_on_way', 'doctor_request'].includes(notificationType);
-            if (isForDoctors) {
-              console.log('⚠️ [Notifications] Notification ignorée (destinée aux médecins)');
-              return;
-            }
-            console.log('✅ [Notifications] Notification acceptée (destinée aux secrétaires - visible par toutes)');
+          const record = payload.new || payload.old;
+          if (record && !isNotificationForUser(record, userId, userRole)) {
+            return;
           }
-          
           if (callback) callback(payload);
         })
         .subscribe((status) => {

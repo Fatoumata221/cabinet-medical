@@ -3,9 +3,18 @@ import { appointmentService } from '../lib/services'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { getIsoString, clampDuration } from '../utils/date'
-import { hashSpecialtyToColor, darkenHexColor } from '../utils/colors'
+import {
+  hashSpecialtyToColor,
+  darkenHexColor,
+  getDoctorCalendarColor,
+} from '../utils/colors'
 import { useCalendarData } from './useCalendarData'
 import { useCalendarSearch } from './useCalendarSearch'
+import {
+  getHidePastAppointmentsPreference,
+  setHidePastAppointmentsPreference,
+  shouldHidePastAppointment,
+} from '../utils/appointmentDisplay'
 
 const DEFAULT_APPOINTMENT_DURATION = 30
 const MAX_SELECTION_MINUTES = 120
@@ -18,6 +27,7 @@ const getEventColor = (
   priorite,
   specialiteNom,
   specialtyColorMap = {},
+  { colorByDoctor = false, doctorColor = null } = {},
 ) => {
   const normalizedSpecialty = specialiteNom?.trim() ?? ''
   const specialtyColor =
@@ -28,24 +38,19 @@ const getEventColor = (
   if (statut === 'termine') return '#10b981'
   if (priorite === 'tres_urgente') return '#dc2626'
 
-  const baseColor = specialtyColor ?? '#3b82f6'
+  const baseColor =
+    colorByDoctor && doctorColor
+      ? doctorColor
+      : specialtyColor ?? '#3b82f6'
   if (priorite === 'urgente') return darkenHexColor(baseColor, 0.25)
 
   return baseColor
 }
 
-const getEventClassNames = (duree, statut, priorite) => {
-  const classes = []
-
-  if (duree <= 20) {
-    classes.push('fc-event-short')
-  } else if (duree >= 60) {
-    classes.push('fc-event-long')
-  } else {
-    classes.push('fc-event-medium')
-  }
-
-  return classes
+const getEventClassNames = (duree) => {
+  if (duree <= 20) return ['gc-duration-short']
+  if (duree >= 60) return ['gc-duration-long']
+  return ['gc-duration-standard']
 }
 
 const buildStats = (appointments) => {
@@ -100,7 +105,7 @@ export const useNewCalendar = ({
   selectedDoctorFilter = 'all',
   disableDoctorFilter = false,
 }) => {
-  const { currentUser } = useAuth()
+  const { currentUser, userProfile } = useAuth()
 
   const scopedDoctorId =
     disableDoctorFilter &&
@@ -150,6 +155,10 @@ export const useNewCalendar = ({
     selectedDoctorFilter,
   )
   const [viewingToday, setViewingToday] = useState(true)
+  const [urgentOnly, setUrgentOnly] = useState(false)
+  const [hidePastAppointments, setHidePastAppointments] = useState(
+    getHidePastAppointmentsPreference,
+  )
 
   useEffect(() => {
     loadData()
@@ -219,6 +228,23 @@ export const useNewCalendar = ({
     )
   }, [medecins, specialites])
 
+  const userRole =
+    userProfile?.role ||
+    currentUser?.user_metadata?.role ||
+    currentUser?.app_metadata?.role
+  const colorByDoctor = userRole === 'secretary' && !disableDoctorFilter
+
+  const doctorColorMap = useMemo(() => {
+    const map = new Map()
+    const sortedMedecins = [...medecins].sort((a, b) =>
+      String(a.id).localeCompare(String(b.id)),
+    )
+    sortedMedecins.forEach((medecin, index) => {
+      map.set(String(medecin.id), getDoctorCalendarColor(medecin.id, index))
+    })
+    return map
+  }, [medecins])
+
   const specialtyColorMap = useMemo(() => {
     const map = {}
 
@@ -252,8 +278,32 @@ export const useNewCalendar = ({
     }
   }, [availableSpecialties, selectedSpecialty])
 
+  const toggleHidePastAppointments = useCallback(() => {
+    setHidePastAppointments((prev) => {
+      const next = !prev
+      setHidePastAppointmentsPreference(next)
+      return next
+    })
+  }, [])
+
+  const toggleUrgentOnly = useCallback(() => {
+    setUrgentOnly((prev) => !prev)
+  }, [])
+
   const filteredAppointments = useMemo(() => {
     return appointments.filter((apt) => {
+      if (shouldHidePastAppointment(apt, hidePastAppointments)) {
+        return false
+      }
+
+      if (
+        urgentOnly &&
+        apt.priorite !== 'urgente' &&
+        apt.priorite !== 'tres_urgente'
+      ) {
+        return false
+      }
+
       const matchesDoctor =
         localDoctorFilter === 'all' ||
         String(apt.medecin_id) === String(localDoctorFilter)
@@ -303,6 +353,8 @@ export const useNewCalendar = ({
     searchTerm,
     selectedSearchResult,
     selectedSpecialty,
+    hidePastAppointments,
+    urgentOnly,
   ])
 
   const calendarEvents = useMemo(() => {
@@ -319,17 +371,17 @@ export const useNewCalendar = ({
       const medecin =
         apt.medecin ?? medecinsById.get(String(apt.medecin_id)) ?? null
       const specialtyName = medecin?.specialite?.trim() ?? ''
+      const doctorColor = apt.medecin_id
+        ? doctorColorMap.get(String(apt.medecin_id))
+        : null
       const color = getEventColor(
         apt.statut,
         apt.priorite,
         specialtyName,
         specialtyColorMap,
+        { colorByDoctor, doctorColor },
       )
-      const classNames = getEventClassNames(
-        durationMinutes,
-        apt.statut,
-        apt.priorite,
-      )
+      const classNames = getEventClassNames(durationMinutes)
 
       return {
         id: String(apt.id),
@@ -337,8 +389,8 @@ export const useNewCalendar = ({
           `${apt.patient?.prenom ?? ''} ${apt.patient?.nom ?? ''}`.trim() ||
           apt.motif ||
           'Rendez-vous',
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
+        start: startDate,
+        end: endDate,
         resourceId: apt.medecin_id ? String(apt.medecin_id) : undefined,
         color,
         backgroundColor: color,
@@ -352,11 +404,18 @@ export const useNewCalendar = ({
           }`.trim(),
           specialtyName,
           specialtyColor: color,
+          doctorColor: doctorColor ?? color,
           durationMinutes,
         },
       }
     })
-  }, [filteredAppointments, medecinsById, specialtyColorMap])
+  }, [
+    filteredAppointments,
+    medecinsById,
+    specialtyColorMap,
+    colorByDoctor,
+    doctorColorMap,
+  ])
 
   const visibleMedecins = useMemo(() => {
     return medecins.filter((medecin) => {
@@ -377,25 +436,28 @@ export const useNewCalendar = ({
   }, [localDoctorFilter, medecins, selectedSpecialty])
 
   const calendarResources = useMemo(() => {
-    return visibleMedecins.map((medecin) => ({
-      id: String(medecin.id),
-      title: `Dr. ${medecin.prenom ?? ''} ${medecin.nom ?? ''}`.trim(),
-      extendedProps: {
-        specialite: medecin.specialite ?? '',
-        medecin,
-      },
-    }))
-  }, [visibleMedecins])
+    return visibleMedecins.map((medecin) => {
+      const eventColor =
+        doctorColorMap.get(String(medecin.id)) ?? '#3b82f6'
+      return {
+        id: String(medecin.id),
+        title: `Dr. ${medecin.prenom ?? ''} ${medecin.nom ?? ''}`.trim(),
+        eventColor: colorByDoctor ? eventColor : undefined,
+        extendedProps: {
+          specialite: medecin.specialite ?? '',
+          medecin,
+          doctorColor: eventColor,
+        },
+      }
+    })
+  }, [visibleMedecins, doctorColorMap, colorByDoctor])
 
   const dayViewMinWidth = useMemo(() => {
     if (calendarView !== 'timeGridDay') return null
     if (disableDoctorFilter) return null
-    const resourceCount = Math.max(calendarResources.length, 1)
-    if (resourceCount > MAX_RESOURCE_COLUMNS_NO_SCROLL) {
-      return null
-    }
-    return resourceCount * RESOURCE_COLUMN_MIN_WIDTH + RESOURCE_AREA_WIDTH
-  }, [calendarView, calendarResources.length, disableDoctorFilter])
+    // Colonnes réparties sur la largeur disponible (évite le scroll horizontal)
+    return null
+  }, [calendarView, disableDoctorFilter])
 
   const stats = useMemo(
     () => buildStats(filteredAppointments),
@@ -748,6 +810,56 @@ export const useNewCalendar = ({
     }
   }
 
+  const reportPastAppointment = useCallback(
+    async (appointmentId) => {
+      try {
+        // Récupérer d'abord le rendez-vous existant
+        const { data: existingAppointment, error: fetchError } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('id', appointmentId)
+          .single()
+
+        if (fetchError) {
+          throw new Error(`Erreur lors de la récupération du rendez-vous: ${fetchError.message}`)
+        }
+        if (!existingAppointment) {
+          throw new Error('Rendez-vous non trouvé')
+        }
+
+        // Mettre à jour directement dans Supabase sans passer par la validation
+        // car le rendez-vous est dans le passé et la validation l'interdirait
+        const updatedNotes = existingAppointment.notes
+          ? `${existingAppointment.notes}\n[Reporté] ${new Date().toLocaleString('fr-FR')}`
+          : `[Reporté] ${new Date().toLocaleString('fr-FR')}`
+
+        const { error: updateError } = await supabase
+          .from('appointments')
+          .update({
+            statut: 'annule',
+            notes: updatedNotes,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', appointmentId)
+
+        if (updateError) {
+          throw new Error(`Erreur lors de la mise à jour du rendez-vous: ${updateError.message}`)
+        }
+
+        await loadData()
+        return true
+      } catch (error) {
+        console.error(
+          'Erreur lors du report du rendez-vous:',
+          error.message || error,
+        )
+        // Renvoyer l'erreur avec un message clair pour l'utilisateur
+        throw error
+      }
+    },
+    [loadData, currentUser],
+  )
+
   const deleteAppointment = async (id) => {
     try {
       await appointmentService.deleteAppointmentAndQueue(id)
@@ -847,6 +959,12 @@ export const useNewCalendar = ({
     DEFAULT_APPOINTMENT_DURATION,
     MAX_SELECTION_MINUTES,
     useResourceDayView: !disableDoctorFilter,
+    colorByDoctor,
+    hidePastAppointments,
+    toggleHidePastAppointments,
+    urgentOnly,
+    toggleUrgentOnly,
+    reportPastAppointment,
     RESOURCE_COLUMN_MIN_WIDTH,
     RESOURCE_AREA_WIDTH,
     getEventColor,

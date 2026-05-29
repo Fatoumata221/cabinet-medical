@@ -26,7 +26,7 @@ async function createAccountingUser() {
     // 1. Créer l'utilisateur dans Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: 'comptabilite@cabinet.com',
-      password: 'compta123456',
+      password: '12345678',
       email_confirm: true,
       user_metadata: {
         nom: 'Comptabilité',
@@ -68,7 +68,7 @@ async function createAccountingUser() {
     console.log('📝 Identifiants:');
     console.log('   Email: comptabilite@cabinet.com');
     console.log('   Username: comptabilite.service');
-    console.log('   Password: compta123456');
+    console.log('   Password: 12345678');
     console.log('   Role: accounting');
 
   } catch (error) {

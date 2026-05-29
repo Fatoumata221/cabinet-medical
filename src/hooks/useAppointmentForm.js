@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { patientService, appointmentService, waitingQueueService } from '../lib/services';
 import { useAlert } from '../contexts/AlertContext';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { resolveAppointmentMotif } from '../components/common/AppointmentTypeMotifFields';
 
 export const useAppointmentForm = ({
   allPatients,
@@ -32,11 +33,12 @@ export const useAppointmentForm = ({
     medecin_id: '',
     date_heure: '',
     motif: '',
+    motif_autre: '',
     duree: 30,
     statut: 'confirme',
     priorite: 'normale',
     notes: '',
-    type_rdv: 'consultation'
+    type_rdv: 'consultation',
   });
 
   const [quickBooking, setQuickBooking] = useState({
@@ -225,11 +227,12 @@ export const useAppointmentForm = ({
       medecin_id: '',
       date_heure: '',
       motif: '',
+      motif_autre: '',
       duree: 30,
       statut: 'confirme',
       priorite: 'normale',
       notes: '',
-      type_rdv: 'consultation'
+      type_rdv: 'consultation',
     });
     setQuickBooking({
       patient_nom: '',
@@ -388,7 +391,7 @@ export const useAppointmentForm = ({
         patient_id: patientId,
         medecin_id: formData.medecin_id,
         date_heure: formData.date_heure,
-        motif: formData.motif || '',
+        motif: resolveAppointmentMotif(formData.motif, formData.motif_autre),
         duree: formData.duree || 30,
         statut: formData.statut || 'confirme',
         priorite: formData.priorite || 'normale',

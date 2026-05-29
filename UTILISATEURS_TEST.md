@@ -57,58 +57,41 @@ Application de gestion complète pour cabinet médical et dentaire développée 
 - **Mot de passe**: À définir
 
 #### Caissiers
-- **Email**: `fatou@gmail.com`
-- **Nom**: Fall Fatou
-- **Rôle**: Caissier
-- **Mot de passe**: À définir
-
 - **Email**: `moussa.fall@cabinet-dakar.com`
 - **Nom**: Fall Moussa
 - **Rôle**: Caissier
-- **Mot de passe**: À définir
+- **Mot de passe**: `12345678`
 
 #### Médecins (Dentistes)
 - **Email**: `dr.habib.diallo@cabinet.com`
 - **Nom**: Diallo Habib
 - **Rôle**: Médecin
-- **Mot de passe**: À définir
+- **Spécialité**: Dentiste généraliste
+- **Mot de passe**: `12345678`
 
 - **Email**: `dr.mariama.diallo@cabinet-dakar.com`
 - **Nom**: Diallo Mariama
 - **Rôle**: Médecin
-- **Mot de passe**: À définir
-
-- **Email**: `dr.oumar.fall@cabinet-dakar.com`
-- **Nom**: Fall Oumar
-- **Rôle**: Médecin
-- **Mot de passe**: À définir
+- **Spécialité**: Orthodontiste
+- **Mot de passe**: `12345678`
 
 - **Email**: `dr.ibou.ndiaye@cabinet-dakar.com`
 - **Nom**: Ndiaye Ibou
 - **Rôle**: Médecin
-- **Mot de passe**: À définir
+- **Spécialité**: Chirurgien buccal
+- **Mot de passe**: `12345678`
 
 #### Secrétaires
-- **Email**: `mamibadiane27@gmail.com`
-- **Nom**: Badiane Mami
-- **Rôle**: Secrétaire
-- **Mot de passe**: À définir
-
-- **Email**: `sambadiop@gmail.com`
-- **Nom**: Diop Samba
-- **Rôle**: Secrétaire
-- **Mot de passe**: À définir
-
 - **Email**: `aissatou.ndoye@cabinet.com`
 - **Nom**: Ndoye Aissatou
 - **Rôle**: Secrétaire
-- **Mot de passe**: À définir
+- **Mot de passe**: `12345678`
 
 #### Comptabilité
-- **Email**: `ibrahima.ba@cabinet.com`
-- **Nom**: Ba Ibrahima
+- **Email**: `comptabilite@cabinet.com`
+- **Nom**: Service Comptabilité
 - **Rôle**: Comptabilité
-- **Mot de passe**: À définir
+- **Mot de passe**: `12345678`
 
 ---
 
@@ -125,49 +108,26 @@ Application de gestion complète pour cabinet médical et dentaire développée 
 - **Email**: `aminata.diallo@cabinet-plateau.com`
 - **Nom**: Diallo Aminata
 - **Rôle**: Caissier
-- **Mot de passe**: À définir
-
-- **Email**: `moussa.sow@cabinet.com`
-- **Nom**: Sow Moussa
-- **Rôle**: Caissier
-- **Mot de passe**: À définir
+- **Mot de passe**: `12345678`
 
 #### Médecins (Dentistes)
-- **Email**: `dr.cheikh.ba@cabinet-plateau.com`
-- **Nom**: Ba Cheikh
-- **Rôle**: Médecin
-- **Mot de passe**: À définir
-
 - **Email**: `dr.aicha.ndiaye@cabinet.com`
 - **Nom**: Ndiaye Aicha
 - **Rôle**: Médecin
-- **Mot de passe**: À définir
-
-- **Email**: `dr.fatou.seck@cabinet.com`
-- **Nom**: Seck Fatou
-- **Rôle**: Médecin
-- **Mot de passe**: À définir
+- **Spécialité**: Parodontiste
+- **Mot de passe**: `12345678`
 
 - **Email**: `dr.aminata.sow@cabinet-plateau.com`
 - **Nom**: Sow Aminata
 - **Rôle**: Médecin
-- **Mot de passe**: À définir
+- **Spécialité**: Endodontiste
+- **Mot de passe**: `12345678`
 
 #### Secrétaires
 - **Email**: `khadija.diop@cabinet.com`
 - **Nom**: Diop Khadija
 - **Rôle**: Secrétaire
-- **Mot de passe**: À définir
-
-- **Email**: `ali@gmail.com`
-- **Nom**: Diop Ali
-- **Rôle**: Secrétaire
-- **Mot de passe**: À définir
-
-- **Email**: `ndiolefaye@gmail.com`
-- **Nom**: Faye Ndiole
-- **Rôle**: Secrétaire
-- **Mot de passe**: À définir
+- **Mot de passe**: `12345678`
 
 ---
 
@@ -186,48 +146,19 @@ Application de gestion complète pour cabinet médical et dentaire développée 
 - **Mot de passe**: À définir
 
 #### Caissiers
-- **Email**: `adjifatime@gmail.com`
-- **Nom**: Badiane Fatoumata
-- **Rôle**: Caissier
-- **Mot de passe**: À définir
-
-- **Email**: `caisse.diamniadio@gmail.com`
-- **Nom**: Caissier C.
-- **Rôle**: Caissier
-- **Mot de passe**: À définir
+- Jeu réduit: utilisez de préférence les caissiers des cabinets ci-dessus.
 
 #### Médecins
-- **Email**: `dr.ibrahima.ba@cabinet.com`
-- **Nom**: Ba Ibrahima
-- **Rôle**: Médecin
-- **Mot de passe**: À définir
-
-- **Email**: `dr.ba@cabinet.com`
-- **Nom**: Ba Diariatou
-- **Rôle**: Médecin
-- **Mot de passe**: À définir
-
-- **Email**: `dr.moussa.cisse@cabinet.com`
-- **Nom**: Cissé Moussa
-- **Rôle**: Médecin
-- **Mot de passe**: À définir
+- Jeu réduit: utilisez de préférence les médecins des cabinets ci-dessus.
 
 #### Secrétaires
-- **Email**: `secretaire@cabinet.local`
-- **Nom**: Secrétaire Cabinet
-- **Rôle**: Secrétaire
-- **Mot de passe**: À définir
-
-- **Email**: `secretaire1@cabinet.com`
-- **Nom**: Durand Anne
-- **Rôle**: Secrétaire
-- **Mot de passe**: À définir
+- Jeu réduit: utilisez de préférence les secrétaires des cabinets ci-dessus.
 
 #### Comptabilité
 - **Email**: `comptabilite@cabinet.com`
 - **Nom**: Comptabilité Service
 - **Rôle**: Comptabilité
-- **Mot de passe**: À définir
+- **Mot de passe**: `12345678`
 
 ---
 
@@ -245,8 +176,8 @@ Pour définir les mots de passe des utilisateurs de test, vous pouvez :
    npm run create-auth-users
    ```
 
-3. **Mot de passe par défaut suggéré** :
-   - Pour tous les utilisateurs de test : `Cabinet2024!`
+3. **Mot de passe par défaut utilisé** :
+   - Pour les médecins, secrétaires, caissiers et comptables : `12345678`
    - À changer après la première connexion
 
 ---

@@ -6,15 +6,19 @@ import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import RdvCreationModal from './rendez-vous/RdvCreationModal'
 import { useNewCalendar } from '../hooks/useNewCalendar'
+import { isPastAppointment as checkPastAppointment } from '../utils/appointmentDisplay'
 import CalendarHeader from './calendar/CalendarHeader'
 import StatsCards from './calendar/StatsCards'
-import React from 'react'
+import React, { useState } from 'react'
 import PropTypes from 'prop-types'
+import { BarChart3, ChevronDown, ChevronUp } from 'lucide-react'
 
 const NewCalendar = ({
   selectedDoctorFilter,
   disableDoctorFilter = false,
+  fillViewport = false,
 }) => {
+  const [showStats, setShowStats] = useState(!fillViewport)
   const {
     loading,
     calendarRef,
@@ -75,6 +79,11 @@ const NewCalendar = ({
     handleDateClick,
     dayCellClassNames,
     resolveFullCalendarView,
+    hidePastAppointments,
+    toggleHidePastAppointments,
+    urgentOnly,
+    toggleUrgentOnly,
+    reportPastAppointment,
   } = useNewCalendar({
     selectedDoctorFilter,
     disableDoctorFilter,
@@ -85,26 +94,47 @@ const NewCalendar = ({
   const isTimeGridView =
     calendarView === 'timeGridWeek' || calendarView === 'timeGridDay'
 
+  const getEventDurationMinutes = (event, props) => {
+    const fromProps = Number(props.durationMinutes)
+    if (fromProps > 0) return fromProps
+    if (event.start && event.end) {
+      return Math.max(
+        1,
+        Math.round((event.end.getTime() - event.start.getTime()) / 60000),
+      )
+    }
+    return 30
+  }
+
   const renderEventContent = (eventInfo) => {
     const { event, timeText } = eventInfo
     const props = event.extendedProps || {}
     const patientName = props.patientName || event.title || 'Rendez-vous'
-    const motif = props.motif || props.motif_detaille || ''
-    const doctorName = props.medecin
-      ? `Dr. ${props.medecin.prenom ?? ''} ${props.medecin.nom ?? ''}`.trim()
-      : ''
-    const duration = Number(props.durationMinutes || 0)
+    const motif = (props.motif || props.motif_detaille || '').trim()
+    const duration = getEventDurationMinutes(event, props)
+    const tooltip = [timeText, patientName, motif].filter(Boolean).join(' — ')
+
+    if (duration <= 25) {
+      return (
+        <div
+          className="gc-event-content gc-event-content--compact"
+          title={tooltip}
+        >
+          <span className="gc-event-inline">
+            <span className="gc-event-time">{timeText}</span>
+            <span className="gc-event-title">{patientName}</span>
+          </span>
+        </div>
+      )
+    }
 
     return (
-      <div className="gc-event-content">
+      <div className="gc-event-content" title={tooltip}>
         <div className="gc-event-time">{timeText}</div>
         <div className="gc-event-title">{patientName}</div>
-        {duration >= 30 && motif && (
+        {duration > 35 && motif ? (
           <div className="gc-event-meta">{motif}</div>
-        )}
-        {duration >= 45 && doctorName && (
-          <div className="gc-event-meta">{doctorName}</div>
-        )}
+        ) : null}
       </div>
     )
   }
@@ -122,13 +152,62 @@ const NewCalendar = ({
     )
   }
 
-  return (
-    <div className="google-calendar-shell h-screen bg-slate-100 transition-all duration-300 flex flex-col relative">
-      <StatsCards stats={stats} animatedStats={animatedStats} />
+  const shellClass = fillViewport
+    ? 'google-calendar-shell google-calendar-shell--fill h-full min-h-0 flex-1'
+    : 'google-calendar-shell flex-1 min-h-[520px] h-full'
 
-      <div className="px-3 pb-3 flex-1 flex flex-col min-h-0 sm:px-4 sm:pb-4">
-        <div className="google-calendar-surface bg-white border border-slate-200 overflow-hidden flex-1 flex flex-col shadow-sm">
+  return (
+    <div
+      className={`${shellClass} bg-slate-100 transition-all duration-300 flex flex-col relative overflow-hidden`}
+    >
+      {fillViewport && (
+        <div className="flex-shrink-0 flex items-center justify-between px-2 py-1 border-b border-slate-200 bg-white/80">
+          <button
+            type="button"
+            onClick={() => setShowStats((v) => !v)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-blue-700 px-2 py-1 rounded-md hover:bg-slate-100"
+          >
+            <BarChart3 size={14} />
+            Statistiques
+            {showStats ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          <span className="text-[11px] text-slate-500 pr-2">
+            Le calendrier utilise toute la hauteur de l&apos;écran
+          </span>
+        </div>
+      )}
+      {(!fillViewport || showStats) && (
+        <div className="flex-shrink-0">
+          <StatsCards
+            stats={stats}
+            animatedStats={animatedStats}
+            compact={fillViewport}
+            activeStatLabel={
+              urgentOnly
+                ? 'Urgences'
+                : !hidePastAppointments
+                  ? 'Total RDV'
+                  : null
+            }
+            onStatClick={{
+              'Total RDV': () => {
+                if (hidePastAppointments) toggleHidePastAppointments()
+              },
+              "Aujourd'hui": handleToday,
+              Urgences: toggleUrgentOnly,
+            }}
+          />
+        </div>
+      )}
+
+      <div
+        className={`flex-1 flex flex-col min-h-0 overflow-hidden ${
+          fillViewport ? 'px-1 pb-1' : 'px-3 pb-3 sm:px-4 sm:pb-4'
+        }`}
+      >
+        <div className="google-calendar-surface bg-white border border-slate-200 overflow-hidden flex-1 flex flex-col min-h-0 shadow-sm">
           <CalendarHeader
+            compact={fillViewport}
             handlePrev={handlePrev}
             handleNext={handleNext}
             handleToday={handleToday}
@@ -157,21 +236,35 @@ const NewCalendar = ({
             setSelectedSpecialty={setSelectedSpecialty}
             setEditingAppointment={setEditingAppointment}
             setShowAppointmentModal={setShowAppointmentModal}
+            hidePastAppointments={hidePastAppointments}
+            onToggleHidePastAppointments={toggleHidePastAppointments}
           />
 
-          <div className="flex-1 relative overflow-hidden">
-            <div className="h-full w-full overflow-hidden relative">
+          <div
+            className={`flex-1 relative overflow-hidden min-h-0 ${
+              fillViewport ? '' : 'min-h-[400px]'
+            }`}
+          >
+            {calendarEvents.length === 0 && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                <p className="text-sm text-slate-500 bg-white/90 px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                  {hidePastAppointments
+                    ? 'Aucun rendez-vous à venir. Cliquez sur « RDV passés visibles » pour afficher les anciens créneaux.'
+                    : 'Aucun rendez-vous pour cette période.'}
+                </p>
+              </div>
+            )}
+            <div className="absolute inset-0 overflow-x-auto overflow-y-hidden">
               {calendarView === 'timeGridDay' && useResourceDayView && (
                 <div className="absolute top-0 bottom-0 left-0 w-[64px] pointer-events-none gradient-mask-l-0">
                   <div className="h-full w-full bg-gradient-to-r from-white via-white/70 to-transparent" />
                 </div>
               )}
               <div
-                className="h-full"
+                className="h-full min-h-full"
                 style={{
                   minWidth: dayViewMinWidth ? `${dayViewMinWidth}px` : '100%',
                   width: '100%',
-                  maxWidth: '100%',
                 }}
               >
                 <FullCalendar
@@ -303,6 +396,31 @@ const NewCalendar = ({
               }
             : undefined
         }
+        onReportPast={
+          editingAppointment &&
+          checkPastAppointment(editingAppointment) &&
+          reportPastAppointment
+            ? async () => {
+                if (
+                  !window.confirm(
+                    'Annuler ce rendez-vous passé ? Il sera masqué du calendrier (statut annulé). Vous pourrez en créer un nouveau.',
+                  )
+                ) {
+                  return
+                }
+                try {
+                  await reportPastAppointment(editingAppointment.id)
+                  setShowAppointmentModal(false)
+                  setEditingAppointment(null)
+                } catch (error) {
+                  alert(`Erreur: ${error.message}`)
+                }
+              }
+            : undefined
+        }
+        isPastAppointment={
+          editingAppointment ? checkPastAppointment(editingAppointment) : false
+        }
       />
     </div>
   )
@@ -310,6 +428,7 @@ const NewCalendar = ({
 NewCalendar.propTypes = {
   selectedDoctorFilter: PropTypes.string,
   disableDoctorFilter: PropTypes.bool,
+  fillViewport: PropTypes.bool,
 }
 
 export default NewCalendar

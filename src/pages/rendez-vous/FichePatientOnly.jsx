@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { appointmentService } from '../../lib/services';
+import AppointmentTypeMotifFields, { resolveAppointmentMotif } from '../../components/common/AppointmentTypeMotifFields';
 import { 
   User, 
   Calendar, 
@@ -40,15 +41,16 @@ const FichePatientOnly = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showConsultationHistory, setShowConsultationHistory] = useState(false);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
-  const [motifsList, setMotifsList] = useState([]);
-  
   const [appointmentForm, setAppointmentForm] = useState({
     medecin_id: '',
     date_heure: '',
     motif: '',
+    motif_autre: '',
+    type_rdv: 'consultation',
+    priorite: 'normale',
     duree: 30,
     statut: 'confirme',
-    notes: ''
+    notes: '',
   });
 
   useEffect(() => {
@@ -57,7 +59,6 @@ const FichePatientOnly = () => {
       await Promise.all([
         fetchPatients(profile),
         fetchMedecins(),
-        loadMotifs()
       ]);
       
       // Si un ID patient est fourni dans l'URL
@@ -93,26 +94,6 @@ const FichePatientOnly = () => {
       setMedecins(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des médecins:', error);
-    }
-  };
-
-  const loadMotifs = async () => {
-    try {
-      // Utiliser les motifs par défaut pour un dentiste
-      const defaultMotifs = [
-        { value: 'consultation_generale', label: 'Consultation générale' },
-        { value: 'détartrage', label: 'Détartrage' },
-        { value: 'soin_carie', label: 'Soins caries' },
-        { value: 'extraction', label: 'Extraction dentaire' },
-        { value: 'prothese', label: 'Prothèse dentaire' },
-        { value: 'orthodontie', label: 'Orthodontie' },
-        { value: 'blanchiment', label: 'Blanchiment dentaire' },
-        { value: 'urgence', label: 'Urgence dentaire' },
-        { value: 'contrôle', label: 'Contrôle routine' }
-      ];
-      setMotifsList(defaultMotifs);
-    } catch (error) {
-      console.error('Erreur lors du chargement des motifs:', error);
     }
   };
 
@@ -305,8 +286,15 @@ const FichePatientOnly = () => {
     try {
       // Utiliser le service AppointmentService au lieu de l'insertion directe
       await appointmentService.create({
-        ...appointmentForm,
-        patient_id: selectedPatient.id
+        patient_id: selectedPatient.id,
+        medecin_id: appointmentForm.medecin_id,
+        date_heure: appointmentForm.date_heure,
+        motif: resolveAppointmentMotif(appointmentForm.motif, appointmentForm.motif_autre),
+        type_rdv: appointmentForm.type_rdv || 'consultation',
+        priorite: appointmentForm.priorite || 'normale',
+        duree: appointmentForm.duree || 30,
+        statut: appointmentForm.statut || 'confirme',
+        notes: appointmentForm.notes || '',
       }, currentUser);
 
       setShowNewAppointment(false);
@@ -314,9 +302,12 @@ const FichePatientOnly = () => {
         medecin_id: '',
         date_heure: '',
         motif: '',
+        motif_autre: '',
+        type_rdv: 'consultation',
+        priorite: 'normale',
         duree: 30,
         statut: 'confirme',
-        notes: ''
+        notes: '',
       });
       
       // Recharger les rendez-vous du patient
@@ -677,22 +668,15 @@ const FichePatientOnly = () => {
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Motif de la consultation</label>
-                <select
-                  value={appointmentForm.motif}
-                  onChange={(e) => setAppointmentForm({...appointmentForm, motif: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
-                >
-                  <option value="">Sélectionner un motif...</option>
-                  {motifsList.map((motif) => (
-                    <option key={motif.value} value={motif.value}>
-                      {motif.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
+              <AppointmentTypeMotifFields
+                typeRdv={appointmentForm.type_rdv}
+                motif={appointmentForm.motif}
+                motifAutre={appointmentForm.motif_autre}
+                priorite={appointmentForm.priorite}
+                showPriorite
+                onChange={(fields) => setAppointmentForm((prev) => ({ ...prev, ...fields }))}
+              />
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Durée (minutes)</label>
                 <select

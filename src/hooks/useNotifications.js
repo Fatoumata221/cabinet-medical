@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  getAllNotifications,
+  isNotificationForUser,
+  deduplicateNotifications,
+} from '../lib/notifications';
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -117,38 +122,12 @@ export const useNotifications = () => {
     return Notification.permission === 'granted';
   }, []);
 
-  // Récupérer les notifications
   const fetchNotifications = useCallback(async () => {
-    if (!userProfile?.id) return;
+    if (!userProfile?.id || !userProfile?.role) return;
 
     try {
-      let query;
-      
-      // Les caissiers reçoivent leurs notifications spécifiques
-      if (userProfile?.role === 'caissier' || userProfile?.role === 'cashier') {
-        query = supabase
-          .from('notifications_medecin_secretaire')
-          .select('*')
-          .eq('caissier_id', userProfile.id)
-          .eq('tenant_id', userProfile.tenant_id)
-          .order('created_at', { ascending: false })
-          .limit(100);
-      } else {
-        // Les médecins et secrétaires reçoivent les notifications médecin-secrétaire
-        query = supabase
-          .from('notifications_medecin_secretaire')
-          .select('*')
-          .or(`medecin_id.eq.${userProfile.id},secretaire_id.eq.${userProfile.id}`)
-          .eq('tenant_id', userProfile.tenant_id)
-          .order('created_at', { ascending: false })
-          .limit(100);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      const newNotifications = data || [];
+      const data = await getAllNotifications(userProfile.id, userProfile.role, 100);
+      const newNotifications = deduplicateNotifications(data || []);
       const unread = newNotifications.filter(n => !n.lu).length;
       
       // Détecter nouvelles notifications
@@ -269,14 +248,7 @@ export const useNotifications = () => {
         }, 
         (payload) => {
           const newNotif = payload.new;
-          // Vérifier si c'est pour cet utilisateur
-          const isForMe = 
-            (userProfile?.role === 'caissier' || userProfile?.role === 'cashier')
-              ? newNotif.caissier_id === userProfile.id
-              : (newNotif.medecin_id === userProfile.id || newNotif.secretaire_id === userProfile.id);
-          
-          if (isForMe) {
-            console.log('Nouvelle notification temps réel:', newNotif);
+          if (newNotif && isNotificationForUser(newNotif, userProfile.id, userProfile.role)) {
             fetchNotifications();
           }
         }
@@ -287,8 +259,11 @@ export const useNotifications = () => {
           schema: 'public',
           table: 'notifications_medecin_secretaire'
         },
-        () => {
-          fetchNotifications();
+        (payload) => {
+          const updated = payload.new;
+          if (updated && isNotificationForUser(updated, userProfile.id, userProfile.role)) {
+            fetchNotifications();
+          }
         }
       )
       .subscribe();

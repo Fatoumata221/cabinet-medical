@@ -5,6 +5,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import CreateRdvModal from './CreateRdvModal';
+import {
+  computeQueueStats,
+  isPresentInQueueStatus,
+} from '../../utils/waitingQueueStatus';
+import {
+  confirmSkippedWorkflowSteps,
+  validateQueueTransition,
+} from '../../utils/workflowGuards';
 import { 
   Users, 
   Clock, 
@@ -311,11 +319,14 @@ const DoctorDashboard = () => {
 
       // Statistiques basées sur les données transformées
       const transformedQueueForStats = queueData || [];
+      const computed = computeQueueStats(transformedQueueForStats);
       const queueStats = {
-        totalWaiting: transformedQueueForStats.filter(q => ['arrive', 'present', 'waiting'].includes(q.status)).length || 0,
-        inConsultation: transformedQueueForStats.filter(q => q.status === 'in_consultation').length || 0,
-        newPatients: transformedQueueForStats.filter(q => ['arrive', 'present'].includes(q.status)).length || 0,
-        consultationsFinished: (finishedWq || []).length || 0
+        totalWaiting: computed.onBench,
+        inConsultation: computed.inConsultation,
+        newPatients: transformedQueueForStats.filter((q) =>
+          isPresentInQueueStatus(q.status),
+        ).length,
+        consultationsFinished: (finishedWq || []).length || 0,
       };
       setStats(queueStats);
 
@@ -460,8 +471,17 @@ const DoctorDashboard = () => {
 
   const handlePatientAction = async (patientId, action) => {
     try {
-      const patient = waitingQueue.find(p => p.id === patientId || p.waiting_queue_id === patientId);
+      const findPatient = (queueId) =>
+        waitingQueue.find((p) => p.id === queueId || p.waiting_queue_id === queueId);
+      const patient = findPatient(patientId);
       const patientName = patient ? `${patient.patient_prenom} ${patient.patient_nom}` : 'Patient';
+      const confirmTransition = (queueId, toStatus, actionLabel) => {
+        const currentPatient = findPatient(queueId);
+        if (!currentPatient) return true;
+        const transition = validateQueueTransition(currentPatient.status, toStatus);
+        if (!transition.needsConfirmation) return true;
+        return confirmSkippedWorkflowSteps(transition.skippedSteps, actionLabel);
+      };
 
       switch (action) {
         case 'receive': {
@@ -481,6 +501,10 @@ const DoctorDashboard = () => {
             }
             patientId = firstArrivedPatient.waiting_queue_id || firstArrivedPatient.id;
             console.log('Patient trouvé automatiquement:', patientId);
+          }
+
+          if (!confirmTransition(patientId, 'en_route', 'recevoir le patient')) {
+            return;
           }
 
           // Utiliser la fonction SQL pour recevoir le patient
@@ -503,6 +527,10 @@ const DoctorDashboard = () => {
           break;
         }
         case 'consultation': {
+          if (!confirmTransition(patientId, 'in_consultation', 'démarrer la consultation')) {
+            return;
+          }
+
           // Démarrer la consultation si le patient est en route
           try {
             const target = waitingQueue.find(p => p.id === patientId || p.waiting_queue_id === patientId);
@@ -675,6 +703,10 @@ const DoctorDashboard = () => {
           break;
         }
         case 'finish': {
+          if (!confirmTransition(patientId, 'termine', 'terminer la consultation')) {
+            return;
+          }
+
           // Utiliser la fonction SQL pour terminer la consultation
           const { data: result, error: finishError } = await supabase
             .rpc('medecin_termine_consultation', {
@@ -696,6 +728,14 @@ const DoctorDashboard = () => {
         }
         case 'cancel': {
           // Annuler la consultation côté file d'attente (remet dans annulés du jour)
+          const currentPatient = waitingQueue.find(p => p.id === patientId);
+          if (currentPatient) {
+            const transition = validateQueueTransition(currentPatient.status, 'reporte');
+            if (transition.needsConfirmation && !confirmSkippedWorkflowSteps(transition.skippedSteps, 'annuler la consultation')) {
+              return;
+            }
+          }
+
           const { error: cancelErr } = await supabase
             .from('waiting_queue')
             .update({ status: 'reporte', updated_at: new Date().toISOString() })

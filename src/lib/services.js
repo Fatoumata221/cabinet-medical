@@ -205,13 +205,11 @@ export const appointmentService = {
   validateAppointmentData(formData) {
     const errors = [];
 
-    // Validation patient_id
-    if (!formData.patient_id || isNaN(parseInt(formData.patient_id))) {
+    if (!formData.patient_id) {
       errors.push('Patient invalide ou manquant');
     }
 
-    // Validation medecin_id
-    if (!formData.medecin_id || isNaN(parseInt(formData.medecin_id))) {
+    if (!formData.medecin_id) {
       errors.push('Médecin invalide ou manquant');
     }
 
@@ -237,7 +235,7 @@ export const appointmentService = {
     }
 
     // Validation contraintes CHECK
-    const validStatuts = ['confirme', 'en_attente', 'annule'];
+    const validStatuts = ['confirme', 'en_attente', 'annule', 'termine', 'reporte'];
     if (formData.statut && !validStatuts.includes(formData.statut)) {
       errors.push('Statut invalide');
     }
@@ -260,8 +258,8 @@ export const appointmentService = {
    */
   prepareAppointmentData(formData, currentUser = null) {
     const appointmentData = {
-      patient_id: parseInt(formData.patient_id),
-      medecin_id: parseInt(formData.medecin_id),
+      patient_id: formData.patient_id,
+      medecin_id: formData.medecin_id,
       date_heure: new Date(formData.date_heure).toISOString(),
       motif: formData.motif || '',
       duree: parseInt(formData.duree) || 30,

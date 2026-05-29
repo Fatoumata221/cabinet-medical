@@ -373,6 +373,15 @@ const DoctorDashboard = () => {
       console.log('Patient actuel après sélection:', selectedCurrentPatientId);
     }, 100);
   };
+
+  const handleFocusPatient = (patientId) => {
+    handleSelectCurrentPatient(patientId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const isCurrentPatient = (patient) =>
+    String(patient?.id) === String(currentPatient?.id) ||
+    String(patient?.waiting_queue_id) === String(currentPatient?.waiting_queue_id);
   
   // Restaurer la sélection depuis le localStorage au chargement
   useEffect(() => {
@@ -802,30 +811,65 @@ const DoctorDashboard = () => {
                   <div className="space-y-3">
                     {waitingQueue.map((patient, index) => (
                       <div key={patient.id} className={`p-3 border rounded-lg ${
-                        patient.id === currentPatient?.id ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
+                        isCurrentPatient(patient) ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
                       }`}>
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <p className="font-medium text-gray-900 text-sm">
                               {patient.patient_prenom} {patient.patient_nom}
+                              {isCurrentPatient(patient) && (
+                                <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                  ACTUEL
+                                </span>
+                              )}
                             </p>
                             <p className="text-xs text-gray-500">
                               Position: {index + 1}
                             </p>
                           </div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            patient.status === 'waiting' ? 'bg-gray-100 text-gray-800' :
-                            patient.status === 'present' ? 'bg-orange-100 text-orange-800' :
-                            patient.status === 'authorized' ? 'bg-green-100 text-green-800' :
-                            patient.status === 'in_consultation' ? 'bg-green-100 text-green-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
-                            {patient.status === 'waiting' ? 'Attente' :
-                             patient.status === 'present' ? 'Arrivé' :
-                             patient.status === 'authorized' ? 'Autorisé' :
-                             patient.status === 'in_consultation' ? 'Consultation' :
-                             patient.status}
-                          </span>
+                          <div className="flex flex-col items-end gap-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              patient.status === 'waiting' ? 'bg-gray-100 text-gray-800' :
+                              patient.status === 'present' ? 'bg-orange-100 text-orange-800' :
+                              patient.status === 'arrive' ? 'bg-orange-100 text-orange-800' :
+                              patient.status === 'authorized' ? 'bg-green-100 text-green-800' :
+                              patient.status === 'in_consultation' ? 'bg-green-100 text-green-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {patient.status === 'waiting' ? 'Attente' :
+                               patient.status === 'present' ? 'Arrivé' :
+                               patient.status === 'arrive' ? 'Arrivé' :
+                               patient.status === 'authorized' ? 'Autorisé' :
+                               patient.status === 'in_consultation' ? 'Consultation' :
+                               patient.status}
+                            </span>
+
+                            <div className="flex gap-2">
+                              {!isCurrentPatient(patient) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleFocusPatient(patient.waiting_queue_id || patient.id)}
+                                  className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+                                >
+                                  Choisir
+                                </button>
+                              )}
+
+                              {(patient.status === 'present' || patient.status === 'arrive') && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const patientId = patient.waiting_queue_id || patient.id;
+                                    handleFocusPatient(patientId);
+                                    handlePatientAction(patientId, 'receive');
+                                  }}
+                                  className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
+                                >
+                                  Recevoir
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}

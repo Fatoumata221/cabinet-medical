@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { unifiedNotificationService } from '../../services/unifiedNotificationService';
 import { 
@@ -15,20 +15,52 @@ import {
   Upload
 } from 'lucide-react';
 import PatientDocumentUploader from './PatientDocumentUploader';
+import {
+  computeQueueStats,
+  filterActiveQueueItems,
+  isUrgentQueuePriority,
+  matchesQueueFilterStatus,
+} from '../../utils/waitingQueueStatus';
+import ClickableStatCard from '../common/ClickableStatCard';
 
-const DoctorSpecificQueue = ({ doctor, searchTerm, filterStatus }) => {
+const DoctorSpecificQueue = ({
+  doctor,
+  searchTerm,
+  filterStatus,
+  initialQueueFilter = 'all',
+}) => {
   const [waitingQueue, setWaitingQueue] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedPatientForUpload, setSelectedPatientForUpload] = useState(null);
+  const [statFilter, setStatFilter] = useState(initialQueueFilter);
+  const queueSectionRef = useRef(null);
+  const appointmentsSectionRef = useRef(null);
+
+  useEffect(() => {
+    setStatFilter(initialQueueFilter);
+  }, [initialQueueFilter, doctor?.id]);
 
   useEffect(() => {
     if (doctor) {
       fetchDoctorData();
     }
   }, [doctor]);
+
+  const scrollToSection = (ref) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleStatCardClick = (filter) => {
+    setStatFilter(filter);
+    if (filter === 'appointments') {
+      scrollToSection(appointmentsSectionRef);
+      return;
+    }
+    scrollToSection(queueSectionRef);
+  };
 
   // Abonnement temps réel pour la file d'un médecin spécifique
   useEffect(() => {
@@ -102,7 +134,7 @@ const DoctorSpecificQueue = ({ doctor, searchTerm, filterStatus }) => {
         patient_name: `${p.patient?.prenom} ${p.patient?.nom}`
       })));
       
-      setWaitingQueue(data || []);
+      setWaitingQueue(filterActiveQueueItems(data || []));
     } catch (error) {
       console.error('❌ [DoctorSpecificQueue] Erreur lors du chargement de la file d\'attente:', error);
     }
@@ -309,11 +341,23 @@ const DoctorSpecificQueue = ({ doctor, searchTerm, filterStatus }) => {
   };
 
   const filterPatients = () => {
-    let filtered = waitingQueue;
+    let filtered = filterActiveQueueItems(waitingQueue);
 
-    // Filtre par statut
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(patient => patient.status === filterStatus);
+    const queueFilter =
+      statFilter === 'appointments'
+        ? filterStatus
+        : statFilter !== 'all'
+          ? statFilter
+          : filterStatus;
+
+    if (queueFilter === 'urgent') {
+      filtered = filtered.filter((patient) =>
+        isUrgentQueuePriority(patient.priority),
+      );
+    } else if (queueFilter !== 'all') {
+      filtered = filtered.filter((patient) =>
+        matchesQueueFilterStatus(queueFilter, patient.status),
+      );
     }
 
     // Filtre par recherche
@@ -380,6 +424,7 @@ const DoctorSpecificQueue = ({ doctor, searchTerm, filterStatus }) => {
 
   const filteredPatients = filterPatients();
   const filteredAppointments = filterAppointments();
+  const queueStats = computeQueueStats(waitingQueue);
 
   return (
     <div key={refreshKey} className="p-6">
@@ -399,52 +444,51 @@ const DoctorSpecificQueue = ({ doctor, searchTerm, filterStatus }) => {
 
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-blue-50 rounded-lg p-4">
-            <div className="flex items-center">
-              <Clock className="w-6 h-6 text-blue-600 mr-3" />
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{waitingQueue.length}</p>
-                <p className="text-sm text-blue-600">Total patients</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-yellow-50 rounded-lg p-4">
-            <div className="flex items-center">
-              <Clock className="w-6 h-6 text-yellow-600 mr-3" />
-              <div>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {waitingQueue.filter(p => p.status === 'waiting').length}
-                </p>
-                <p className="text-sm text-yellow-600">En attente</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-4">
-            <div className="flex items-center">
-              <Stethoscope className="w-6 h-6 text-purple-600 mr-3" />
-              <div>
-                <p className="text-2xl font-bold text-purple-600">
-                  {waitingQueue.filter(p => p.status === 'present' || p.status === 'in_consultation').length}
-                </p>
-                <p className="text-sm text-purple-600">En consultation</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4">
-            <div className="flex items-center">
-              <Calendar className="w-6 h-6 text-green-600 mr-3" />
-              <div>
-                <p className="text-2xl font-bold text-green-600">{appointments.length}</p>
-                <p className="text-sm text-green-600">Rendez-vous</p>
-              </div>
-            </div>
-          </div>
+          <ClickableStatCard
+            tone="blue"
+            icon={UserCheck}
+            label="Patients actifs"
+            value={queueStats.total}
+            onClick={() => handleStatCardClick('all')}
+            active={statFilter === 'all'}
+            title="Afficher tous les patients actifs"
+          />
+          <ClickableStatCard
+            tone="yellow"
+            icon={Clock}
+            label="En salle"
+            value={queueStats.onBench}
+            onClick={() => handleStatCardClick('waiting')}
+            active={statFilter === 'waiting'}
+            title="Filtrer les patients en salle"
+          />
+          <ClickableStatCard
+            tone="purple"
+            icon={Stethoscope}
+            label="En consultation"
+            value={queueStats.inConsultation}
+            onClick={() => handleStatCardClick('in_consultation')}
+            active={statFilter === 'in_consultation'}
+            title="Filtrer les patients en consultation"
+          />
+          <ClickableStatCard
+            tone="green"
+            icon={Calendar}
+            label="Rendez-vous"
+            value={appointments.length}
+            onClick={() => handleStatCardClick('appointments')}
+            active={statFilter === 'appointments'}
+            title="Voir les rendez-vous du jour"
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* File d'attente */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div
+          ref={queueSectionRef}
+          className="bg-white border border-gray-200 rounded-lg shadow-sm scroll-mt-4"
+        >
           <div className="p-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
               <Clock className="w-5 h-5 mr-2" />
@@ -577,7 +621,10 @@ const DoctorSpecificQueue = ({ doctor, searchTerm, filterStatus }) => {
         </div>
 
         {/* Rendez-vous du jour */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div
+          ref={appointmentsSectionRef}
+          className="bg-white border border-gray-200 rounded-lg shadow-sm scroll-mt-4"
+        >
           <div className="p-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
               <Calendar className="w-5 h-5 mr-2" />

@@ -34,10 +34,10 @@ const users = [
     tenant_id: 'd1d62ea1-ca84-4693-ba4d-3d6c67719873'
   },
   {
-    email: 'ibrahima.ba@cabinet.com',
+    email: 'comptabilite@cabinet.com',
     password: '12345678',
-    nom: 'Ba',
-    prenom: 'Ibrahima',
+    nom: 'Comptabilité',
+    prenom: 'Service',
     role: 'accounting',
     tenant_id: 'd1d62ea1-ca84-4693-ba4d-3d6c67719873'
   },
@@ -58,11 +58,11 @@ const users = [
     tenant_id: 'a9b69401-8d44-4921-9154-81b4135254f4'
   },
   {
-    email: 'moussa.sow@cabinet.com',
+    email: 'aminata.diallo@cabinet-plateau.com',
     password: '12345678',
-    nom: 'Sow',
-    prenom: 'Moussa',
-    role: 'cashier',
+    nom: 'Diallo',
+    prenom: 'Aminata',
+    role: 'caissier',
     tenant_id: 'a9b69401-8d44-4921-9154-81b4135254f4'
   }
 ]
@@ -92,6 +92,9 @@ async function createUsers() {
         console.log(`✅ Auth créé ${u.email}`)
       } else {
         authId = already.id
+        await supabase.auth.admin.updateUserById(authId, {
+          password: u.password
+        })
         console.log(`⚠️ existe déjà Auth ${u.email}`)
       }
 
@@ -103,6 +106,17 @@ async function createUsers() {
         .maybeSingle()
 
       if (existsInDb) {
+        await supabase
+          .from('users')
+          .update({
+            nom: u.nom,
+            prenom: u.prenom,
+            role: u.role,
+            tenant_id: u.tenant_id,
+            auth_id: authId,
+            actif: true
+          })
+          .eq('email', u.email)
         console.log(`⚠️ déjà en DB ${u.email}`)
         continue
       }

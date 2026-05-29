@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, PhoneCall, CheckCircle, X, AlertCircle } from 'lucide-react';
+import { Bell, PhoneCall, CheckCircle, X, AlertCircle, CalendarPlus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom'; // Importez useNavigate
 import { getUnreadNotifications, markAsRead, subscribeToNotifications, unsubscribeFromNotifications } from '../../lib/notifications';
 import useUserProfile from '../../hooks/useUserProfile';
 
@@ -8,7 +9,25 @@ const NotificationPanel = ({ onNotificationAction }) => {
   const { currentUser } = useAuth();
   const { userProfile } = useUserProfile();
   const [notifications, setNotifications] = useState([]);
+  const navigate = useNavigate(); // Initialisez useNavigate
   const [isVisible, setIsVisible] = useState(false);
+
+  const getNotificationMeta = (notification) => {
+    const raw = notification?.metadata ?? notification?.data ?? null;
+    if (!raw) return null;
+
+    if (typeof raw === 'object') return raw;
+
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     if (userProfile?.id && userProfile?.role) {
@@ -67,6 +86,19 @@ const NotificationPanel = ({ onNotificationAction }) => {
     }
   };
 
+  const handleNavigateToCalendar = () => {
+    navigate('/secretary-calendar');
+  };
+
+  const handleScheduleAction = async (notification) => {
+    if (onNotificationAction) {
+      const meta = getNotificationMeta(notification);
+      onNotificationAction('open_rdv_modal', meta || {});
+    }
+    await markAsRead(notification.id);
+    loadNotifications();
+  };
+
   const handleDismiss = async (notificationId) => {
     try {
       await markAsRead(notificationId);
@@ -83,12 +115,20 @@ const NotificationPanel = ({ onNotificationAction }) => {
   return (
     <div className="fixed top-4 right-4 z-50 space-y-3 max-w-sm">
       {notifications.map((notification) => (
+        (() => {
+          const meta = getNotificationMeta(notification);
+          const originalType = meta?.original_type;
+          const patientName = meta?.patientName || meta?.patient_name;
+
+          return (
         <div
           key={notification.id}
           className={`bg-white border-l-4 rounded-lg shadow-lg p-4 animate-pulse ${
             notification.type_notification === 'call_patient' 
               ? 'border-orange-500 bg-orange-50' 
-              : 'border-blue-500 bg-blue-50'
+              : notification.type_notification === 'appointment_request'
+                ? 'border-purple-500 bg-purple-50'
+                : 'border-blue-500 bg-blue-50'
           }`}
         >
           <div className="flex items-start justify-between">
@@ -96,10 +136,14 @@ const NotificationPanel = ({ onNotificationAction }) => {
               <div className={`p-2 rounded-full ${
                 notification.type_notification === 'call_patient' 
                   ? 'bg-orange-100 text-orange-600' 
+                  : notification.type_notification === 'appointment_request'
+                    ? 'bg-purple-100 text-purple-600'
                   : 'bg-blue-100 text-blue-600'
               }`}>
                 {notification.type_notification === 'call_patient' ? (
                   <PhoneCall className="w-5 h-5" />
+                ) : notification.type_notification === 'appointment_request' ? (
+                  <CalendarPlus className="w-5 h-5" />
                 ) : (
                   <Bell className="w-5 h-5" />
                 )}
@@ -108,22 +152,24 @@ const NotificationPanel = ({ onNotificationAction }) => {
                 <p className="font-medium text-gray-900">
                   {notification.type_notification === 'call_patient' 
                     ? 'Appeler le patient' 
+                    : notification.type_notification === 'appointment_request'
+                      ? 'Planifier RDV'
                     : 'Notification'
                   }
                 </p>
                 <p className="text-sm text-gray-600">
                   {notification.message}
                 </p>
-                {notification.data?.patientName && (
+                {patientName && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Patient: {notification.data.patientName}
+                    Patient: {patientName}
                   </p>
                 )}
               </div>
             </div>
             
             <div className="flex gap-2">
-              {(notification.type_notification === 'patient_called' || notification.data?.original_type === 'call_patient') && (
+              {(notification.type_notification === 'patient_called' || originalType === 'call_patient') && (
                 <button
                   onClick={() => handleConfirmCall(notification)}
                   className="px-3 py-1 bg-green-600 text-white text-xs rounded-full hover:bg-green-700 transition-colors flex items-center gap-1"
@@ -131,6 +177,27 @@ const NotificationPanel = ({ onNotificationAction }) => {
                   <CheckCircle className="w-3 h-3" />
                   Appelé
                 </button>
+              )}
+              {notification.type_notification === 'appointment_request' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleScheduleAction(notification)}
+                    className="px-3 py-1 bg-purple-600 text-white text-xs rounded-full hover:bg-purple-700 transition-colors flex items-center gap-1"
+                  >
+                    <CalendarPlus className="w-3 h-3" />
+                    Planifier
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNavigateToCalendar}
+                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700 transition-colors flex items-center gap-1"
+                    title="Voir le calendrier complet"
+                  >
+                    <CalendarPlus className="w-3 h-3" />
+                    Voir calendrier
+                  </button>
+                </>
               )}
               <button
                 onClick={() => handleDismiss(notification.id)}
@@ -142,13 +209,15 @@ const NotificationPanel = ({ onNotificationAction }) => {
           </div>
           
           {/* Animation de clignotement pour les appels urgents */}
-          {(notification.type_notification === 'patient_called' || notification.data?.original_type === 'call_patient') && (
+          {(notification.type_notification === 'patient_called' || originalType === 'call_patient') && (
             <div className="mt-2 flex items-center gap-2 text-xs text-orange-600">
               <AlertCircle className="w-3 h-3 animate-pulse" />
               <span>Action requise - Appeler le patient</span>
             </div>
           )}
         </div>
+          );
+        })()
       ))}
     </div>
   );

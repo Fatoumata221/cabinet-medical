@@ -37,6 +37,7 @@ import {
   notificationService
 } from '../lib/services';
 import { useAuth } from '../contexts/AuthContext';
+import AppointmentTypeMotifFields, { resolveAppointmentMotif } from './common/AppointmentTypeMotifFields';
 import { useAlert } from '../contexts/AlertContext';
 import { supabase } from '../lib/supabase';
 import '../styles/customCalendar.css';
@@ -69,6 +70,7 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
     medecin_id: '',
     date_heure: '',
     motif: '',
+    motif_autre: '',
     motif_detaille: '',
     duree: 30,
     priorite: 'normale',
@@ -535,6 +537,7 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
       medecin_id: appointmentData.medecin_id || medecin?.id || '',
       date_heure: appointmentData.date_heure || '',
       motif: appointmentData.motif || '',
+      motif_autre: '',
       motif_detaille: appointmentData.motif_detaille || '',
       duree: appointmentData.duree || 30,
       priorite: appointmentData.priorite || 'normale',
@@ -570,6 +573,7 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
       medecin_id: '',
       date_heure: slotDate.toISOString(),
       motif: '',
+      motif_autre: '',
       motif_detaille: '',
       duree: 30,
       priorite: 'normale',
@@ -603,8 +607,13 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
   const createAppointment = async (e) => {
     e.preventDefault();
     try {
-      const newAppointment = await appointmentService.create(formData);
-      setAppointments([...appointments, newAppointment]);
+      const result = await appointmentService.create({
+        ...formData,
+        motif: resolveAppointmentMotif(formData.motif, formData.motif_autre),
+      });
+      if (result?.appointment) {
+        setAppointments([...appointments, result.appointment]);
+      }
       setShowAppointmentModal(false);
       setFormData({
         id: null,
@@ -612,6 +621,7 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
         medecin_id: '',
         date_heure: '',
         motif: '',
+        motif_autre: '',
         motif_detaille: '',
         duree: 30,
         priorite: 'normale',
@@ -636,8 +646,14 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
   const updateAppointment = async (e) => {
     e.preventDefault();
     try {
-      const updatedAppointment = await appointmentService.update(formData.id, formData);
-      setAppointments(appointments.map(apt => apt.id === updatedAppointment.id ? updatedAppointment : apt));
+      const result = await appointmentService.update(formData.id, {
+        ...formData,
+        motif: resolveAppointmentMotif(formData.motif, formData.motif_autre),
+      });
+      const updatedAppointment = result?.appointment;
+      if (updatedAppointment) {
+        setAppointments(appointments.map(apt => apt.id === updatedAppointment.id ? updatedAppointment : apt));
+      }
       setShowAppointmentModal(false);
     } catch (error) {
       console.error('Erreur lors de la mise à jour du RDV:', error);
@@ -1164,22 +1180,17 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
                     />
                   </div>
 
-                  {/* Motif */}
-                  <div>
-                    <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
-                      Motif
-                    </label>
-                    <textarea
-                      value={formData.motif}
-                      onChange={(e) => setFormData({...formData, motif: e.target.value})}
-                      rows={3}
-                      className={`w-full px-4 py-3 ${darkMode ? 'bg-gray-800 text-white' : 'bg-gray-50 text-gray-900'} rounded-2xl border ${darkMode ? 'border-gray-700' : 'border-gray-200'} focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
-                      placeholder="Motif de la consultation..."
-                    />
-                  </div>
+                  <AppointmentTypeMotifFields
+                    typeRdv={formData.type_rdv}
+                    motif={formData.motif}
+                    motifAutre={formData.motif_autre}
+                    priorite={formData.priorite}
+                    showPriorite
+                    onChange={(fields) => setFormData((prev) => ({ ...prev, ...fields }))}
+                    inputClassName={`w-full px-4 py-3 ${darkMode ? 'bg-gray-800 text-white' : 'bg-gray-50 text-gray-900'} rounded-2xl border ${darkMode ? 'border-gray-700' : 'border-gray-200'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  />
 
-                  {/* Durée, Priorité et Statut */}
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
                         Durée (min)
@@ -1195,21 +1206,6 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
                         <option value="60">1 heure</option>
                         <option value="90">1h30</option>
                         <option value="120">2 heures</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
-                        Priorité
-                      </label>
-                      <select
-                        value={formData.priorite}
-                        onChange={(e) => setFormData({...formData, priorite: e.target.value})}
-                        className={`w-full px-4 py-3 ${darkMode ? 'bg-gray-800 text-white' : 'bg-gray-50 text-gray-900'} rounded-2xl border ${darkMode ? 'border-gray-700' : 'border-gray-200'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                      >
-                        <option value="normale">Normale</option>
-                        <option value="urgente">Urgente</option>
-                        <option value="tres_urgente">Très urgente</option>
                       </select>
                     </div>
 

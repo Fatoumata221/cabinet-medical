@@ -359,17 +359,21 @@ const ConsultationDetail = () => {
     if (!patient || !consultation) return;
 
     try {
-      console.log('🔄 [Consultation] Création RDV de suivi');
-      
-      await appointmentService.create({
+      console.log('🔄 [Consultation] Envoi demande RDV de suivi à la secrétaire');
+
+      // Envoyer une notification à la secrétaire avec les détails du rendez-vous demandé
+      await sendNotification({
+        type: 'appointment_request',
+        recipient_role: 'secretary',
+        title: `Demande de rendez-vous pour ${patient.prenom} ${patient.nom}`,
+        message: `Le Dr ${userProfile?.nom || ''} souhaite planifier un rendez-vous de suivi pour ${patient.prenom} ${patient.nom}. Date suggérée: ${new Date(rdvForm.date_heure).toLocaleDateString('fr-FR')} à ${new Date(rdvForm.date_heure).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}. Motif: ${rdvForm.motif || 'Suivi consultation'}. Durée: ${rdvForm.duree} minutes.`,
         patient_id: patient.id,
+        consultation_id: consultation.id,
         medecin_id: consultation.medecin_id,
-        date_heure: rdvForm.date_heure,
+        suggested_date: rdvForm.date_heure,
         motif: rdvForm.motif || 'Suivi consultation',
         duree: rdvForm.duree,
-        statut: 'confirme',
-        notes: `Rendez-vous de suite pour la consultation du ${new Date(consultation.date_consultation).toLocaleDateString('fr-FR')}`
-      }, userProfile);
+      });
 
       setShowCreateRdvModal(false);
       setRdvForm({
@@ -377,10 +381,10 @@ const ConsultationDetail = () => {
         motif: '',
         duree: 30
       });
-      
-      showSuccessDialog('Rendez-vous créé', 'Le rendez-vous de suivi a été créé avec succès.');
-      
-      // Redirection vers la file d'attente après création du RDV
+
+      showSuccessDialog('Demande envoyée', 'La demande de rendez-vous a été envoyée à la secrétaire pour confirmation.');
+
+      // Redirection vers la file d'attente après envoi de la demande
       setTimeout(() => {
         navigate('/my-waiting-queue', { replace: true });
       }, 1500);
@@ -826,6 +830,55 @@ const ConsultationDetail = () => {
               <h3 className="text-lg font-medium text-gray-900 mb-4">Planifier un rendez-vous de suivi</h3>
               <div className="space-y-4">
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Délai suggéré</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const date = new Date();
+                        date.setDate(date.getDate() + 7);
+                        setRdvForm({...rdvForm, date_heure: date.toISOString().slice(0, 16)});
+                      }}
+                      className="px-4 py-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      Dans 1 semaine
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const date = new Date();
+                        date.setDate(date.getDate() + 14);
+                        setRdvForm({...rdvForm, date_heure: date.toISOString().slice(0, 16)});
+                      }}
+                      className="px-4 py-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      Dans 2 semaines
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const date = new Date();
+                        date.setMonth(date.getMonth() + 1);
+                        setRdvForm({...rdvForm, date_heure: date.toISOString().slice(0, 16)});
+                      }}
+                      className="px-4 py-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      Dans 1 mois
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const date = new Date();
+                        date.setMonth(date.getMonth() + 3);
+                        setRdvForm({...rdvForm, date_heure: date.toISOString().slice(0, 16)});
+                      }}
+                      className="px-4 py-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      Dans 3 mois
+                    </button>
+                  </div>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date et heure *</label>
                   <input
                     type="datetime-local"
@@ -870,7 +923,7 @@ const ConsultationDetail = () => {
                   onClick={handleCreateRdv}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                 >
-                  Créer le rendez-vous
+                  Envoyer à la secrétaire
                 </button>
               </div>
             </div>

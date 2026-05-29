@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Trash2, Clock as ClockIcon, User } from 'lucide-react';
+import AppointmentTypeMotifFields from '../common/AppointmentTypeMotifFields';
 
 const AppointmentModal = ({
   isOpen,
@@ -83,7 +84,15 @@ const AppointmentModal = ({
               </div>
             </div>
             <div><label className="block text-sm font-medium text-gray-700 mb-2">Date et heure *</label><input type="datetime-local" value={formData.date_heure ? formData.date_heure.slice(0, 16) : ''} onChange={(e) => setFormData({...formData, date_heure: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl" required /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-2">Motif</label><textarea value={formData.motif} onChange={(e) => setFormData({...formData, motif: e.target.value})} rows={3} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl resize-none" /></div>
+            <AppointmentTypeMotifFields
+              typeRdv={formData.type_rdv || 'consultation'}
+              motif={formData.motif || ''}
+              motifAutre={formData.motif_autre || ''}
+              priorite={formData.priorite || 'normale'}
+              showPriorite
+              onChange={(fields) => setFormData({ ...formData, ...fields })}
+              inputClassName="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
             <div className="grid grid-cols-3 gap-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">Durée (min)</label><select value={formData.duree} onChange={(e) => setFormData({...formData, duree: parseInt(e.target.value)})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl"><option value="15">15</option><option value="30">30</option><option value="45">45</option><option value="60">60</option></select></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">Priorité</label><select value={formData.priorite} onChange={(e) => setFormData({...formData, priorite: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl"><option value="normale">Normale</option><option value="urgente">Urgente</option><option value="tres_urgente">Très urgente</option></select></div>

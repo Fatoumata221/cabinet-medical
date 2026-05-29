@@ -43,8 +43,17 @@ import { usePersonnalisation } from '../contexts/PersonnalisationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES, getRoleDisplayName, getRoleColor } from '../utils/permissions';
 
-const Sidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const Sidebar = ({
+  width = 256,
+  isCollapsed: isCollapsedProp,
+  onToggleCollapsed,
+}) => {
+  const [isCollapsedInternal, setIsCollapsedInternal] = useState(false);
+  const isCollapsed =
+    typeof isCollapsedProp === 'boolean' ? isCollapsedProp : isCollapsedInternal;
+  const toggleCollapsed =
+    onToggleCollapsed ||
+    (() => setIsCollapsedInternal((prev) => !prev));
   const [expandedModules, setExpandedModules] = useState({});
   const location = useLocation();
   const { currentUser, userProfile, logout, hasRole } = useAuth();
@@ -313,10 +322,11 @@ const Sidebar = () => {
 
   return (
     <motion.div
-      className={`backdrop-blur-apple border-r border-white/10 shadow-apple-lg h-screen flex flex-col transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
+      className="backdrop-blur-apple border-r border-white/10 shadow-apple-lg h-screen flex flex-col flex-shrink-0 transition-[width] duration-200"
       style={{
+        width: isCollapsed ? 64 : width,
+        minWidth: isCollapsed ? 64 : width,
+        maxWidth: isCollapsed ? 64 : width,
         background: settings.couleur_sidebar_fond || 'linear-gradient(to bottom, #1e293b, #0f172a)',
         color: settings.couleur_sidebar_texte || '#F1F5F9'
       }}
@@ -336,8 +346,10 @@ const Sidebar = () => {
           </motion.h2>
         )}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          type="button"
+          onClick={toggleCollapsed}
           className="p-2 rounded-lg hover:bg-white/10 transition-colors text-white"
+          title={isCollapsed ? 'Agrandir le menu' : 'Réduire le menu'}
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>

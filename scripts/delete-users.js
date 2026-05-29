@@ -13,14 +13,22 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   }
 })
 
-// Emails à supprimer (ceux de ton script)
+// Emails à supprimer pour revenir à un jeu de démo réduit
 const emails = [
-  'dr.habib.diallo@cabinet.com',
-  'aissatou.ndoye@cabinet.com',
   'ibrahima.ba@cabinet.com',
-  'dr.aicha.ndiaye@cabinet.com',
-  'khadija.diop@cabinet.com',
-  'moussa.sow@cabinet.com'
+  'boubacar.bathily@cabinet.com',
+  'fatou@gmail.com',
+  'mamibadiane27@gmail.com',
+  'sambadiop@gmail.com',
+  'ali@gmail.com',
+  'ndiolefaye@gmail.com',
+  'moussa.sow@cabinet.com',
+  'dr.oumar.fall@cabinet-dakar.com',
+  'dr.mariama.diallo@cabinet-dakar.com',
+  'dr.ibou.ndiaye@cabinet-dakar.com',
+  'dr.fatou.seck@cabinet-plateau.com',
+  'dr.cheikh.ba@cabinet-plateau.com',
+  'dr.aminata.sow@cabinet-plateau.com'
 ]
 
 async function deleteUsers() {

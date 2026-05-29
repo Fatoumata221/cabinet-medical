@@ -24,6 +24,28 @@ export const hashSpecialtyToColor = (specialiteNom) => {
   return hslToHex(hue, 65, 55);
 };
 
+/** Palette distincte pour identifier chaque médecin au calendrier secrétaire */
+export const DOCTOR_CALENDAR_PALETTE = [
+  '#2563eb',
+  '#7c3aed',
+  '#db2777',
+  '#ea580c',
+  '#0891b2',
+  '#059669',
+  '#ca8a04',
+  '#4f46e5',
+  '#be185d',
+  '#0d9488',
+];
+
+export const getDoctorCalendarColor = (doctorId, paletteIndex = 0) => {
+  if (!doctorId) return '#3b82f6';
+  if (paletteIndex >= 0 && paletteIndex < DOCTOR_CALENDAR_PALETTE.length) {
+    return DOCTOR_CALENDAR_PALETTE[paletteIndex];
+  }
+  return hashSpecialtyToColor(`doctor-${doctorId}`);
+};
+
 export const darkenHexColor = (hex, amount = 0.2) => {
   if (!/^#([0-9a-f]{6})$/i.test(hex)) {
     return hex;

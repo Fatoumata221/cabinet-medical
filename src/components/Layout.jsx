@@ -1,10 +1,23 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLayoutPreferences } from '../hooks/useLayoutPreferences';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
+const FULL_HEIGHT_ROUTES = ['/secretary-calendar', '/my-calendar'];
+
 const Layout = ({ children }) => {
+  const {
+    sidebarWidth,
+    isCollapsed,
+    toggleCollapsed,
+    startResize,
+    isResizing,
+  } = useLayoutPreferences();
+  const { pathname } = useLocation();
   const { currentUser, userProfile, profileLoading } = useAuth();
+  const isFullHeightRoute = FULL_HEIGHT_ROUTES.includes(pathname);
 
   // Si pas d'utilisateur connecté, ne pas afficher le layout
   if (!currentUser) {
@@ -40,11 +53,33 @@ const Layout = ({ children }) => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <Sidebar
+        width={sidebarWidth}
+        isCollapsed={isCollapsed}
+        onToggleCollapsed={toggleCollapsed}
+      />
+      {!isCollapsed && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Redimensionner le menu"
+          title="Glisser pour ajuster la largeur du menu"
+          onMouseDown={startResize}
+          className={`w-1.5 flex-shrink-0 cursor-col-resize transition-colors ${
+            isResizing ? 'bg-blue-500' : 'bg-slate-200 hover:bg-blue-400'
+          }`}
+        />
+      )}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main
+          className={
+            isFullHeightRoute
+              ? 'flex-1 min-h-0 overflow-hidden flex flex-col p-0'
+              : 'flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6'
+          }
+        >
           {children}
         </main>
       </div>

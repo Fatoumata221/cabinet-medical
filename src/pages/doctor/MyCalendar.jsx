@@ -17,8 +17,9 @@ const MyCalendar = () => {
   }
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full min-h-0 flex flex-col flex-1 overflow-hidden">
       <NewCalendar
+        fillViewport
         selectedDoctorFilter={String(userProfile.id)}
         disableDoctorFilter={true}
       />

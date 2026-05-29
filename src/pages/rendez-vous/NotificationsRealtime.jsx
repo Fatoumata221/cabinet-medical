@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { getAllNotifications, markAsRead as markNotificationAsRead, markAllAsRead as markAllNotificationsAsRead, deleteNotification as deleteNotificationById, subscribeToNotifications, unsubscribeFromNotifications } from '../../lib/notifications';
+import {
+  getAllNotifications,
+  markAsRead as markNotificationAsRead,
+  markAllAsRead as markAllNotificationsAsRead,
+  deleteNotification as deleteNotificationById,
+  subscribeToNotifications,
+  unsubscribeFromNotifications,
+  isNotificationForUser,
+  deduplicateNotifications,
+} from '../../lib/notifications';
 import useUserProfile from '../../hooks/useUserProfile';
 import { Bell, AlertTriangle, CheckCircle, Clock, Filter, Search, RefreshCw, Trash2, Check } from 'lucide-react';
 
@@ -38,9 +47,19 @@ const NotificationsRealtime = () => {
     if (!userProfile?.id || !userProfile?.role) return;
     
     const channel = subscribeToNotifications(userProfile.id, userProfile.role, (payload) => {
-      console.log('🔔 [NotificationsRealtime] Notification reçue:', payload);
       if (payload.eventType === 'INSERT' && payload.new) {
-        setNotifications(prev => [payload.new, ...prev]);
+        if (!isNotificationForUser(payload.new, userProfile.id, userProfile.role)) {
+          return;
+        }
+        setNotifications((prev) =>
+          deduplicateNotifications([payload.new, ...prev])
+        );
+      } else if (payload.eventType === 'UPDATE' && payload.new) {
+        setNotifications((prev) =>
+          deduplicateNotifications(
+            prev.map((n) => (n.id === payload.new.id ? payload.new : n))
+          )
+        );
       }
     });
 

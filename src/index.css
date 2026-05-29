@@ -990,6 +990,19 @@ body {
   border-bottom: 1px solid #f1f5f9 !important;
 }
 
+.google-calendar-shell--fill .fc-timegrid-slot {
+  height: 28px !important;
+  min-height: 28px !important;
+}
+
+.google-calendar-shell--fill .fc-col-header-cell {
+  padding: 6px 4px !important;
+}
+
+.google-calendar-shell--fill .fc-col-header-cell-cushion {
+  font-size: 12px !important;
+}
+
 .google-calendar-shell .fc-timegrid-slot-lane {
   background: #ffffff !important;
   border-color: #f1f5f9 !important;
@@ -1092,12 +1105,57 @@ body {
 }
 
 .google-calendar-shell .fc-event-main {
-  padding: 4px 7px !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 2px 5px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.google-calendar-shell .fc-event.fc-event-short,
+.google-calendar-shell .fc-event.fc-event-medium,
+.google-calendar-shell .fc-event.fc-event-long,
+.google-calendar-shell .fc-event.gc-duration-short,
+.google-calendar-shell .fc-event.gc-duration-standard,
+.google-calendar-shell .fc-event.gc-duration-long {
+  min-height: 0 !important;
+  max-height: 100% !important;
+  height: auto !important;
 }
 
 .google-calendar-shell .gc-event-content {
   min-width: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0;
+}
+
+.google-calendar-shell .gc-event-content--compact {
+  justify-content: center;
+}
+
+.google-calendar-shell .gc-event-inline {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+.google-calendar-shell .gc-event-inline .gc-event-time {
+  display: inline;
+  margin-right: 4px;
+}
+
+.google-calendar-shell .gc-event-inline .gc-event-title {
+  display: inline;
 }
 
 .google-calendar-shell .gc-event-time {
@@ -1127,16 +1185,22 @@ body {
   color: rgba(255, 255, 255, 0.86);
 }
 
-.google-calendar-shell .fc-event-short {
-  min-height: 24px !important;
+.google-calendar-shell .gc-duration-short .gc-event-time,
+.google-calendar-shell .gc-duration-short .gc-event-title {
+  font-size: 10px !important;
+  line-height: 1.1 !important;
 }
 
-.google-calendar-shell .fc-event-medium {
-  min-height: 38px !important;
+.google-calendar-shell .gc-duration-standard .gc-event-title {
+  font-size: 11px !important;
 }
 
-.google-calendar-shell .fc-event-long {
-  min-height: 54px !important;
+.google-calendar-shell .gc-duration-long .gc-event-title {
+  font-size: 12px !important;
+}
+
+.google-calendar-shell .gc-duration-long .gc-event-meta {
+  display: block;
 }
 
 .google-calendar-shell .fc-daygrid-event {
