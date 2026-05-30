@@ -365,13 +365,13 @@ const ConsultationDetail = () => {
       await sendNotification({
         type: 'appointment_request',
         recipient_role: 'secretary',
-        title: `Demande de rendez-vous pour ${patient.prenom} ${patient.nom}`,
-        message: `Le Dr ${userProfile?.nom || ''} souhaite planifier un rendez-vous de suivi pour ${patient.prenom} ${patient.nom}. Date suggérée: ${new Date(rdvForm.date_heure).toLocaleDateString('fr-FR')} à ${new Date(rdvForm.date_heure).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}. Motif: ${rdvForm.motif || 'Suivi consultation'}. Durée: ${rdvForm.duree} minutes.`,
+        title: `Demande RDV ${patient.prenom} ${patient.nom}`,
+        message: `Dr ${userProfile?.nom || ''} - RDV suivi ${patient.prenom} ${patient.nom} - ${new Date(rdvForm.date_heure).toLocaleDateString('fr-FR')} ${new Date(rdvForm.date_heure).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})} - ${rdvForm.motif || 'Suivi'} - ${rdvForm.duree}min`,
         patient_id: patient.id,
         consultation_id: consultation.id,
         medecin_id: consultation.medecin_id,
         suggested_date: rdvForm.date_heure,
-        motif: rdvForm.motif || 'Suivi consultation',
+        motif: (rdvForm.motif || 'Suivi').substring(0, 50),
         duree: rdvForm.duree,
       });
 
