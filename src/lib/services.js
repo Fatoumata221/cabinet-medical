@@ -219,8 +219,9 @@ export const appointmentService = {
     } else {
       const appointmentDate = new Date(formData.date_heure);
       const now = new Date();
-      // Permettre les rendez-vous dans les 60 prochaines minutes pour éviter les problèmes de fuseau horaire
-      const minAllowedTime = new Date(now.getTime() - 60 * 60 * 1000);
+      // Permettre les rendez-vous jusqu'à 24h dans le passé pour les corrections et ajustements
+      // Cela permet de gérer les problèmes de fuseau horaire et les créations tardives
+      const minAllowedTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       
       console.log('🕐 [Validation] Date RDV:', appointmentDate.toISOString());
       console.log('🕐 [Validation] Date actuelle:', now.toISOString());
@@ -230,7 +231,7 @@ export const appointmentService = {
       if (isNaN(appointmentDate.getTime())) {
         errors.push('Date et heure invalides');
       } else if (appointmentDate < minAllowedTime) {
-        errors.push('La date ne peut pas être dans le passé');
+        errors.push('La date ne peut pas être antérieure à 24 heures');
       }
     }
 

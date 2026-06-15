@@ -16,11 +16,16 @@ import {
   Upload
 } from 'lucide-react';
 import PatientDocumentUploader from './PatientDocumentUploader';
+import DoctorReassignModal from './DoctorReassignModal';
 import {
   computeQueueStats,
   filterActiveQueueItems,
   isUrgentQueuePriority,
   matchesQueueFilterStatus,
+  hasPastAppointment,
+  filterOutPastAppointments,
+  isStuckInConsultation,
+  filterOutStuckConsultations,
 } from '../../utils/waitingQueueStatus';
 import ClickableStatCard from '../common/ClickableStatCard';
 import { shouldHidePastAppointment } from '../../utils/appointmentDisplay';
@@ -41,6 +46,8 @@ const GlobalWaitingQueue = ({
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedPatientForUpload, setSelectedPatientForUpload] = useState(null);
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [selectedPatientForReassign, setSelectedPatientForReassign] = useState(null);
 
   useEffect(() => {
     fetchAllData();
@@ -124,7 +131,7 @@ const GlobalWaitingQueue = ({
       if (appointmentIds.length > 0) {
         const { data: appointmentsData, error: appointmentsError } = await supabase
           .from('appointments')
-          .select('id, motif, duree')
+          .select('id, motif, duree, date_heure')
           .in('id', appointmentIds);
         
         if (appointmentsError) {
@@ -147,7 +154,55 @@ const GlobalWaitingQueue = ({
         queues[key].push(enrichedItem);
       });
 
-      // 5) Récupérer tous les rendez-vous du jour pour ces médecins
+      // 5) Mettre à jour automatiquement le statut des patients avec rendez-vous passés
+      const now = new Date();
+      const allQueueItems = Object.values(queues).flat();
+      const pastAppointments = allQueueItems.filter(item => hasPastAppointment(item, now));
+      const stuckConsultations = allQueueItems.filter(item => isStuckInConsultation(item, now));
+      
+      if (pastAppointments.length > 0) {
+        // Mettre à jour le statut des patients passés à "Non honoré"
+        for (const item of pastAppointments) {
+          try {
+            await supabase
+              .from('waiting_queue')
+              .update({ 
+                status: 'non_honore',
+                updated_at: now.toISOString()
+              })
+              .eq('id', item.id);
+          } catch (error) {
+            console.error('Erreur lors de la mise à jour du statut du patient passé:', error);
+          }
+        }
+      }
+
+      if (stuckConsultations.length > 0) {
+        // Mettre à jour le statut des consultations bloquées à "Terminé"
+        for (const item of stuckConsultations) {
+          try {
+            await supabase
+              .from('waiting_queue')
+              .update({ 
+                status: 'termine',
+                updated_at: now.toISOString()
+              })
+              .eq('id', item.id);
+          } catch (error) {
+            console.error('Erreur lors de la mise à jour du statut de consultation bloquée:', error);
+          }
+        }
+      }
+
+      // 6) Filtrer les patients actifs et exclure ceux avec rendez-vous passés et consultations bloquées
+      Object.keys(queues).forEach(doctorId => {
+        const activeItems = filterActiveQueueItems(queues[doctorId]);
+        const filteredItems = filterOutPastAppointments(activeItems, now);
+        const finalFilteredItems = filterOutStuckConsultations(filteredItems, now);
+        queues[doctorId] = finalFilteredItems;
+      });
+
+      // 7) Récupérer tous les rendez-vous du jour pour ces médecins
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
@@ -159,6 +214,7 @@ const GlobalWaitingQueue = ({
         .in('medecin_id', medecinIds)
         .gte('date_heure', today.toISOString())
         .lt('date_heure', tomorrow.toISOString())
+        .not('statut', 'in', '("annule","reporte","termine")')
         .order('date_heure', { ascending: true });
 
       if (apptsError) {
@@ -168,7 +224,7 @@ const GlobalWaitingQueue = ({
 
       const apptsList = Array.isArray(apptsData) ? apptsData : [];
       
-      // 6) Récupérer les patients pour les RDV du jour
+      // 8) Récupérer les patients pour les RDV du jour
       const apptPatientIds = Array.from(new Set(apptsList.map(a => a.patient_id).filter(Boolean)));
       let apptPatientMap = {};
       
@@ -185,7 +241,7 @@ const GlobalWaitingQueue = ({
         }
       }
 
-      // 7) Fusionner les RDV avec les patients
+      // 9) Fusionner les RDV avec les patients
       apptsList.forEach(appt => {
         const enrichedAppt = {
           ...appt,
@@ -314,6 +370,25 @@ const GlobalWaitingQueue = ({
     }
   };
 
+  // Gérer la réassignation d'un patient à un autre médecin
+  const handleReassign = (patient) => {
+    setSelectedPatientForReassign(patient);
+    setShowReassignModal(true);
+  };
+
+  const handleReassignComplete = () => {
+    setShowReassignModal(false);
+    setSelectedPatientForReassign(null);
+    fetchAllData();
+    if (window.showNotification) {
+      window.showNotification({ 
+        message: 'Patient réassigné avec succès', 
+        type: 'success', 
+        duration: 3000 
+      });
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'in_consultation':
@@ -391,11 +466,13 @@ const GlobalWaitingQueue = ({
 
   const filterPatients = (patients) => {
     const active = filterActiveQueueItems(patients);
-    if (filterStatus === 'all') return active;
+    const filtered = filterOutPastAppointments(active);
+    const finalFiltered = filterOutStuckConsultations(filtered);
+    if (filterStatus === 'all') return finalFiltered;
     if (filterStatus === 'urgent') {
-      return active.filter((patient) => isUrgentQueuePriority(patient.priority));
+      return finalFiltered.filter((patient) => isUrgentQueuePriority(patient.priority));
     }
-    return active.filter((patient) =>
+    return finalFiltered.filter((patient) =>
       matchesQueueFilterStatus(filterStatus, patient.status),
     );
   };
@@ -797,6 +874,20 @@ const GlobalWaitingQueue = ({
             setShowUploadModal(false);
             setSelectedPatientForUpload(null);
           }}
+        />
+      )}
+
+      {/* Modal de réassignation de médecin */}
+      {showReassignModal && selectedPatientForReassign && (
+        <DoctorReassignModal
+          isOpen={showReassignModal}
+          onClose={() => {
+            setShowReassignModal(false);
+            setSelectedPatientForReassign(null);
+          }}
+          patient={selectedPatientForReassign}
+          currentMedecinId={selectedPatientForReassign.medecin_id}
+          onReassignComplete={handleReassignComplete}
         />
       )}
     </div>

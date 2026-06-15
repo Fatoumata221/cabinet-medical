@@ -20,6 +20,7 @@ import {
   filterActiveQueueItems,
   isUrgentQueuePriority,
   matchesQueueFilterStatus,
+  hasPastAppointment,
 } from '../../utils/waitingQueueStatus';
 import ClickableStatCard from '../common/ClickableStatCard';
 
@@ -291,7 +292,12 @@ const DoctorSpecificQueue = ({
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status, patient) => {
+    // Si le rendez-vous est passé, forcer le statut "Terminé"
+    if (patient && hasPastAppointment(patient)) {
+      return 'text-green-600 bg-green-100';
+    }
+    
     switch (status) {
       case 'in_consultation': return 'text-blue-600 bg-blue-100';
       case 'present': return 'text-purple-600 bg-purple-100';
@@ -303,7 +309,12 @@ const DoctorSpecificQueue = ({
     }
   };
 
-  const getStatusLabel = (status) => {
+  const getStatusLabel = (status, patient) => {
+    // Si le rendez-vous est passé, forcer le statut "Terminé"
+    if (patient && hasPastAppointment(patient)) {
+      return 'Terminé';
+    }
+    
     switch (status) {
       case 'in_consultation': return 'En consultation';
       case 'present': return 'Présent';
@@ -563,8 +574,8 @@ const DoctorSpecificQueue = ({
                         
                         <div className="flex flex-col items-end space-y-2">
                           <div className="flex flex-col items-end space-y-1">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(patient.status)}`}>
-                              {getStatusLabel(patient.status)}
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(patient.status, patient)}`}>
+                              {getStatusLabel(patient.status, patient)}
                             </span>
                             {patient.status === 'en_consultation' && (
                               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-600">

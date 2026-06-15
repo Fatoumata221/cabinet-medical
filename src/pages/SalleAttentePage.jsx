@@ -34,6 +34,10 @@ import {
   isPresentInQueueStatus,
   isCalledInQueueStatus,
   isInConsultationQueueStatus,
+  hasPastAppointment,
+  filterOutPastAppointments,
+  isStuckInConsultation,
+  filterOutStuckConsultations,
 } from '../utils/waitingQueueStatus';
 import {
   confirmSkippedWorkflowSteps,
@@ -180,7 +184,51 @@ const SalleAttentePage = () => {
         medecin: doctorMap[item.medecin_id] || { id: item.medecin_id, nom: 'Inconnu', prenom: 'Dr.', specialite: 'N/A' },
       }));
 
-      setPatientsEnAttente(filterActiveQueueItems(enriched));
+      // 4) Mettre à jour automatiquement le statut des patients avec rendez-vous passés
+      const now = new Date();
+      const pastAppointments = enriched.filter(item => hasPastAppointment(item, now));
+      const stuckConsultations = enriched.filter(item => isStuckInConsultation(item, now));
+      
+      if (pastAppointments.length > 0) {
+        // Mettre à jour le statut des patients passés à "Non honoré"
+        for (const item of pastAppointments) {
+          try {
+            await supabase
+              .from('waiting_queue')
+              .update({ 
+                status: 'non_honore',
+                updated_at: now.toISOString()
+              })
+              .eq('id', item.id);
+          } catch (error) {
+            console.error('Erreur lors de la mise à jour du statut du patient passé:', error);
+          }
+        }
+      }
+
+      if (stuckConsultations.length > 0) {
+        // Mettre à jour le statut des consultations bloquées à "Terminé"
+        for (const item of stuckConsultations) {
+          try {
+            await supabase
+              .from('waiting_queue')
+              .update({ 
+                status: 'termine',
+                updated_at: now.toISOString()
+              })
+              .eq('id', item.id);
+          } catch (error) {
+            console.error('Erreur lors de la mise à jour du statut de consultation bloquée:', error);
+          }
+        }
+      }
+
+      // 5) Filtrer les patients actifs et exclure ceux avec rendez-vous passés et consultations bloquées
+      const activeItems = filterActiveQueueItems(enriched);
+      const filteredItems = filterOutPastAppointments(activeItems, now);
+      const finalFilteredItems = filterOutStuckConsultations(filteredItems, now);
+
+      setPatientsEnAttente(finalFilteredItems);
     } catch (error) {
       console.error('Erreur lors du chargement des patients en attente:', error);
     } finally {

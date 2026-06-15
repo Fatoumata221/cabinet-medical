@@ -34,6 +34,7 @@ import { unifiedNotificationService } from '../services/unifiedNotificationServi
 import PatientCard from '../components/introduction/PatientCard';
 import WaitingQueueItem from '../components/introduction/WaitingQueueItem';
 import NotificationPanel from '../components/introduction/NotificationPanel';
+import DoctorReassignModal from '../components/secretary/DoctorReassignModal';
 import 'react-toastify/dist/ReactToastify.css';
 
 const IntroductionPatientPage = () => {
@@ -50,6 +51,8 @@ const IntroductionPatientPage = () => {
   const [consultationCount, setConsultationCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [arrivalsStatFilter, setArrivalsStatFilter] = useState('all');
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [selectedPatientForReassign, setSelectedPatientForReassign] = useState(null);
   const waitingSectionRef = useRef(null);
 
   const waitingQueueStats = useMemo(
@@ -871,6 +874,19 @@ const IntroductionPatientPage = () => {
     });
   };
 
+  // Gérer la réassignation d'un patient à un autre médecin
+  const handleReassign = (patient) => {
+    setSelectedPatientForReassign(patient);
+    setShowReassignModal(true);
+  };
+
+  const handleReassignComplete = () => {
+    setShowReassignModal(false);
+    setSelectedPatientForReassign(null);
+    fetchWaitingQueue();
+    unifiedNotificationService.success('Patient réassigné avec succès');
+  };
+
   // Rendu principal
   return (
     <div className="min-h-screen bg-gray-50 p-3 sm:p-4">
@@ -1013,6 +1029,7 @@ const IntroductionPatientPage = () => {
                     index={index}
                     onAuthorize={handleAuthorizePatient}
                     onMarkInConsultation={handleMarkInConsultation}
+                    onReassign={handleReassign}
                     isLoading={isLoading}
                   />
                 ))}
@@ -1276,6 +1293,20 @@ const IntroductionPatientPage = () => {
               </div>
             </div>
           </>
+        )}
+
+        {/* Modal de réassignation de médecin */}
+        {showReassignModal && selectedPatientForReassign && (
+          <DoctorReassignModal
+            isOpen={showReassignModal}
+            onClose={() => {
+              setShowReassignModal(false);
+              setSelectedPatientForReassign(null);
+            }}
+            patient={selectedPatientForReassign}
+            currentMedecinId={selectedPatientForReassign.medecin_id}
+            onReassignComplete={handleReassignComplete}
+          />
         )}
       </div>
     </div>

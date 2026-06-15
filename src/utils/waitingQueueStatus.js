@@ -6,6 +6,7 @@ export const WAITING_QUEUE_TERMINAL_STATUSES = [
   'reporte',
   'annule',
   'cancelled',
+  'non_honore',
 ];
 
 /** Statuts actifs utilisés dans les requêtes Supabase */
@@ -106,4 +107,35 @@ export const matchesQueueFilterStatus = (filterStatus, patientStatus) => {
     default:
       return status === normalizeQueueStatus(filterStatus);
   }
+};
+
+/** Vérifie si un patient en file d'attente a un rendez-vous passé */
+export const hasPastAppointment = (queueItem, now = new Date()) => {
+  if (!queueItem?.appointment?.date_heure) return false;
+  
+  const appointmentTime = new Date(queueItem.appointment.date_heure);
+  const durationMinutes = Number(queueItem.appointment.duree ?? 30);
+  const appointmentEndTime = new Date(appointmentTime.getTime() + durationMinutes * 60000);
+  
+  return appointmentEndTime.getTime() < now.getTime();
+};
+
+/** Vérifie si une consultation est bloquée depuis trop longtemps (plus de 2 heures) */
+export const isStuckInConsultation = (queueItem, now = new Date(), maxHours = 2) => {
+  if (!isInConsultationQueueStatus(queueItem?.status)) return false;
+  
+  const consultationStart = new Date(queueItem.updated_at || queueItem.created_at);
+  const hoursSinceStart = (now.getTime() - consultationStart.getTime()) / (1000 * 60 * 60);
+  
+  return hoursSinceStart > maxHours;
+};
+
+/** Filtre les patients en file d'attente pour exclure ceux avec des rendez-vous passés */
+export const filterOutPastAppointments = (queueItems, now = new Date()) => {
+  return (queueItems || []).filter(item => !hasPastAppointment(item, now));
+};
+
+/** Filtre les patients avec consultations bloquées depuis trop longtemps */
+export const filterOutStuckConsultations = (queueItems, now = new Date(), maxHours = 2) => {
+  return (queueItems || []).filter(item => !isStuckInConsultation(item, now, maxHours));
 };

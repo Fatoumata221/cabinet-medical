@@ -803,7 +803,25 @@ const WaitingQueuePage = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, patient = null) => {
+    // Vérifier si le rendez-vous est passé
+    const isPast = patient && patient.appointment_id && patient.date_heure ? (() => {
+      const appointmentTime = new Date(patient.date_heure);
+      const durationMinutes = 30; // Durée par défaut
+      const appointmentEndTime = new Date(appointmentTime.getTime() + durationMinutes * 60000);
+      const now = new Date();
+      return appointmentEndTime.getTime() < now.getTime();
+    })() : false;
+
+    // Si le rendez-vous est passé, forcer le statut "Terminé"
+    if (isPast) {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          Terminé
+        </span>
+      );
+    }
+
     const statusClasses = {
       waiting: 'bg-yellow-100 text-yellow-800',
       in_consultation: 'bg-blue-100 text-blue-800',

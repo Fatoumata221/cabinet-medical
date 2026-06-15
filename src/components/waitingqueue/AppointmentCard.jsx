@@ -2,6 +2,31 @@ import React from 'react';
 import { CheckCircle, Phone, Calendar, User } from 'lucide-react';
 
 const AppointmentCard = ({ appointment, selectedDoctor, isPresent }) => {
+  // Vérifier si le rendez-vous est passé
+  const isPast = () => {
+    if (!appointment.date_heure) return false;
+    const appointmentTime = new Date(appointment.date_heure);
+    const durationMinutes = Number(appointment.duree ?? 30);
+    const appointmentEndTime = new Date(appointmentTime.getTime() + durationMinutes * 60000);
+    const now = new Date();
+    return appointmentEndTime.getTime() < now.getTime();
+  };
+
+  const getStatusBadge = () => {
+    if (isPast()) {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          Terminé
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        Programmé
+      </span>
+    );
+  };
+
   return (
     <div className={`rounded-lg p-3 border transition-colors ${
       isPresent 
@@ -48,9 +73,7 @@ const AppointmentCard = ({ appointment, selectedDoctor, isPresent }) => {
         </div>
         
         <div className="flex items-center gap-1.5">
-          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            Programmé
-          </span>
+          {getStatusBadge()}
         </div>
         
         <div className="text-xs text-gray-600">

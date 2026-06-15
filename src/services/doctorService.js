@@ -192,5 +192,53 @@ export const doctorService = {
       console.error('Erreur lors de la récupération des patients en consultation:', error);
       throw error;
     }
+  },
+
+  // Réassigner un patient à un autre médecin
+  async reassignPatientToDoctor(waitingQueueId, newMedecinId, reason = 'Médecin indisponible') {
+    try {
+      const { data, error } = await supabase.rpc('reassign_patient_to_doctor', {
+        p_waiting_queue_id: waitingQueueId,
+        p_new_medecin_id: newMedecinId,
+        p_reason: reason
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erreur lors de la réassignation du patient:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer les médecins disponibles par spécialité
+  async getAvailableDoctorsBySpeciality(specialiteId = null) {
+    try {
+      const { data, error } = await supabase.rpc('get_available_doctors_by_speciality', {
+        p_specialite_id: specialiteId
+      });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des médecins disponibles:', error);
+      throw error;
+    }
+  },
+
+  // Récupérer les patients avec médecin indisponible
+  async getPatientsWithUnavailableDoctor() {
+    try {
+      const { data, error } = await supabase
+        .from('waiting_queue_doctor_unavailable')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des patients avec médecin indisponible:', error);
+      throw error;
+    }
   }
 };
