@@ -58,168 +58,57 @@ const MesPatientsPage = () => {
       try {
         console.log('🔄 [MesPatientsPage] Récupération des patients du médecin:', doctorId);
         
-        // Analyser plusieurs colonnes possibles pour la liaison médecin-patient
-        const { data: allPatients, error: allError } = await supabase
-          .from('patients')
-          .select('*')
-          .order('nom', { ascending: true })
-          .limit(5); // Limiter pour l'analyse
+        // Récupérer les patients qui ont un rendez-vous avec ce médecin dans la file d'attente
+        const { data: waitingQueueData, error: waitingQueueError } = await supabase
+          .from('waiting_queue')
+          .select('patient_id')
+          .eq('medecin_id', doctorId);
 
-        if (allError) {
-          console.error('Erreur lors de la récupération des patients:', allError);
-          setPatients([]);
-          return;
+        if (waitingQueueError) {
+          console.error('Erreur lors de la récupération de la file d\'attente:', waitingQueueError);
         }
 
-        console.log('🔍 [ANALYSE] Échantillon de patients pour analyse:');
-        allPatients.forEach((patient, index) => {
-          console.log(`Patient ${index + 1}:`, {
-            id: patient.id,
-            nom: patient.nom,
-            prenom: patient.prenom,
-            medecin_traitant_id: patient.medecin_traitant_id,
-            medecin_traitant: patient.medecin_traitant,
-            created_by: patient.created_by,
-            updated_by: patient.updated_by,
-            tenant_id: patient.tenant_id,
-            cabinet_id: patient.cabinet_id
-          });
-        });
+        let patientIds = [];
+        if (waitingQueueData && waitingQueueData.length > 0) {
+          patientIds = [...new Set(waitingQueueData.map(wq => wq.patient_id).filter(Boolean))];
+          console.log('� [MesPatientsPage] Patients dans la file d\'attente:', patientIds.length);
+        }
 
-        // Essayer différentes stratégies pour trouver les patients du médecin
+        // Récupérer les patients qui ont des rendez-vous avec ce médecin
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const { data: appointmentsData, error: appointmentsError } = await supabase
+          .from('appointments')
+          .select('patient_id')
+          .eq('medecin_id', doctorId)
+          .gte('date_heure', today.toISOString())
+          .lt('date_heure', tomorrow.toISOString());
+
+        if (!appointmentsError && appointmentsData) {
+          const appointmentPatientIds = appointmentsData.map(a => a.patient_id).filter(Boolean);
+          patientIds = [...new Set([...patientIds, ...appointmentPatientIds])];
+          console.log('📅 [MesPatientsPage] Patients avec rendez-vous aujourd\'hui:', appointmentPatientIds.length);
+        }
+
+        // Récupérer les patients correspondants
         let foundPatients = [];
-        
-        // Stratégie 1: medecin_traitant_id
-        const { data: strategy1, error: error1 } = await supabase
-          .from('patients')
-          .select('*')
-          .eq('medecin_traitant_id', doctorId)
-          .order('nom', { ascending: true });
-
-        if (!error1 && strategy1 && strategy1.length > 0) {
-          console.log(' [STRATÉGIE 1] Patients trouvés avec medecin_traitant_id:', strategy1.length);
-          foundPatients = strategy1;
-        } else {
-          console.log(' [STRATÉGIE 1] Aucun patient avec medecin_traitant_id');
-          
-          // Stratégie 2: created_by (si le médecin a créé les patients)
-          const { data: strategy2, error: error2 } = await supabase
+        if (patientIds.length > 0) {
+          const { data: patientsData, error: patientsError } = await supabase
             .from('patients')
             .select('*')
-            .eq('created_by', doctorId)
+            .in('id', patientIds)
             .order('nom', { ascending: true });
 
-          if (!error2 && strategy2 && strategy2.length > 0) {
-            console.log(' [STRATÉGIE 2] Patients trouvés avec created_by:', strategy2.length);
-            foundPatients = strategy2;
-          } else {
-            console.log(' [STRATÉGIE 2] Aucun patient avec created_by');
-            
-            // Stratégie 3: consultations (patients que le médecin a consultés)
-            // Vérifier d'abord si la table consultations existe
-            const { data: tables, error: tablesError } = await supabase
-              .from('information_schema.tables')
-              .select('table_name')
-              .eq('table_schema', 'public')
-              .like('table_name', '%consultation%');
-
-            if (!tablesError && tables) {
-              console.log(' [TABLES] Tables de consultation trouvées:', tables.map(t => t.table_name));
-            }
-
-            // Essayer avec différentes tables possibles
-            const consultationTables = ['consultations', 'consultation', 'rendez_vous', 'consultations_medecins'];
-
-            // Calculer la date limite pour les consultations récentes (90 jours)
-            const recentDate = new Date();
-            recentDate.setDate(recentDate.getDate() - 90);
-            const recentDateISO = recentDate.toISOString();
-
-            for (const tableName of consultationTables) {
-              try {
-                console.log(` [TEST] Test de la table: ${tableName}`);
-                
-                // Vérifier si la table existe en essayant une requête simple
-                const { data: testTable, error: testError } = await supabase
-                  .from(tableName)
-                  .select('*')
-                  .limit(1);
-
-                if (testError) {
-                  console.log(` [TEST] Table ${tableName} n'existe pas ou erreur:`, testError.message);
-                  continue;
-                }
-
-                console.log(` [TEST] Table ${tableName} existe, test de récupération...`);
-
-                // Si la table existe, essayer de trouver les patients du médecin
-                // Filtrer par date si le filtre récent est activé
-                let query = supabase
-                  .from(tableName)
-                  .select('*')
-                  .eq('medecin_id', doctorId);
-
-                if (recentFilter) {
-                  query = query.gte('date_consultation', recentDateISO);
-                }
-
-                const { data: consultData, error: consultError } = await query.limit(10);
-
-                if (consultError) {
-                  console.log(` [TEST] Erreur avec ${tableName}:`, consultError.message);
-                  continue;
-                }
-
-                if (consultData && consultData.length > 0) {
-                  console.log(` [TEST] Données trouvées dans ${tableName}:`, consultData.length);
-                  
-                  // Extraire les IDs des patients
-                  const patientIds = [...new Set(
-                    consultData
-                      .filter(row => row.patient_id)
-                      .map(row => row.patient_id)
-                  )];
-                  
-                  if (patientIds.length > 0) {
-                    console.log(` [SUCCESS] Patients IDs trouvés via ${tableName}:`, patientIds);
-                    
-                    const { data: patientData, error: patientError } = await supabase
-                      .from('patients')
-                      .select('*')
-                      .in('id', patientIds)
-                      .order('nom', { ascending: true });
-
-                    if (!patientError) {
-                      foundPatients = patientData || [];
-                      console.log(` [FINAL] Patients récupérés via ${tableName}:`, foundPatients.length);
-                      break;
-                    }
-                  }
-                } else {
-                  console.log(` [TEST] Aucune donnée trouvée dans ${tableName}`);
-                }
-              } catch (err) {
-                console.log(` [TEST] Erreur avec table ${tableName}:`, err.message);
-              }
-            }
-
-            if (foundPatients.length === 0) {
-              console.log(' [FINAL] Aucune stratégie n\'a fonctionné, fallback sur tous les patients');
-              // En dernier recours, afficher tous les patients avec un message explicatif
-              const { data: allPatientsFallback, error: allErrorFallback } = await supabase
-                .from('patients')
-                .select('*')
-                .order('nom', { ascending: true });
-
-              if (!allErrorFallback) {
-                console.log(' [FALLBACK] Tous les patients affichés (aucune liaison médecin-patient trouvée)');
-                setPatients(allPatientsFallback || []);
-              }
-            }
+          if (!patientsError && patientsData) {
+            foundPatients = patientsData;
+            console.log('✅ [MesPatientsPage] Patients trouvés:', foundPatients.length);
           }
         }
 
-        console.log(' [FINAL] Patients du médecin trouvés:', foundPatients.length);
+        console.log('✅ [FINAL] Patients du médecin trouvés:', foundPatients.length);
         setPatients(foundPatients);
 
       } catch (error) {
