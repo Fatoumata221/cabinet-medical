@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, PhoneCall, CheckCircle, X, AlertCircle, CalendarPlus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom'; // Importez useNavigate
-import { getUnreadNotifications, markAsRead, subscribeToNotifications, unsubscribeFromNotifications } from '../../lib/notifications';
+import { getUnreadNotifications, markAsRead, markAllAsRead, subscribeToNotifications, unsubscribeFromNotifications } from '../../lib/notifications';
 import useUserProfile from '../../hooks/useUserProfile';
 
 const NotificationPanel = ({ onNotificationAction }) => {
@@ -11,6 +11,7 @@ const NotificationPanel = ({ onNotificationAction }) => {
   const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate(); // Initialisez useNavigate
   const [isVisible, setIsVisible] = useState(false);
+  const hasMarkedAllAsReadRef = React.useRef(false);
 
   const getNotificationMeta = (notification) => {
     const raw = notification?.metadata ?? notification?.data ?? null;
@@ -43,6 +44,16 @@ const NotificationPanel = ({ onNotificationAction }) => {
       const data = await getUnreadNotifications(userProfile.id, userProfile.role);
       setNotifications(data || []);
       setIsVisible(data && data.length > 0);
+      
+      // Marquer toutes comme lues automatiquement lors du chargement
+      if (data && data.length > 0 && !hasMarkedAllAsReadRef.current) {
+        try {
+          await markAllAsRead(userProfile.id, userProfile.role);
+          hasMarkedAllAsReadRef.current = true;
+        } catch (error) {
+          console.error('❌ [NotificationPanel] Erreur marquage toutes notifications comme lues:', error);
+        }
+      }
     } catch (error) {
       console.error('❌ [NotificationPanel] Erreur chargement notifications:', error);
       setNotifications([]);

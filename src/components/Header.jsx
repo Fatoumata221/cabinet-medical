@@ -24,6 +24,7 @@ import useUserProfile from '../hooks/useUserProfile';
 import {
   getDisplayNotifications,
   markAsRead,
+  markAllAsRead,
   subscribeToNotifications,
   unsubscribeFromNotifications,
   isNotificationForUser,
@@ -98,6 +99,7 @@ const Header = () => {
   const reloadNotificationsTimeoutRef = useRef(null);
   const lastToastNotificationIdRef = useRef(null);
   const notificationsPanelRef = useRef(null);
+  const hasMarkedAllAsReadRef = useRef(false);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -489,6 +491,7 @@ const Header = () => {
         !notificationsPanelRef.current.contains(event.target)
       ) {
         setShowNotifications(false);
+        hasMarkedAllAsReadRef.current = false;
       }
     };
 
@@ -634,7 +637,22 @@ const Header = () => {
               <div className="relative" ref={notificationsPanelRef}>
                 <button
                   type="button"
-                  onClick={() => setShowNotifications((open) => !open)}
+                  onClick={async () => {
+                    const willOpen = !showNotifications;
+                    setShowNotifications(willOpen);
+                    
+                    // Marquer toutes les notifications comme lues lors de l'ouverture
+                    if (willOpen && unreadCount > 0 && !hasMarkedAllAsReadRef.current) {
+                      try {
+                        await markAllAsRead(userProfile.id, userProfile.role);
+                        hasMarkedAllAsReadRef.current = true;
+                        setUnreadCount(0);
+                        setNotifications(prev => prev.map(n => ({ ...n, lu: true, lu_at: new Date().toISOString() })));
+                      } catch (error) {
+                        console.error('❌ [Header] Erreur marquage toutes notifications comme lues:', error);
+                      }
+                    }
+                  }}
                   className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <Bell size={20} className="text-gray-600" />

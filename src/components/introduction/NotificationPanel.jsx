@@ -1,9 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Check, X, Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { sendNotification, NOTIFICATION_TYPES } from '../../lib/notifications';
+import { sendNotification, NOTIFICATION_TYPES, markAllAsRead } from '../../lib/notifications';
 
 const NotificationPanel = ({ notifications, onRefresh, userProfile, waitingQueue, onAuthorizePatient }) => {
+  const hasMarkedAllAsReadRef = React.useRef(false);
+
+  useEffect(() => {
+    // Marquer toutes les notifications comme lues automatiquement lors du premier affichage
+    if (notifications && notifications.length > 0 && !hasMarkedAllAsReadRef.current && userProfile?.id && userProfile?.role) {
+      const markAsReadAsync = async () => {
+        try {
+          await markAllAsRead(userProfile.id, userProfile.role);
+          hasMarkedAllAsReadRef.current = true;
+        } catch (error) {
+          console.error('❌ [NotificationPanel] Erreur marquage toutes notifications comme lues:', error);
+        }
+      };
+      markAsReadAsync();
+    }
+  }, [notifications, userProfile?.id, userProfile?.role]);
+
   const handleMarkAsRead = async (notification) => {
     if (!notification.lu) {
       try {
