@@ -394,6 +394,7 @@ export const useAppointmentForm = ({
         motif: resolveAppointmentMotif(formData.motif, formData.motif_autre),
         duree: formData.duree || 30,
         statut: formData.statut || 'confirme',
+        statut_arrivee: 'en_attente_arrivee', // Par défaut, le patient n'est pas encore arrivé
         priorite: formData.priorite || 'normale',
         notes: formData.notes || '',
         type_rdv: formData.type_rdv || 'consultation',
@@ -408,35 +409,9 @@ export const useAppointmentForm = ({
         const result = await appointmentService.create(appointmentData);
         if (!result.success) throw new Error(result.error || 'Failed to create appointment');
         
-        // Add to waiting queue
-        try {
-          // Check if already in queue
-          const existingQueue = await waitingQueueService.getQueueByAppointmentId(result.appointment.id);
-          if (existingQueue && existingQueue.length > 0) {
-            // Already in queue, do nothing
-          } else {
-            // Check if patient already in active queue for this doctor
-            const existingActive = await waitingQueueService.getActiveQueueByPatientAndDoctor(
-              result.appointment.patient_id,
-              result.appointment.medecin_id
-            );
-            if (existingActive && existingActive.length > 0) {
-                // Already in active queue, do nothing
-            } else {
-                await waitingQueueService.addToQueue({
-                    patient_id: result.appointment.patient_id,
-                    medecin_id: result.appointment.medecin_id,
-                    appointment_id: result.appointment.id,
-                    status: 'waiting',
-                    arrived_at: new Date().toISOString(),
-                    motif_consultation: result.appointment.motif || appointmentData.motif || '',
-                });
-                addedToWaitingQueue = true;
-            }
-          }
-        } catch (qe) {
-          console.error('Exception adding to waiting_queue:', qe);
-        }
+        // NE PLUS ajouter automatiquement à la salle d'attente
+        // Le patient sera ajouté à la salle d'attente uniquement lorsqu'il se présentera physiquement
+        // via le bouton "Arrivé" dans la liste des rendez-vous
       }
       
       setShowForm(false);

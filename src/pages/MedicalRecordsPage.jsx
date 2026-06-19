@@ -723,7 +723,7 @@ const MedicalRecordsPage = () => {
                           <span className="text-sm text-gray-500">Documents :</span>
                           <div className="flex space-x-1">
                             {record.documents.map((doc, index) => (
-                              <span key={index} className="inline-flex px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                              <span key={`${record.id}-doc-${index}`} className="inline-flex px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
                                 {doc}
                               </span>
                             ))}

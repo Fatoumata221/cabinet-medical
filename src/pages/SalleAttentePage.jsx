@@ -110,11 +110,26 @@ const SalleAttentePage = () => {
 
   const fetchPatientsEnAttente = async () => {
     try {
-      // 1) Tous les patients actifs en file (sans filtre date — évite les compteurs à 0)
+      // Calculer les bornes de la date d'aujourd'hui
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStart = tomorrow.toISOString();
+      
+      // 1) Tous les patients actifs en file avec rendez-vous aujourd'hui et statut_arrivee = 'arrive'
       const { data: queueData, error: queueError } = await supabase
         .from('waiting_queue')
-        .select('*')
+        .select(`
+          *,
+          appointments(date_heure, statut_arrivee, heure_arrivee)
+        `)
         .in('status', WAITING_QUEUE_ACTIVE_STATUSES)
+        .gte('appointments.date_heure', todayStart)
+        .lt('appointments.date_heure', tomorrowStart)
+        .eq('appointments.statut_arrivee', 'arrive')
         .order('order_position', { ascending: true });
 
       if (queueError) throw queueError;

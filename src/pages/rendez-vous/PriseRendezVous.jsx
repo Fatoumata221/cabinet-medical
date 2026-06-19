@@ -181,7 +181,7 @@ const PriseRendezVous = () => {
             >
               <option value="">Sélectionner une spécialité</option>
               {specialites.map((specialite, index) => (
-                <option key={index} value={specialite}>{specialite}</option>
+                <option key={`specialite-${index}`} value={specialite}>{specialite}</option>
               ))}
             </select>
           </div>

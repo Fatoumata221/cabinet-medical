@@ -549,7 +549,7 @@ const PrescriptionsPage = () => {
                                 <p className="text-sm text-gray-600 mb-2">Médicaments :</p>
                                 <div className="space-y-1">
                                   {prescription.medicaments.slice(0, 3).map((med, index) => (
-                                    <div key={index} className="flex items-center space-x-2">
+                                    <div key={`${prescription.id}-med-${index}`} className="flex items-center space-x-2">
                                       <Pill className="w-3 h-3 text-gray-400" />
                                       <span className="text-sm text-gray-700">
                                         {med.nom} {med.dosage && `- ${med.dosage}`} {med.posologie && `(${med.posologie})`}

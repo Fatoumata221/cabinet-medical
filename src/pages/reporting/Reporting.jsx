@@ -310,7 +310,7 @@ const Reporting = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {resumeGlobal.map((item, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg p-4">
+                <div key={`resume-${index}`} className="bg-gray-50 rounded-lg p-4">
                   <div className="text-sm font-medium text-gray-500">{item.metrique}</div>
                   <div className="mt-2 text-2xl font-bold text-gray-900">
                     {item.valeur ? formaterNombre(item.valeur) : formaterMontant(item.montant)}

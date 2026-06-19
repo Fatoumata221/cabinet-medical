@@ -154,12 +154,26 @@ const WaitingQueuePage = () => {
   const loadWaitingQueueData = async () => {
     try {
       console.log('🔄 [WaitingQueue] Rechargement file d\'attente...');
+      
+      // Calculer les bornes de la date d'aujourd'hui
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStart = tomorrow.toISOString();
+      
       const { data: waitingQueueData, error: waitingError } = await supabase
         .from('waiting_queue')
         .select(`
           *,
-          medecin:users!inner(id, actif)
+          medecin:users!inner(id, actif),
+          appointments(date_heure, statut_arrivee, heure_arrivee)
         `)
+        .gte('appointments.date_heure', todayStart)
+        .lt('appointments.date_heure', tomorrowStart)
+        .eq('appointments.statut_arrivee', 'arrive')
         .order('created_at', { ascending: false });
 
       if (waitingError) {
@@ -296,12 +310,26 @@ const WaitingQueuePage = () => {
       
       // Charger les patients depuis la file d'attente
       console.log('📋 [WaitingQueue] Récupération de la file d\'attente...');
+      
+      // Calculer les bornes de la date d'aujourd'hui
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStart = tomorrow.toISOString();
+      
       const { data: waitingQueueData, error: waitingError } = await supabase
         .from('waiting_queue')
         .select(`
           *,
-          medecin:users!inner(id, actif)
+          medecin:users!inner(id, actif),
+          appointments(date_heure, statut_arrivee, heure_arrivee)
         `)
+        .gte('appointments.date_heure', todayStart)
+        .lt('appointments.date_heure', tomorrowStart)
+        .eq('appointments.statut_arrivee', 'arrive')
         .order('created_at', { ascending: false });
 
       if (waitingError) {

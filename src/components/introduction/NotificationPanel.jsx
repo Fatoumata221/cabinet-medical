@@ -102,7 +102,7 @@ const NotificationPanel = ({ notifications, onRefresh, userProfile, waitingQueue
               </p>
               
               {/* Actions pour les notifications de type PATIENT_READY */}
-              {notification.type_notification === 'patient_ready' && !notification.lu && (
+              {notification.type_notification === 'patient_ready' && (
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={() => handleConfirm(notification)}

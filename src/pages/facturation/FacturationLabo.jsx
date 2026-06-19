@@ -739,7 +739,7 @@ const FacturationLabo = () => {
                   </td>
                   <td className="px-6 py-4">
                     {facture.analyses.map((item, index) => (
-                      <div key={index} className="text-sm text-gray-900 mb-1">
+                      <div key={`${facture.id}-analyse-${index}`} className="text-sm text-gray-900 mb-1">
                         {item.analyse.libelle}
                       </div>
                     ))}
@@ -831,7 +831,7 @@ const FacturationLabo = () => {
                 <h4 className="font-medium text-gray-900 mb-3">Analyses demandées</h4>
                 <div className="space-y-2">
                   {showDetails.analyses.map((item, index) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded flex justify-between items-center">
+                    <div key={`${showDetails.id}-detail-analyse-${index}`} className="bg-gray-50 p-3 rounded flex justify-between items-center">
                       <div>
                         <span className="font-medium">{item.analyse.libelle}</span>
                         <span className="text-sm text-gray-500 block">{item.analyse.categorie} - {item.analyse.duree}h</span>

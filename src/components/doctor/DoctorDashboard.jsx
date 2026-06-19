@@ -126,8 +126,13 @@ const DoctorDashboard = () => {
     try {
       setLoading(true);
 
-      // File d'attente simplifiée - utiliser directement waiting_queue
+      // File d'attente simplifiée - utiliser directement waiting_queue avec filtre de date
       // Tri par date de création (ordre des RV créés) et non par order_position
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
       const { data: queueData, error: queueError } = await supabase
         .from('waiting_queue')
         .select(`
@@ -142,10 +147,13 @@ const DoctorDashboard = () => {
           updated_at,
           created_at,
           order_position,
-          patient:patients(id, nom, prenom, telephone)
+          patient:patients(id, nom, prenom, telephone),
+          appointments(date_heure)
         `)
         .eq('medecin_id', userProfile.id)
         .in('status', ['waiting', 'present', 'arrive', 'in_consultation'])
+        .gte('appointments.date_heure', today.toISOString())
+        .lt('appointments.date_heure', tomorrow.toISOString())
         .order('created_at', { ascending: true });
 
       // RDV du jour - récupérer d'abord pour enrichir la file d'attente

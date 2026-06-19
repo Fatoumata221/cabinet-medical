@@ -64,14 +64,27 @@ const SalleAttente = () => {
 
   const fetchWaitingQueue = async () => {
     try {
+      // Calculer les bornes de la date d'aujourd'hui
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStart = tomorrow.toISOString();
+      
       const { data, error } = await supabase
         .from('waiting_queue')
         .select(`
           *,
           patients:patient_id (nom, prenom, numero_dossier),
-          medecins:medecin_id (nom, prenom, specialite)
+          medecins:medecin_id (nom, prenom, specialite),
+          appointments(date_heure, statut_arrivee, heure_arrivee)
         `)
-        .order('heure_arrivee', { ascending: false });
+        .gte('appointments.date_heure', todayStart)
+        .lt('appointments.date_heure', tomorrowStart)
+        .eq('appointments.statut_arrivee', 'arrive')
+        .order('appointments.heure_arrivee', { ascending: true });
 
       if (error) throw error;
       setWaitingQueue(data || []);

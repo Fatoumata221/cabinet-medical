@@ -47,7 +47,9 @@ export interface Appointment {
   medecin_id: number
   date_heure: string
   motif?: string
-  statut: 'confirme' | 'en_attente' | 'annule'
+  statut: 'confirme' | 'en_attente' | 'annule' | 'arrive' | 'termine' | 'reporte'
+  statut_arrivee?: 'en_attente_arrivee' | 'arrive'
+  heure_arrivee?: string
   duree?: number
   created_at: string
   updated_at: string

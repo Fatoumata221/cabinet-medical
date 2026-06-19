@@ -100,6 +100,13 @@ const PriseRendezVousPage = () => {
     setLocalEditingAppointment(editingAppointment);
   }, [editingAppointment]);
 
+  // Initialiser secretaireId avec l'ID de l'utilisateur connecté
+  useEffect(() => {
+    if (currentUser?.id) {
+      setSecretaireId(currentUser.id);
+    }
+  }, [currentUser]);
+
   // Pré-sélectionner le patient si patientId est dans l'URL
   useEffect(() => {
     if (preselectedPatientId && allPatients.length > 0) {
@@ -124,6 +131,18 @@ const PriseRendezVousPage = () => {
         return;
       }
 
+      // Mettre à jour le statut_arrivee du rendez-vous à "arrive" et enregistrer l'heure d'arrivée
+      const { error: updateError } = await supabase
+        .from('appointments')
+        .update({ 
+          statut_arrivee: 'arrive',
+          heure_arrivee: new Date().toISOString()
+        })
+        .eq('id', appointment.id);
+      
+      if (updateError) throw updateError;
+
+      // Ajouter le patient à la salle d'attente via RPC
       const { data, error } = await supabase.rpc('secretaire_marque_patient_arrive', {
         p_appointment_id: appointment.id,
         p_secretaire_id: secId
@@ -131,7 +150,7 @@ const PriseRendezVousPage = () => {
       if (error) throw error;
 
       refreshAppointments(); // Refresh appointments after marking present
-      showSuccess(data?.message || 'Patient marqué présent et médecin notifié');
+      showSuccess(data?.message || 'Patient marqué présent et ajouté à la salle d\'attente');
     } catch (err) {
       console.error('Erreur handleMarkPresentFromAppointment:', err);
       showAlertError(err.message || 'Erreur lors du marquage présent');
@@ -190,7 +209,8 @@ const PriseRendezVousPage = () => {
     const statusConfig = {
       confirme: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
       en_attente: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      annule: { color: 'bg-red-100 text-red-800', icon: XCircle }
+      annule: { color: 'bg-red-100 text-red-800', icon: XCircle },
+      arrive: { color: 'bg-blue-100 text-blue-800', icon: CheckCircle }
     };
     
     const config = statusConfig[statut] || statusConfig.confirme;
@@ -200,7 +220,9 @@ const PriseRendezVousPage = () => {
       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
         <Icon className="w-3 h-3 mr-1" />
         {statut === 'confirme' ? 'Confirmé' : 
-         statut === 'en_attente' ? 'En attente' : 'Annulé'}
+         statut === 'en_attente' ? 'En attente' : 
+         statut === 'annule' ? 'Annulé' :
+         statut === 'arrive' ? 'Arrivé' : statut}
       </span>
     );
   };
@@ -218,6 +240,26 @@ const PriseRendezVousPage = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getSlotStatus = (appointment) => {
+    const now = new Date();
+    const appointmentTime = new Date(appointment.date_heure);
+    const isPast = appointmentTime < now;
+    
+    // Statuts considérés comme terminés
+    const completedStatuses = ['termine', 'completed', 'done', 'annule'];
+    const isCompleted = completedStatuses.includes(appointment.statut);
+    
+    if (isPast) {
+      return { status: 'past', label: 'Passé', color: 'bg-gray-100 text-gray-600 border-gray-300' };
+    }
+    
+    if (isCompleted) {
+      return { status: 'available', label: 'Disponible', color: 'bg-green-100 text-green-800 border-green-200' };
+    }
+    
+    return { status: 'occupied', label: 'Occupé', color: 'bg-red-100 text-red-800 border-red-200' };
   };
 
 
@@ -360,18 +402,29 @@ const PriseRendezVousPage = () => {
               </p>
             </div>
             <div className="p-6">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {appointments.length > 0 ? (
-                  appointments.map((apt) => (
-                    <div key={apt.id} className="flex items-center justify-between p-3 rounded-md border bg-gray-50">
-                      <div className="text-sm text-gray-800 font-medium">
-                        {formatTime(apt.date_heure)} — {apt.patient?.prenom} {apt.patient?.nom}
+                  appointments.map((apt) => {
+                    const slotStatus = getSlotStatus(apt);
+                    return (
+                      <div key={apt.id} className={`p-3 rounded-md border ${slotStatus.status === 'past' ? 'bg-gray-50 opacity-60' : 'bg-white'}`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="text-sm text-gray-900 font-medium">
+                            {formatTime(apt.date_heure)} — {apt.patient?.prenom} {apt.patient?.nom?.toUpperCase()}
+                          </div>
+                          {getStatusBadge(apt.statut)}
+                        </div>
+                        {apt.motif && (
+                          <div className="text-xs text-gray-600 ml-0">
+                            {apt.motif}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 mt-1">
+                          Dr. {apt.medecin?.prenom} {apt.medecin?.nom}
+                        </div>
                       </div>
-                      <div className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800 border border-red-200">
-                        Occupé
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-sm text-gray-500">Aucun rendez-vous ce jour.</div>
                 )}
@@ -416,6 +469,18 @@ const PriseRendezVousPage = () => {
                 </div>
                 
                 <div className="flex space-x-2 mt-2">
+                  <button
+                    onClick={() => handleMarkPresentFromAppointment(appointment)}
+                    disabled={appointment.statut_arrivee === 'arrive'}
+                    className={`flex items-center px-2 py-1 text-xs rounded transition-colors ${
+                      appointment.statut_arrivee === 'arrive'
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    {appointment.statut_arrivee === 'arrive' ? 'Arrivé' : 'Marquer arrivé'}
+                  </button>
                   <button
                     onClick={() => setEditingAppointment(appointment)} // Use setEditingAppointment from hook
                     className="text-blue-600 hover:text-blue-800 text-xs"

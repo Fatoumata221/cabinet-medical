@@ -303,7 +303,7 @@ const StatisticsPage = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {statsData.doctorsPerformance.map((doctor, index) => (
-                    <tr key={index}>
+                    <tr key={doctor.id || `doctor-${index}`}>
                       <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">{doctor.name}</td>
                       <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{doctor.patients}</td>
                       <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{doctor.consultations}</td>

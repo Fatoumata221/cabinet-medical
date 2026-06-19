@@ -724,7 +724,7 @@ const FacturationPharmacie = () => {
                   <h5 className="font-medium text-gray-900 mb-3">Médicaments sélectionnés :</h5>
                   <div className="space-y-2">
                     {medicaments.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                      <div key={`new-med-${index}`} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                         <div>
                           <span className="font-medium">{item.medicament.nom} {item.medicament.dosage}</span>
                           <span className="text-gray-500 ml-2">x{item.quantite}</span>
@@ -879,7 +879,7 @@ const FacturationPharmacie = () => {
                   </td>
                   <td className="px-6 py-4">
                     {vente.medicaments.map((item, index) => (
-                      <div key={index} className="text-sm text-gray-900 mb-1">
+                      <div key={`${vente.id}-vente-med-${index}`} className="text-sm text-gray-900 mb-1">
                         {item.medicament.nom} x{item.quantite}
                       </div>
                     ))}
@@ -972,7 +972,7 @@ const FacturationPharmacie = () => {
                 <h4 className="font-medium text-gray-900 mb-3">Médicaments vendus</h4>
                 <div className="space-y-2">
                   {showDetails.medicaments.map((item, index) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded flex justify-between items-center">
+                    <div key={`${showDetails.id}-detail-med-${index}`} className="bg-gray-50 p-3 rounded flex justify-between items-center">
                       <div>
                         <span className="font-medium">{item.medicament.nom} {item.medicament.dosage}</span>
                         <span className="text-sm text-gray-500 block">{item.medicament.forme} - {item.medicament.dci}</span>

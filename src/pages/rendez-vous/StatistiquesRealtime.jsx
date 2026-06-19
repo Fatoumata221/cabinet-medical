@@ -313,7 +313,7 @@ const StatistiquesRealtime = () => {
           <div className="h-64 flex items-end justify-center space-x-2">
             {patientsData.length > 0 ? (
               patientsData.map((value, index) => (
-                <div key={index} className="flex flex-col items-center">
+                <div key={`patients-${index}`} className="flex flex-col items-center">
                   <div 
                     className="bg-blue-500 rounded-t w-8 transition-all duration-300 hover:bg-blue-600"
                     style={{ height: `${(value / Math.max(...patientsData)) * 200}px` }}
@@ -337,7 +337,7 @@ const StatistiquesRealtime = () => {
           <div className="h-64 flex items-end justify-center space-x-2">
             {urgencesData.length > 0 ? (
               urgencesData.map((value, index) => (
-                <div key={index} className="flex flex-col items-center">
+                <div key={`urgences-${index}`} className="flex flex-col items-center">
                   <div 
                     className="bg-red-500 rounded-t w-8 transition-all duration-300 hover:bg-red-600"
                     style={{ height: `${(value / Math.max(...urgencesData, 1)) * 200}px` }}
@@ -373,7 +373,7 @@ const StatistiquesRealtime = () => {
                   
                   return (
                     <circle
-                      key={index}
+                      key={`pie-${index}`}
                       cx="50"
                       cy="50"
                       r={radius}
@@ -397,7 +397,7 @@ const StatistiquesRealtime = () => {
           
           <div className="lg:ml-8 space-y-2">
             {pieChartData.map((item, index) => (
-              <div key={index} className="flex items-center">
+              <div key={`legend-${index}`} className="flex items-center">
                 <div 
                   className="w-4 h-4 rounded-full mr-2"
                   style={{ backgroundColor: item.color }}

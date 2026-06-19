@@ -224,11 +224,26 @@ const MyWaitingQueuePage = () => {
       
       console.log('📋 [MyWaitingQueue] Récupération file d\'attente pour médecin:', profile.id);
       
-      // 1) Récupérer la file d'attente sans jointures
+      // Calculer les bornes de la date d'aujourd'hui
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStart = tomorrow.toISOString();
+      
+      // 1) Récupérer la file d'attente sans jointures avec filtre de date et statut_arrivee
       const { data: queueData, error: queueError } = await supabase
         .from('waiting_queue')
-        .select('*')
+        .select(`
+          *,
+          appointments(date_heure, statut_arrivee, heure_arrivee)
+        `)
         .eq('medecin_id', profile.id)
+        .gte('appointments.date_heure', todayStart)
+        .lt('appointments.date_heure', tomorrowStart)
+        .eq('appointments.statut_arrivee', 'arrive')
         .order('order_position', { ascending: true });
 
       if (queueError) {

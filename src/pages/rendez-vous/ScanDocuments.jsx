@@ -554,7 +554,7 @@ const ScanDocuments = () => {
                         <div className="flex items-center space-x-2 mb-2">
                           <Tag className="w-4 h-4 text-gray-400" />
                           {document.tags.map((tag, index) => (
-                            <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            <span key={`${document.id}-tag-${index}`} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                               {tag}
                             </span>
                           ))}
