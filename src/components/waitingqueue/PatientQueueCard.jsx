@@ -1,20 +1,20 @@
 import React from 'react';
 import { PhoneIcon, CalendarIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 
-const PatientQueueCard = ({ patient, doctor, isFromAppointment, isCalled, onMarkPresent, onCancel }) => {
+const PatientQueueCard = ({ patient, doctor, isFromAppointment, isCalled, isLate, onMarkPresent, onCancel }) => {
   const getPriorityBadge = (priorite) => {
     const priorityClasses = {
       normale: 'bg-gray-100 text-gray-800',
       urgente: 'bg-orange-100 text-orange-800',
       tres_urgente: 'bg-red-100 text-red-800'
     };
-    
+
     const priorityLabels = {
       normale: 'Normale',
       urgente: 'Urgente',
       tres_urgente: 'Très urgente'
     };
-    
+
     return (
       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${priorityClasses[priorite] || priorityClasses.normale}`}>
         {priorityLabels[priorite] || priorite}
@@ -24,8 +24,11 @@ const PatientQueueCard = ({ patient, doctor, isFromAppointment, isCalled, onMark
 
   let cardClass = 'border-gray-200';
   let avatarClass = 'bg-gradient-to-br from-medical-primary to-medical-secondary';
-  
-  if (isFromAppointment) {
+
+  if (isLate) {
+    cardClass = 'border-red-300 bg-red-50 animate-pulse';
+    avatarClass = 'bg-gradient-to-br from-red-500 to-red-600';
+  } else if (isFromAppointment) {
     cardClass = 'border-green-200 bg-green-50';
     avatarClass = 'bg-gradient-to-br from-green-500 to-green-600';
   } else if (isCalled) {
@@ -52,6 +55,11 @@ const PatientQueueCard = ({ patient, doctor, isFromAppointment, isCalled, onMark
                 <span className="bg-green-100 text-green-800 text-xs font-medium px-1.5 py-0.5 rounded flex items-center gap-0.5">
                   <CalendarIcon className="w-2.5 h-2.5" />
                   RDV
+                </span>
+              )}
+              {isLate && (
+                <span className="bg-red-100 text-red-800 text-xs font-medium px-1.5 py-0.5 rounded flex items-center gap-0.5 animate-pulse">
+                  ⚠️ En retard
                 </span>
               )}
               {isCalled && (

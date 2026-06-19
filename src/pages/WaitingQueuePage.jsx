@@ -841,11 +841,11 @@ const WaitingQueuePage = () => {
       return appointmentEndTime.getTime() < now.getTime();
     })() : false;
 
-    // Si le rendez-vous est passé, forcer le statut "Terminé"
+    // Si le rendez-vous est passé, afficher "En retard" en rouge
     if (isPast) {
       return (
-        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          Terminé
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-300 animate-pulse">
+          En retard
         </span>
       );
     }
@@ -854,12 +854,12 @@ const WaitingQueuePage = () => {
       waiting: 'bg-yellow-100 text-yellow-800',
       in_consultation: 'bg-blue-100 text-blue-800',
       finished: 'bg-green-100 text-green-800',
-      late: 'bg-orange-100 text-orange-800',
+      late: 'bg-red-100 text-red-800',
       emergency: 'bg-red-100 text-red-800',
       present: 'bg-blue-100 text-blue-800',
       called: 'bg-purple-100 text-purple-800'
     };
-    
+
     const statusLabels = {
       waiting: 'En attente',
       in_consultation: 'En consultation',
@@ -869,7 +869,7 @@ const WaitingQueuePage = () => {
       present: 'Présent',
       called: 'Appelé'
     };
-    
+
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses[status] || statusClasses.waiting}`}>
         {statusLabels[status] || status}
@@ -897,12 +897,22 @@ const WaitingQueuePage = () => {
     );
   };
 
+  // Fonction pour vérifier si un patient est en retard
+  const isPatientLate = (patient) => {
+    if (!patient.appointment_id || !patient.date_heure) return false;
+    const appointmentTime = new Date(patient.date_heure);
+    const durationMinutes = 30; // Durée par défaut
+    const appointmentEndTime = new Date(appointmentTime.getTime() + durationMinutes * 60000);
+    const now = new Date();
+    return appointmentEndTime.getTime() < now.getTime();
+  };
+
   // Filtrer les patients selon le médecin sélectionné
-  const patientsEnAttente = selectedDoctor 
+  const patientsEnAttente = selectedDoctor
     ? patients.filter(p => (p.status === 'waiting' || p.status === 'called') && p.medecin_id === selectedDoctor.id)
     : patients.filter(p => p.status === 'waiting' || p.status === 'called');
-    
-  const patientsEnConsultation = selectedDoctor 
+
+  const patientsEnConsultation = selectedDoctor
     ? patients.filter(p => p.status === 'in_consultation' && p.medecin_id === selectedDoctor.id)
     : patients.filter(p => p.status === 'in_consultation');
 
@@ -912,6 +922,26 @@ const WaitingQueuePage = () => {
     patient.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.motif.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Trier les patients en attente : les patients en retard en premier
+  const sortedPatientsEnAttente = [...filteredPatientsEnAttente].sort((a, b) => {
+    const aIsLate = isPatientLate(a);
+    const bIsLate = isPatientLate(b);
+    
+    // Les patients en retard d'abord
+    if (aIsLate && !bIsLate) return -1;
+    if (!aIsLate && bIsLate) return 1;
+    
+    // Ensuite, trier par priorité
+    const priorityOrder = { 'tres_urgente': 0, 'urgente': 1, 'normale': 2 };
+    const aPriority = priorityOrder[a.priorite] ?? 2;
+    const bPriority = priorityOrder[b.priorite] ?? 2;
+    
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    
+    // Enfin, trier par heure d'arrivée
+    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+  });
 
   // Fonction pour vérifier si un patient est présent
   const isPatientPresent = (patientId) => {
@@ -1119,10 +1149,11 @@ const WaitingQueuePage = () => {
         </div>
         
         <div className="space-y-2 overflow-y-auto max-h-96">
-          {filteredPatientsEnAttente.map((patient) => {
+          {sortedPatientsEnAttente.map((patient) => {
             const doctor = doctors.find(d => d.id === patient.medecin_id);
             const isFromAppointment = isPatientPresent(patient.id);
             const isCalled = patient.status === 'called';
+            const isLate = isPatientLate(patient);
             
             return (
               <PatientQueueCard
@@ -1131,13 +1162,14 @@ const WaitingQueuePage = () => {
                 doctor={doctor}
                 isFromAppointment={isFromAppointment}
                 isCalled={isCalled}
+                isLate={isLate}
                 onMarkPresent={(id) => isCalled ? handleMarkCalledPatientPresent(id) : handleMarkPresent(id)}
                 onCancel={handleCancelPatient}
               />
             );
           })}
           
-          {filteredPatientsEnAttente.length === 0 && (
+          {sortedPatientsEnAttente.length === 0 && (
             <div className="text-center py-6">
               <ClockIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
               <p className="text-sm text-gray-500">Aucun patient en attente</p>

@@ -28,7 +28,8 @@ import {
   AlertCircle,
   FileText,
   Save,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import { unifiedNotificationService } from '../services/unifiedNotificationService';
 import PatientCard from '../components/introduction/PatientCard';
@@ -573,7 +574,7 @@ const IntroductionPatientPage = () => {
     }
 
     setIsLoading(prev => ({ ...prev, actions: true }));
-    
+
     try {
       const { data, error } = await supabase.rpc('secretaire_marque_patient_arrive', {
         p_appointment_id: appointmentId,
@@ -591,6 +592,37 @@ const IntroductionPatientPage = () => {
     } catch (error) {
       console.error('Erreur lors du marquage du patient comme arrivé:', error);
       unifiedNotificationService.error(error.message || 'Erreur lors du marquage du patient comme arrivé');
+    } finally {
+      setIsLoading(prev => ({ ...prev, actions: false }));
+    }
+  };
+
+  // Confirmer la présence du patient et l'ajouter à la salle d'attente
+  const handleConfirmPatientPresence = async (appointmentId) => {
+    if (!appointmentId) {
+      unifiedNotificationService.error('ID de rendez-vous manquant');
+      return;
+    }
+
+    setIsLoading(prev => ({ ...prev, actions: true }));
+
+    try {
+      const { data, error } = await supabase.rpc('secretaire_confirme_patient_presence', {
+        p_appointment_id: appointmentId,
+        p_secretaire_id: userProfile?.id
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        await Promise.all([fetchWaitingQueue(), fetchTodayAppointments(), fetchConsultationCount()]);
+        unifiedNotificationService.success(data.message || 'Patient confirmé présent et ajouté à la salle d\'attente');
+      } else {
+        throw new Error(data?.error || 'Erreur inconnue lors de la confirmation de présence');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la confirmation de présence:', error);
+      unifiedNotificationService.error(error.message || 'Erreur lors de la confirmation de présence');
     } finally {
       setIsLoading(prev => ({ ...prev, actions: false }));
     }
@@ -1009,6 +1041,70 @@ const IntroductionPatientPage = () => {
                 size="sm"
               />
             </div>
+
+            {/* Liste des rendez-vous du jour avec bouton Arrivé */}
+            {visibleTodayAppointments.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-base font-semibold text-gray-900 flex items-center">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Rendez-vous du jour ({visibleTodayAppointments.length})
+                  </h3>
+                </div>
+                <div className="space-y-2">
+                  {visibleTodayAppointments.map((appointment) => {
+                    // Vérifier si le patient est déjà dans la file d'attente
+                    const isInWaitingQueue = waitingQueue.some(
+                      q => q.patient_id === appointment.patient_id && q.medecin_id === appointment.medecin_id
+                    );
+
+                    return (
+                      <div key={appointment.id} className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm text-gray-900">
+                              {appointment.patient?.prenom} {appointment.patient?.nom}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(appointment.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              {' • '}
+                              Dr. {appointment.medecin?.prenom} {appointment.medecin?.nom}
+                            </p>
+                          </div>
+                          {isInWaitingQueue ? (
+                            <button
+                              disabled
+                              className="flex items-center px-3 py-1.5 rounded text-xs bg-blue-100 text-blue-800 cursor-not-allowed"
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Présent
+                            </button>
+                          ) : appointment.statut_arrivee === 'arrive' ? (
+                            <button
+                              onClick={() => handleConfirmPatientPresence(appointment.id)}
+                              disabled={isLoading.actions}
+                              className="flex items-center px-3 py-1.5 rounded text-xs bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                            >
+                              <UserCheck className="w-3 h-3 mr-1" />
+                              Confirmer présence
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleMarkPatientArrived(appointment.id)}
+                              disabled={isLoading.actions}
+                              className="flex items-center px-3 py-1.5 rounded text-xs bg-green-600 text-white hover:bg-green-700 transition-colors"
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Marquer arrivé
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Salle d'attente compact */}
             <div

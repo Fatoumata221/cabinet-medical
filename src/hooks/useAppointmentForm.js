@@ -399,6 +399,14 @@ export const useAppointmentForm = ({
         notes: formData.notes || '',
         type_rdv: formData.type_rdv || 'consultation',
       };
+
+      // Convertir les IDs en bigint si nécessaire
+      if (appointmentData.patient_id && typeof appointmentData.patient_id === 'string') {
+        appointmentData.patient_id = parseInt(appointmentData.patient_id);
+      }
+      if (appointmentData.medecin_id && typeof appointmentData.medecin_id === 'string') {
+        appointmentData.medecin_id = parseInt(appointmentData.medecin_id);
+      }
       
       let addedToWaitingQueue = false;
 

@@ -19,7 +19,8 @@ import {
   XCircle,
   CalendarDays,
   Save,
-  X
+  X,
+  UserCheck
 } from 'lucide-react';
 import { formatDoctorSpecialties } from '../../utils/doctorUtils';
 
@@ -121,7 +122,7 @@ const PriseRendezVousPage = () => {
     }
   }, [preselectedPatientId, allPatients, setFormData]);
 
-  // Marquer un patient présent depuis la liste des rendez-vous (notifie le médecin via RPC)
+  // Marquer un patient comme arrivé depuis la liste des rendez-vous
   const handleMarkPresentFromAppointment = async (appointment) => {
     try {
       if (!appointment?.id) return;
@@ -131,29 +132,44 @@ const PriseRendezVousPage = () => {
         return;
       }
 
-      // Mettre à jour le statut_arrivee du rendez-vous à "arrive" et enregistrer l'heure d'arrivée
-      const { error: updateError } = await supabase
-        .from('appointments')
-        .update({ 
-          statut_arrivee: 'arrive',
-          heure_arrivee: new Date().toISOString()
-        })
-        .eq('id', appointment.id);
-      
-      if (updateError) throw updateError;
-
-      // Ajouter le patient à la salle d'attente via RPC
+      // Marquer le patient comme arrivé (ne pas ajouter à la file d'attente)
       const { data, error } = await supabase.rpc('secretaire_marque_patient_arrive', {
         p_appointment_id: appointment.id,
         p_secretaire_id: secId
       });
+
       if (error) throw error;
 
-      refreshAppointments(); // Refresh appointments after marking present
-      showSuccess(data?.message || 'Patient marqué présent et ajouté à la salle d\'attente');
+      refreshAppointments();
+      showSuccess(data?.message || 'Patient marqué comme arrivé');
     } catch (err) {
       console.error('Erreur handleMarkPresentFromAppointment:', err);
-      showAlertError(err.message || 'Erreur lors du marquage présent');
+      showAlertError(err.message || 'Erreur lors du marquage arrivé');
+    }
+  };
+
+  // Confirmer la présence du patient et l'ajouter à la salle d'attente
+  const handleConfirmPatientPresence = async (appointment) => {
+    try {
+      if (!appointment?.id) return;
+      const secId = secretaireId;
+      if (!secId) {
+        showAlertError("Impossible d'identifier la secrétaire (secretaireId manquant)");
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('secretaire_confirme_patient_presence', {
+        p_appointment_id: appointment.id,
+        p_secretaire_id: secId
+      });
+
+      if (error) throw error;
+
+      refreshAppointments();
+      showSuccess(data?.message || 'Patient confirmé présent et ajouté à la salle d\'attente');
+    } catch (err) {
+      console.error('Erreur handleConfirmPatientPresence:', err);
+      showAlertError(err.message || 'Erreur lors de la confirmation de présence');
     }
   };
 
@@ -469,18 +485,23 @@ const PriseRendezVousPage = () => {
                 </div>
                 
                 <div className="flex space-x-2 mt-2">
-                  <button
-                    onClick={() => handleMarkPresentFromAppointment(appointment)}
-                    disabled={appointment.statut_arrivee === 'arrive'}
-                    className={`flex items-center px-2 py-1 text-xs rounded transition-colors ${
-                      appointment.statut_arrivee === 'arrive'
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    {appointment.statut_arrivee === 'arrive' ? 'Arrivé' : 'Marquer arrivé'}
-                  </button>
+                  {appointment.statut_arrivee === 'arrive' ? (
+                    <button
+                      onClick={() => handleConfirmPatientPresence(appointment)}
+                      className="flex items-center px-2 py-1 text-xs rounded transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      <UserCheck className="w-3 h-3 mr-1" />
+                      Confirmer présence
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleMarkPresentFromAppointment(appointment)}
+                      className="flex items-center px-2 py-1 text-xs rounded transition-colors bg-green-600 text-white hover:bg-green-700"
+                    >
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Marquer arrivé
+                    </button>
+                  )}
                   <button
                     onClick={() => setEditingAppointment(appointment)} // Use setEditingAppointment from hook
                     className="text-blue-600 hover:text-blue-800 text-xs"
