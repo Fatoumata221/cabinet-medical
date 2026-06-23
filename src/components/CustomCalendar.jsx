@@ -44,7 +44,7 @@ import '../styles/customCalendar.css';
 
 const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
   const { currentUser, hasRole } = useAuth();
-  const { showError } = useAlert();
+  const { showError, showWarning } = useAlert();
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
   const [medecins, setMedecins] = useState([]);
@@ -640,7 +640,12 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
       });
     } catch (error) {
       console.error('Erreur lors de la création du RDV:', error);
-      showError('Erreur lors de la création du rendez-vous. Veuillez réessayer.');
+      const notification = appointmentService.getCreationErrorNotification(error);
+      if (notification.type === 'warning') {
+        showWarning(notification.message, notification.title);
+      } else {
+        showError(notification.message, notification.title);
+      }
     }
   };
 

@@ -43,6 +43,7 @@ const PriseRendezVousPage = () => {
   const [secretaireId, setSecretaireId] = useState(null);
   const [searchTerm, setSearchTerm] = useState(''); // Keep searchTerm locally
   const [localEditingAppointment, setLocalEditingAppointment] = useState(null); // Local state to pass to form hook
+  const [confirmedPresenceAppointmentId, setConfirmedPresenceAppointmentId] = useState(null);
   
   // Récupérer le patientId depuis l'URL pour pré-sélection
   const preselectedPatientId = searchParams.get('patientId');
@@ -83,15 +84,17 @@ const PriseRendezVousPage = () => {
     resetForm,
     generateDoctorTimeSlots,
     doctorLoadsById,
-    isSameDay
-  } = useAppointmentForm({ 
-    allPatients, 
-    allDoctors, 
-    appointments, 
-    refreshAppointments, 
+    isSameDay,
+    error, setError
+  } = useAppointmentForm({
+    allPatients,
+    allDoctors,
+    appointments,
+    refreshAppointments,
     showAlertError,
     showDialogError: showError, // Pass showError from useConfirmDialog
-    showSuccess, 
+    showSuccess,
+    showWarning,
     editingAppointment: localEditingAppointment, // Pass local state to hook
     selectedDoctorFilter // Pass for resetForm logic
   });
@@ -122,31 +125,10 @@ const PriseRendezVousPage = () => {
     }
   }, [preselectedPatientId, allPatients, setFormData]);
 
-  // Marquer un patient comme arrivé depuis la liste des rendez-vous
-  const handleMarkPresentFromAppointment = async (appointment) => {
-    try {
-      if (!appointment?.id) return;
-      const secId = secretaireId;
-      if (!secId) {
-        showAlertError("Impossible d'identifier la secrétaire (secretaireId manquant)");
-        return;
-      }
-
-      // Marquer le patient comme arrivé (ne pas ajouter à la file d'attente)
-      const { data, error } = await supabase.rpc('secretaire_marque_patient_arrive', {
-        p_appointment_id: appointment.id,
-        p_secretaire_id: secId
-      });
-
-      if (error) throw error;
-
-      refreshAppointments();
-      showSuccess(data?.message || 'Patient marqué comme arrivé');
-    } catch (err) {
-      console.error('Erreur handleMarkPresentFromAppointment:', err);
-      showAlertError(err.message || 'Erreur lors du marquage arrivé');
-    }
-  };
+  // Reset confirmedPresenceAppointmentId when date or doctor filter changes
+  useEffect(() => {
+    setConfirmedPresenceAppointmentId(null);
+  }, [selectedDate, selectedDoctorFilter]);
 
   // Confirmer la présence du patient et l'ajouter à la salle d'attente
   const handleConfirmPatientPresence = async (appointment) => {
@@ -164,6 +146,25 @@ const PriseRendezVousPage = () => {
       });
 
       if (error) throw error;
+
+      setConfirmedPresenceAppointmentId(appointment.id);
+      // Envoyer notification au médecin que le patient est dans la salle d'attente
+      if (data?.medecin_id && appointment.patient) {
+        const { sendNotification, NOTIFICATION_TYPES } = await import('../../lib/notifications');
+        const patientName = `${appointment.patient.prenom ?? ''} ${appointment.patient.nom ?? ''}`.trim();
+
+        await sendNotification(
+          NOTIFICATION_TYPES.PATIENT_ARRIVED,
+          secId,
+          data.medecin_id,
+          null,
+          patientName,
+          {
+            appointment_id: appointment.id,
+            patient_id: data.patient_id
+          }
+        );
+      }
 
       refreshAppointments();
       showSuccess(data?.message || 'Patient confirmé présent et ajouté à la salle d\'attente');
@@ -485,25 +486,22 @@ const PriseRendezVousPage = () => {
                 </div>
                 
                 <div className="flex space-x-2 mt-2">
-                  {appointment.statut_arrivee === 'arrive' ? (
+                  {appointment.statut === 'confirme' && appointment.statut_arrivee !== 'arrive' && (
                     <button
                       onClick={() => handleConfirmPatientPresence(appointment)}
-                      className="flex items-center px-2 py-1 text-xs rounded transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                      disabled={confirmedPresenceAppointmentId === appointment.id}
+                      className={`text-green-600 hover:text-green-800 text-xs ${
+                        confirmedPresenceAppointmentId === appointment.id ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     >
-                      <UserCheck className="w-3 h-3 mr-1" />
-                      Confirmer présence
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleMarkPresentFromAppointment(appointment)}
-                      className="flex items-center px-2 py-1 text-xs rounded transition-colors bg-green-600 text-white hover:bg-green-700"
-                    >
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Marquer arrivé
+                      {confirmedPresenceAppointmentId === appointment.id ? 'Confirmé' : 'Confirmer la présence'}
                     </button>
                   )}
                   <button
-                    onClick={() => setEditingAppointment(appointment)} // Use setEditingAppointment from hook
+                    onClick={() => {
+                      setEditingAppointment(appointment);
+                      setConfirmedPresenceAppointmentId(null);
+                    }}
                     className="text-blue-600 hover:text-blue-800 text-xs"
                   >
                     Modifier

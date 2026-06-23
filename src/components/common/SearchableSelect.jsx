@@ -44,13 +44,6 @@ const SearchableSelect = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Focus sur l'input de recherche quand on ouvre le dropdown
-  useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isOpen]);
-
   // Filtrer les options selon la recherche
   const filteredOptions = options.filter(option => {
     if (!searchTerm) return true;
@@ -61,6 +54,14 @@ const SearchableSelect = ({
            option.telephone?.includes(searchTerm) ||
            option.email?.toLowerCase().includes(searchLower);
   });
+
+  // Focus sur l'input de recherche quand on ouvre le dropdown
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+    console.log('🔍 [SearchableSelect] isOpen changed:', isOpen, 'filteredOptions:', filteredOptions.length);
+  }, [isOpen, filteredOptions.length]);
 
   // Trouver l'option sélectionnée
   const selectedOption = options.find(opt => {
@@ -112,7 +113,13 @@ const SearchableSelect = ({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={() => {
+          console.log('🔍 [SearchableSelect] Click detected, disabled:', disabled, 'current isOpen:', isOpen);
+          if (!disabled) {
+            setIsOpen(!isOpen);
+            console.log('🔍 [SearchableSelect] New isOpen state:', !isOpen);
+          }
+        }}
         className={`w-full px-3 py-2 text-left border rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent transition-colors ${
           isOpen ? 'border-medical-primary ring-2 ring-medical-primary' : 'border-gray-300'
         } ${!selectedOption ? 'text-gray-400' : 'text-gray-900'} ${disabled ? 'bg-gray-100 cursor-not-allowed text-gray-400' : 'bg-white'}`}

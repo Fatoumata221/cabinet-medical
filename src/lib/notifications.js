@@ -66,7 +66,9 @@ export const NOTIFICATION_TYPES = {
   FACTURATION_COMPLETE: 'facturation_complete', // Caissier → Secrétaire : "Facturation terminée, documents disponibles"
   NEW_APPOINTMENT: 'new_appointment',     // Système → Utilisateurs : "Nouveau rendez-vous créé"
   APPOINTMENT_CANCELLED: 'appointment_cancelled', // Système → Utilisateurs : "Rendez-vous annulé"
-  APPOINTMENT_MODIFIED: 'appointment_modified'   // Système → Utilisateurs : "Rendez-vous modifié"
+  APPOINTMENT_MODIFIED: 'appointment_modified',   // Système → Utilisateurs : "Rendez-vous modifié"
+  PATIENT_CALLED: 'patient_called',       // Médecin → Secrétaire : "Patient appelé, veuillez l'envoyer"
+  PATIENT_IN_CONSULTATION: 'patient_in_consultation' // Secrétaire → Médecin : "Patient envoyé dans le cabinet"
 };
 
 /**
@@ -258,17 +260,23 @@ export const sendNotification = async (type, senderId, receiverId, consultationI
 const generateNotificationMessage = (type, patientName, medecinName) => {
   switch (type) {
     case NOTIFICATION_TYPES.PATIENT_READY:
-      return medecinName 
+      return medecinName
         ? `${medecinName} demande à introduire ${patientName}`
         : `Le médecin demande à introduire ${patientName}`;
     case NOTIFICATION_TYPES.PATIENT_ON_WAY:
-      return `Le patient ${patientName} est en route`;
+      return medecinName
+        ? `Le patient se rend chez Dr. ${medecinName}`
+        : `Le patient se rend au cabinet du médecin`;
     case NOTIFICATION_TYPES.CONSULTATION_ENDED:
-      return medecinName 
+      return medecinName
         ? `${medecinName} a terminé la consultation avec ${patientName}. Cliquez pour compléter la facturation.`
         : `Consultation du patient ${patientName} terminée. Cliquez pour compléter la facturation.`;
     case NOTIFICATION_TYPES.FACTURATION_COMPLETE:
       return `La facturation pour ${patientName} est terminée. Les documents sont disponibles pour remise au patient.`;
+    case NOTIFICATION_TYPES.PATIENT_CALLED:
+      return `Patient ${patientName} appelé. Veuillez l'envoyer dans le cabinet.`;
+    case NOTIFICATION_TYPES.PATIENT_IN_CONSULTATION:
+      return `Patient ${patientName} envoyé dans le cabinet. Consultation en cours.`;
     default:
       return 'Nouvelle notification';
   }
@@ -282,11 +290,15 @@ const generateNotificationTitle = (type) => {
     case NOTIFICATION_TYPES.PATIENT_READY:
       return 'Patient prêt à être reçu';
     case NOTIFICATION_TYPES.PATIENT_ON_WAY:
-      return 'Patient en route';
+      return 'Patient en route vers le médecin';
     case NOTIFICATION_TYPES.CONSULTATION_ENDED:
       return 'Consultation terminée - Compléter la facturation';
     case NOTIFICATION_TYPES.FACTURATION_COMPLETE:
       return 'Facturation terminée - Documents disponibles';
+    case NOTIFICATION_TYPES.PATIENT_CALLED:
+      return 'Patient appelé';
+    case NOTIFICATION_TYPES.PATIENT_IN_CONSULTATION:
+      return 'Patient en consultation';
     default:
       return 'Notification';
   }
@@ -436,6 +448,11 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
     const { data: user } = await supabase.from('users').select('tenant_id').eq('id', userId).single();
     const cabinetId = user?.tenant_id;
 
+    // Calculer la date d'aujourd'hui (minuit)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStart = today.toISOString();
+
     let query = supabase
       .from('notifications_medecin_secretaire')
       .select(`
@@ -444,6 +461,7 @@ export const getAllNotifications = async (userId, userRole, limit = 50) => {
         secretaire:users!notifications_medecin_secretaire_secretaire_id_fkey(id, nom, prenom),
         patient:patients(id, nom, prenom)
       `)
+      .gte('created_at', todayStart)
       .order('created_at', { ascending: false })
       .limit(limit * 2);
 
@@ -650,15 +668,33 @@ export const subscribeToNotifications = (userId, userRole, callback) => {
  */
 export const unsubscribeFromNotifications = async (channel) => {
   try {
-    if (channel && typeof channel.unsubscribe === 'function') {
-      await channel.unsubscribe();
-      console.log('✅ [Notifications] Désabonnement effectué');
-    } else if (channel) {
-      // Alternative method for newer Supabase versions
-      await supabase.removeChannel(channel);
-      console.log('✅ [Notifications] Désabonnement effectué (removeChannel)');
+    if (!channel) {
+      console.log('⚠️ [Notifications] Aucun channel à désabonner');
+      return;
     }
+
+    // Try to unsubscribe using the channel's own method if available
+    if (typeof channel.unsubscribe === 'function') {
+      await channel.unsubscribe();
+      console.log('✅ [Notifications] Désabonnement effectué (channel.unsubscribe)');
+      return;
+    }
+
+    // Fallback: try Supabase client method
+    if (typeof supabase.removeChannel === 'function') {
+      try {
+        supabase.removeChannel(channel);
+        console.log('✅ [Notifications] Désabonnement effectué (supabase.removeChannel)');
+        return;
+      } catch (removeError) {
+        console.log('⚠️ [Notifications] removeChannel a échoué, channel ignoré');
+      }
+    }
+
+    // If neither method works, log and continue
+    console.log('🔌 [Notifications] Channel ignoré (méthodes non disponibles)');
   } catch (error) {
-    console.error('❌ [Notifications] Erreur désabonnement:', error);
+    // Silently ignore errors - this is a cleanup operation
+    console.log('⚠️ [Notifications] Erreur lors du cleanup (ignorée):', error.message);
   }
 };

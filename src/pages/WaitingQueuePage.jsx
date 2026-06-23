@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CalendarIcon, 
-  ClockIcon, 
-  UserIcon, 
+import {
+  CalendarIcon,
+  ClockIcon,
+  UserIcon,
   PlusIcon,
   CheckCircleIcon,
   XMarkIcon,
@@ -28,8 +28,10 @@ import { formatDoctorDisplay, formatDoctorSpecialties, getDoctorInitials } from 
 import NotificationPanel from '../components/secretary/NotificationPanel';
 import PatientQueueCard from '../components/waitingqueue/PatientQueueCard';
 import AppointmentCard from '../components/waitingqueue/AppointmentCard';
+import { secretaryService } from '../services/secretaryService';
 
 const WaitingQueuePage = () => {
+  const { currentUser, getUserProfile } = useAuth();
   const [patients, setPatients] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +46,7 @@ const WaitingQueuePage = () => {
   const [realtimeStatus, setRealtimeStatus] = useState('connecting'); // 'connecting', 'connected', 'error'
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [diagnosticStatus, setDiagnosticStatus] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   
   // Debounce pour éviter les rechargements trop fréquents
   const [reloadTimeoutId, setReloadTimeoutId] = useState(null);
@@ -283,25 +286,31 @@ const WaitingQueuePage = () => {
   // Charger les vraies données depuis Supabase (une seule fois)
   useEffect(() => {
     let mounted = true;
-    
+
     const initializePage = async () => {
       if (!mounted) return;
-      
+
+      // Charger le profil utilisateur
+      if (currentUser) {
+        const profile = await getUserProfile();
+        setUserProfile(profile);
+      }
+
       // Charger les données une seule fois
       await loadData();
-      
+
       // Configurer WebSocket après chargement des données
       await setupOptimizedRealtime();
     };
-    
+
     initializePage();
-    
+
     // Nettoyer au démontage
     return () => {
       mounted = false;
       cleanupOptimizedRealtime();
     };
-  }, []);
+  }, [currentUser]);
 
   const loadData = async () => {
     try {
@@ -831,6 +840,37 @@ const WaitingQueuePage = () => {
     }
   };
 
+  // Fonction pour envoyer un patient en consultation (secrétaire)
+  const handleSendPatientToConsultation = async (waitingQueueId, medecinId) => {
+    try {
+      if (!userProfile?.id) {
+        console.error('❌ [WaitingQueue] Profil utilisateur non disponible');
+        return;
+      }
+
+      await secretaryService.sendPatientToConsultation(
+        waitingQueueId,
+        userProfile.id,
+        medecinId
+      );
+
+      console.log('✅ [WaitingQueue] Patient envoyé en consultation via RPC');
+
+      // Recharger la file d'attente
+      await loadWaitingQueueData();
+    } catch (error) {
+      console.error('❌ [WaitingQueue] Erreur envoi patient en consultation:', error);
+
+      if (window.showNotification) {
+        window.showNotification({
+          message: 'Erreur lors de l\'envoi du patient: ' + error.message,
+          type: 'error',
+          duration: 4000
+        });
+      }
+    }
+  };
+
   const getStatusBadge = (status, patient = null) => {
     // Vérifier si le rendez-vous est passé
     const isPast = patient && patient.appointment_id && patient.date_heure ? (() => {
@@ -851,27 +891,33 @@ const WaitingQueuePage = () => {
     }
 
     const statusClasses = {
-      waiting: 'bg-yellow-100 text-yellow-800',
-      in_consultation: 'bg-blue-100 text-blue-800',
-      finished: 'bg-green-100 text-green-800',
+      en_attente: 'bg-yellow-100 text-yellow-800',
+      appele: 'bg-purple-100 text-purple-800',
+      en_consultation: 'bg-blue-100 text-blue-800',
+      termine: 'bg-green-100 text-green-800',
       late: 'bg-red-100 text-red-800',
       emergency: 'bg-red-100 text-red-800',
       present: 'bg-blue-100 text-blue-800',
-      called: 'bg-purple-100 text-purple-800'
+      called: 'bg-purple-100 text-purple-800',
+      waiting: 'bg-yellow-100 text-yellow-800',
+      finished: 'bg-green-100 text-green-800'
     };
 
     const statusLabels = {
-      waiting: 'En attente',
-      in_consultation: 'En consultation',
-      finished: 'Terminé',
+      en_attente: 'En attente',
+      appele: 'Appelé',
+      en_consultation: 'En consultation',
+      termine: 'Terminé',
       late: 'En retard',
       emergency: 'Urgence',
       present: 'Présent',
-      called: 'Appelé'
+      called: 'Appelé',
+      waiting: 'En attente',
+      finished: 'Terminé'
     };
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses[status] || statusClasses.waiting}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses[status] || statusClasses.en_attente}`}>
         {statusLabels[status] || status}
       </span>
     );

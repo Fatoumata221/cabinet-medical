@@ -2,6 +2,7 @@
 import { supabase } from '../lib/supabase';
 import { generateNumeroDossier } from './patientService';
 import { notificationService } from './notificationService';
+import { sendNotification, NOTIFICATION_TYPES } from '../lib/notifications';
 
 export const secretaryService = {
   // Récupérer tous les médecins actifs
@@ -281,9 +282,9 @@ export const secretaryService = {
     try {
       const { data, error } = await supabase
         .from('notifications_realtime')
-        .update({ 
-          lu: true, 
-          lu_at: new Date().toISOString() 
+        .update({
+          lu: true,
+          lu_at: new Date().toISOString()
         })
         .eq('id', notificationId)
         .select()
@@ -293,6 +294,34 @@ export const secretaryService = {
       return data;
     } catch (error) {
       console.error('Erreur lors du marquage de la notification:', error);
+      throw error;
+    }
+  },
+
+  // Envoyer un patient dans le cabinet (changer statut à 'en_consultation' via RPC)
+  async sendPatientToConsultation(waitingQueueId, secretaireId, medecinId) {
+    try {
+      const { data, error } = await supabase.rpc('secretaire_envoie_patient', {
+        p_waiting_queue_id: waitingQueueId,
+        p_secretaire_id: secretaireId
+      });
+
+      if (error) throw error;
+
+      // Envoyer notification au médecin
+      const patientName = data?.patient_name || 'Patient';
+      await sendNotification(
+        NOTIFICATION_TYPES.PATIENT_IN_CONSULTATION,
+        secretaireId,
+        medecinId,
+        null,
+        patientName,
+        { waitingQueueId, patientId: data?.patient_id }
+      );
+
+      return data;
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi du patient en consultation:', error);
       throw error;
     }
   },

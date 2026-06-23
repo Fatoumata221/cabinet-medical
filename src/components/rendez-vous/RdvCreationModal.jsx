@@ -5,6 +5,7 @@ import { Calendar, Plus, Save, X } from 'lucide-react';
 import PropTypes from 'prop-types';
 
 import { supabase } from '../../lib/supabase';
+import { appointmentService } from '../../lib/services';
 //import { supabaseQuery as supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -752,7 +753,12 @@ const RdvCreationModal = ({
       handleClose();
     } catch (error) {
       console.error('Erreur lors de la création du rendez-vous:', error);
-      showError(`Erreur lors de la création du rendez-vous: ${getAppointmentErrorMessage(error)}`);
+      const notification = appointmentService.getCreationErrorNotification(error);
+      if (notification.type === 'warning') {
+        showWarning(notification.message, notification.title);
+      } else {
+        showError(notification.message, notification.title);
+      }
     } finally {
       setSubmitting(false);
     }

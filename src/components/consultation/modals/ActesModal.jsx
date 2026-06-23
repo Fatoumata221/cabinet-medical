@@ -250,6 +250,7 @@ return (
                         </div>
                       )}
                     />
+                    {console.log('🔍 [ActesModal] SearchableSelect rendered with options count:', actesList.length)}
                     {actesList.length === 0 && (
                       <p className="mt-2 text-xs text-red-600">
                         Aucun acte n&apos;est actuellement configuré. Créez-en un nouveau avec le bouton ci-dessus.

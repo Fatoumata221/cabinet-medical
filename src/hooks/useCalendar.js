@@ -445,7 +445,13 @@ export const useCalendar = ({ initialView = 'timeGridWeek', selectedDoctorFilter
       setShowAppointmentModal(false);
       showSuccess("Rendez-vous créé avec succès !");
     } catch (error) {
-      showError('Erreur lors de la création du rendez-vous.');
+      console.error('Erreur lors de la création du rendez-vous:', error);
+      const notification = appointmentService.getCreationErrorNotification(error);
+      if (notification.type === 'warning') {
+        showWarning(notification.message, notification.title);
+      } else {
+        showError(notification.message, notification.title);
+      }
     } finally {
       creatingRef.current = false;
       setSubmitting(false);

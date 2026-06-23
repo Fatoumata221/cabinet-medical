@@ -118,18 +118,18 @@ const SalleAttentePage = () => {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStart = tomorrow.toISOString();
-      
-      // 1) Tous les patients actifs en file avec rendez-vous aujourd'hui et statut_arrivee = 'arrive'
+
+      // 1) Tous les patients actifs en file avec rendez-vous aujourd'hui et status = 'arrivé' (pas 'confirmé')
       const { data: queueData, error: queueError } = await supabase
         .from('waiting_queue')
         .select(`
           *,
-          appointments(date_heure, statut_arrivee, heure_arrivee)
+          appointments(date_heure, statut_arrivee, heure_arrivee, status)
         `)
         .in('status', WAITING_QUEUE_ACTIVE_STATUSES)
         .gte('appointments.date_heure', todayStart)
         .lt('appointments.date_heure', tomorrowStart)
-        .eq('appointments.statut_arrivee', 'arrive')
+        .eq('appointments.status', 'arrivé')
         .order('order_position', { ascending: true });
 
       if (queueError) throw queueError;

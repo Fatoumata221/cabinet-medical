@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { appointmentService } from '../../lib/services';
+import { unifiedNotificationService } from '../../services/unifiedNotificationService';
 import AppointmentTypeMotifFields, { resolveAppointmentMotif } from '../../components/common/AppointmentTypeMotifFields';
 import { 
   User, 
@@ -319,7 +320,12 @@ const FichePatientOnly = () => {
       
     } catch (error) {
       console.error('Erreur lors de la création du rendez-vous:', error);
-      alert('Erreur lors de la création du rendez-vous');
+      const notification = appointmentService.getCreationErrorNotification(error);
+      if (notification.type === 'warning') {
+        unifiedNotificationService.warning(notification.message);
+      } else {
+        unifiedNotificationService.error(notification.message);
+      }
     }
   };
 

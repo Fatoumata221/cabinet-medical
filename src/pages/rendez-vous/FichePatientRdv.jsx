@@ -218,7 +218,12 @@ const FichePatientRdv = () => {
       
     } catch (error) {
       console.error('Erreur lors de la création du rendez-vous:', error);
-      unifiedNotificationService.error('Erreur lors de la création du rendez-vous');
+      const notification = appointmentService.getCreationErrorNotification(error);
+      if (notification.type === 'warning') {
+        unifiedNotificationService.warning(notification.message);
+      } else {
+        unifiedNotificationService.error(notification.message);
+      }
     }
   };
 

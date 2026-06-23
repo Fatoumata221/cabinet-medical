@@ -54,6 +54,7 @@ const IntroductionPatientPage = () => {
   const [arrivalsStatFilter, setArrivalsStatFilter] = useState('all');
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [selectedPatientForReassign, setSelectedPatientForReassign] = useState(null);
+  const [confirmedPresenceAppointmentId, setConfirmedPresenceAppointmentId] = useState(null);
   const waitingSectionRef = useRef(null);
 
   const waitingQueueStats = useMemo(
@@ -430,11 +431,21 @@ const IntroductionPatientPage = () => {
   const fetchWaitingQueue = useCallback(async () => {
     setIsLoading(prev => ({ ...prev, waitingQueue: true }));
     try {
-      // 1) Récupérer la file sans jointures
+      // Calculer la date d'aujourd'hui (minuit)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
+
+      // 1) Récupérer la file avec jointures sur appointments pour filtrer par date et statut
       const { data: queue, error: qErr } = await supabase
         .from('waiting_queue')
-        .select('*')
+        .select(`
+          *,
+          appointments(date_heure, statut)
+        `)
         .in('status', WAITING_QUEUE_ACTIVE_STATUSES)
+        .gte('appointments.date_heure', todayStart)
+        .neq('appointments.statut', 'termine')
         .order('created_at', { ascending: false });
       if (qErr) throw qErr;
 
@@ -544,6 +555,7 @@ const IntroductionPatientPage = () => {
 
   const handlePatientSelect = useCallback((patient) => {
     setSelectedPatient(patient);
+    setConfirmedPresenceAppointmentId(null);
     // Afficher un toast pour confirmer la sélection
     unifiedNotificationService.success(`Patient ${patient.prenom} ${patient.nom} sélectionné`);
   }, []);
@@ -566,37 +578,6 @@ const IntroductionPatientPage = () => {
     });
   };
 
-  // Gestion des arrivées des patients
-  const handleMarkPatientArrived = async (appointmentId) => {
-    if (!appointmentId) {
-      unifiedNotificationService.error('ID de rendez-vous manquant');
-      return;
-    }
-
-    setIsLoading(prev => ({ ...prev, actions: true }));
-
-    try {
-      const { data, error } = await supabase.rpc('secretaire_marque_patient_arrive', {
-        p_appointment_id: appointmentId,
-        p_secretaire_id: userProfile?.id
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
-        await Promise.all([fetchWaitingQueue(), fetchTodayAppointments(), fetchConsultationCount()]);
-        unifiedNotificationService.success(data.message || 'Patient marqué comme arrivé avec succès');
-      } else {
-        throw new Error(data?.error || 'Erreur inconnue lors du marquage du patient');
-      }
-    } catch (error) {
-      console.error('Erreur lors du marquage du patient comme arrivé:', error);
-      unifiedNotificationService.error(error.message || 'Erreur lors du marquage du patient comme arrivé');
-    } finally {
-      setIsLoading(prev => ({ ...prev, actions: false }));
-    }
-  };
-
   // Confirmer la présence du patient et l'ajouter à la salle d'attente
   const handleConfirmPatientPresence = async (appointmentId) => {
     if (!appointmentId) {
@@ -615,6 +596,26 @@ const IntroductionPatientPage = () => {
       if (error) throw error;
 
       if (data?.success) {
+        setConfirmedPresenceAppointmentId(appointmentId);
+        // Récupérer les infos du rendez-vous pour la notification
+        const appointment = appointments.find(a => a.id === appointmentId);
+        if (appointment && data?.medecin_id) {
+          const patientName = `${appointment.patient?.prenom ?? ''} ${appointment.patient?.nom ?? ''}`.trim();
+
+          // Envoyer notification au médecin que le patient est dans la salle d'attente
+          await sendNotification(
+            NOTIFICATION_TYPES.PATIENT_ARRIVED,
+            userProfile?.id,
+            data.medecin_id,
+            null,
+            patientName,
+            {
+              appointment_id: appointmentId,
+              patient_id: data.patient_id
+            }
+          );
+        }
+
         await Promise.all([fetchWaitingQueue(), fetchTodayAppointments(), fetchConsultationCount()]);
         unifiedNotificationService.success(data.message || 'Patient confirmé présent et ajouté à la salle d\'attente');
       } else {
@@ -1079,25 +1080,20 @@ const IntroductionPatientPage = () => {
                               <CheckCircle className="w-3 h-3 mr-1" />
                               Présent
                             </button>
-                          ) : appointment.statut_arrivee === 'arrive' ? (
+                          ) : appointment.statut === 'confirme' && appointment.statut_arrivee !== 'arrive' ? (
                             <button
                               onClick={() => handleConfirmPatientPresence(appointment.id)}
-                              disabled={isLoading.actions}
-                              className="flex items-center px-3 py-1.5 rounded text-xs bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                              disabled={isLoading.actions || confirmedPresenceAppointmentId === appointment.id}
+                              className={`flex items-center px-3 py-1.5 rounded text-xs transition-colors ${
+                                confirmedPresenceAppointmentId === appointment.id
+                                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                  : 'bg-green-600 text-white hover:bg-green-700'
+                              }`}
                             >
                               <UserCheck className="w-3 h-3 mr-1" />
-                              Confirmer présence
+                              {confirmedPresenceAppointmentId === appointment.id ? 'Présence confirmée ✓' : 'Confirmer la présence'}
                             </button>
-                          ) : (
-                            <button
-                              onClick={() => handleMarkPatientArrived(appointment.id)}
-                              disabled={isLoading.actions}
-                              className="flex items-center px-3 py-1.5 rounded text-xs bg-green-600 text-white hover:bg-green-700 transition-colors"
-                            >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Marquer arrivé
-                            </button>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     );

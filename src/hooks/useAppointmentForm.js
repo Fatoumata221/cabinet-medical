@@ -11,7 +11,8 @@ export const useAppointmentForm = ({
   refreshAppointments,
   showAlertError, // From AlertContext
   showSuccess, // From AlertContext
-  // No need for showWarning, showInfo from AlertContext or dialogState, showError, showConfirm, closeDialog from useConfirmDialog
+  showWarning, // From AlertContext
+  // No need for showInfo from AlertContext or dialogState, showError, showConfirm, closeDialog from useConfirmDialog
   // if they are only used for UI (which will be in the component itself)
   editingAppointment: initialEditingAppointment, // Renamed to avoid conflict
 }) => {
@@ -27,6 +28,7 @@ export const useAppointmentForm = ({
   const [manualTime, setManualTime] = useState(''); // Time for manual selection
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState({
     patient_id: '',
@@ -400,12 +402,19 @@ export const useAppointmentForm = ({
         type_rdv: formData.type_rdv || 'consultation',
       };
 
-      // Convertir les IDs en bigint si nécessaire
+      // Convertir les IDs en bigint si nécessaire (patient_id et medecin_id sont bigint dans la base)
+      // NE PAS convertir les UUID (created_by, updated_by)
       if (appointmentData.patient_id && typeof appointmentData.patient_id === 'string') {
-        appointmentData.patient_id = parseInt(appointmentData.patient_id);
+        // Vérifier si c'est un UUID (ne pas convertir les UUID)
+        if (!appointmentData.patient_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          appointmentData.patient_id = parseInt(appointmentData.patient_id);
+        }
       }
       if (appointmentData.medecin_id && typeof appointmentData.medecin_id === 'string') {
-        appointmentData.medecin_id = parseInt(appointmentData.medecin_id);
+        // Vérifier si c'est un UUID (ne pas convertir les UUID)
+        if (!appointmentData.medecin_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          appointmentData.medecin_id = parseInt(appointmentData.medecin_id);
+        }
       }
       
       let addedToWaitingQueue = false;
@@ -439,14 +448,18 @@ export const useAppointmentForm = ({
       
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement:', error);
-      showDialogError(
-        'Erreur d\'enregistrement',
-        `Une erreur est survenue lors de l\'enregistrement du rendez-vous: ${error.message}`
-      );
+      const notification = appointmentService.getCreationErrorNotification(error);
+      setError(notification.message);
+
+      if (notification.type === 'warning' && showWarning) {
+        showWarning(notification.message, notification.title);
+      } else if (showAlertError) {
+        showAlertError(notification.message, notification.title);
+      }
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, currentStep, handleNextStep, editingAppointment, quickBooking, formData, refreshAppointments, showDialogError, showSuccess]);
+  }, [submitting, currentStep, handleNextStep, editingAppointment, quickBooking, formData, refreshAppointments, showDialogError, showSuccess, showAlertError, showWarning]);
 
 
   return {
@@ -461,6 +474,7 @@ export const useAppointmentForm = ({
     selectedSpecialiteStepper, setSelectedSpecialiteStepper,
     selectedDoctorStepper, setSelectedDoctorStepper,
     showSuccessToast, successMessage, setShowSuccessToast,
+    error, setError,
     stepperSteps,
     availableDoctors,
     selectedDoctorData,

@@ -1,0 +1,54 @@
+-- Fonction RPC pour que la secrétaire envoie le patient dans le cabinet
+-- Date: 2026-06-23
+-- Description: Cette fonction change le statut du patient de 'appele' à 'en_consultation'
+-- après que la secrétaire a confirmé l'envoi du patient
+
+CREATE OR REPLACE FUNCTION secretaire_envoie_patient(
+    p_waiting_queue_id bigint,
+    p_secretaire_id uuid
+)
+RETURNS jsonb AS $$
+DECLARE
+    v_patient_id bigint;
+    v_medecin_id bigint;
+    v_patient_name text;
+    v_message text;
+BEGIN
+    -- Récupérer les informations du patient dans la file d'attente
+    SELECT wq.patient_id, wq.medecin_id, p.nom, p.prenom
+    INTO v_patient_id, v_medecin_id, v_patient_name
+    FROM public.waiting_queue wq
+    JOIN public.patients p ON wq.patient_id = p.id
+    WHERE wq.id = p_waiting_queue_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Patient non trouvé dans la file d''attente: %', p_waiting_queue_id;
+    END IF;
+
+    -- Mettre à jour le statut du patient à 'en_consultation'
+    UPDATE public.waiting_queue
+    SET
+        status = 'en_consultation',
+        consultation_started_at = now(),
+        updated_at = now()
+    WHERE id = p_waiting_queue_id;
+
+    v_patient_name := COALESCE(v_patient_name, 'Patient inconnu');
+
+    -- Retourner un message de succès
+    RETURN jsonb_build_object(
+        'success', true,
+        'message', 'Patient envoyé dans le cabinet avec succès',
+        'patient_id', v_patient_id,
+        'medecin_id', v_medecin_id,
+        'waiting_queue_id', p_waiting_queue_id,
+        'patient_name', v_patient_name
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Accorder les permissions nécessaires
+GRANT EXECUTE ON FUNCTION secretaire_envoie_patient(bigint, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION secretaire_envoie_patient(bigint, uuid) TO anon;
+
+RAISE NOTICE '✅ Fonction RPC secretaire_envoie_patient créée avec succès';

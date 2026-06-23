@@ -2,18 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { sendNotification, NOTIFICATION_TYPES, subscribeToNotifications, unsubscribeFromNotifications } from '../lib/notifications';
+import { doctorService } from '../services/doctorService';
 import {
   confirmSkippedWorkflowSteps,
   validateQueueTransition,
 } from '../utils/workflowGuards';
+import {
+  WAITING_QUEUE_ACTIVE_STATUSES,
+  filterActiveQueueItems,
+  isStrictlyWaitingStatus,
+  isPresentInQueueStatus,
+  isCalledInQueueStatus,
+  isInConsultationQueueStatus,
+  isActiveQueueStatus,
+} from '../utils/waitingQueueStatus';
 import WebSocketDiagnostic from '../components/WebSocketDiagnostic';
-import { 
-  Clock, 
-  User, 
-  Phone, 
-  Calendar, 
-  AlertCircle, 
-  CheckCircle, 
+import {
+  Clock,
+  User,
+  Phone,
+  Calendar,
+  AlertCircle,
+  CheckCircle,
   XCircle,
   ArrowRight,
   Play,
@@ -88,9 +98,10 @@ const MyWaitingQueuePage = () => {
   useEffect(() => {
     if (waitingQueue.length > 0) {
       console.log('🔍 [MyWaitingQueue] Filtres appliqués:');
-      console.log('  - En attente (waiting + called):', waitingQueue.filter(p => p.status === 'waiting' || p.status === 'called').length, 'patients');
-      console.log('  - Présents:', waitingQueue.filter(p => p.status === 'present').length, 'patients');
-      console.log('  - En consultation:', waitingQueue.filter(p => p.status === 'in_consultation').length, 'patients');
+      console.log('  - En attente:', waitingQueue.filter(p => isStrictlyWaitingStatus(p.status)).length, 'patients');
+      console.log('  - Appelés:', waitingQueue.filter(p => isCalledInQueueStatus(p.status)).length, 'patients');
+      console.log('  - Présents:', waitingQueue.filter(p => isPresentInQueueStatus(p.status)).length, 'patients');
+      console.log('  - En consultation:', waitingQueue.filter(p => isInConsultationQueueStatus(p.status)).length, 'patients');
       console.log('  - Total file d\'attente:', waitingQueue.length, 'patients');
     }
   }, [waitingQueue]);
@@ -222,28 +233,24 @@ const MyWaitingQueuePage = () => {
         return;
       }
       
-      console.log('📋 [MyWaitingQueue] Récupération file d\'attente pour médecin:', profile.id);
+      console.log('📋 [MyWaitingQueue] Médecin connecté ID:', profile.id);
+      console.log('📋 [MyWaitingQueue] Requête filtre medecin_id:', profile.id);
       
       // Calculer les bornes de la date d'aujourd'hui
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const todayStart = today.toISOString();
-      
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStart = tomorrow.toISOString();
-      
-      // 1) Récupérer la file d'attente sans jointures avec filtre de date et statut_arrivee
+
+      // Récupérer la file d'attente active du médecin (statuts FR + EN)
       const { data: queueData, error: queueError } = await supabase
         .from('waiting_queue')
         .select(`
           *,
-          appointments(date_heure, statut_arrivee, heure_arrivee)
+          appointments(date_heure, statut_arrivee, heure_arrivee, status, statut, motif, duree)
         `)
         .eq('medecin_id', profile.id)
-        .gte('appointments.date_heure', todayStart)
-        .lt('appointments.date_heure', tomorrowStart)
-        .eq('appointments.statut_arrivee', 'arrive')
+        .in('status', WAITING_QUEUE_ACTIVE_STATUSES)
         .order('order_position', { ascending: true });
 
       if (queueError) {
@@ -251,8 +258,14 @@ const MyWaitingQueuePage = () => {
         throw queueError;
       }
 
-      const queueList = Array.isArray(queueData) ? queueData : [];
+      const queueList = filterActiveQueueItems(Array.isArray(queueData) ? queueData : [])
+        .filter((item) => {
+          const eventDate = new Date(item.arrived_at || item.created_at);
+          return eventDate >= today && eventDate < tomorrow;
+        });
+
       if (queueList.length === 0) {
+        console.log('⚠️ [MyWaitingQueue] Aucune entrée active pour aujourd\'hui (medecin_id=', profile.id, ')');
         setWaitingQueue([]);
         return;
       }
@@ -300,7 +313,8 @@ const MyWaitingQueuePage = () => {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      console.log('📅 [MyWaitingQueue] Récupération rendez-vous pour médecin:', profile.id);
+      console.log('📅 [MyWaitingQueue] Médecin connecté ID:', profile.id);
+      console.log('📅 [MyWaitingQueue] Requête filtre medecin_id:', profile.id);
       console.log('📅 [MyWaitingQueue] Période:', today.toISOString(), 'à', tomorrow.toISOString());
       
       const { data, error } = await supabase
@@ -328,12 +342,18 @@ const MyWaitingQueuePage = () => {
   const fetchNotifications = async (profile = userProfile) => {
     try {
       if (!profile?.id) return;
-      
+
+      // Calculer la date d'aujourd'hui (minuit)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
+
       const { data, error } = await supabase
         .from('notifications_consultation')
         .select('*')
         .eq('destinataire_id', profile.id)
         .eq('lu', false)
+        .gte('created_at', todayStart)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -365,11 +385,10 @@ const MyWaitingQueuePage = () => {
       
       switch (action) {
         case 'call':
-          newStatus = 'called';
-          // Envoyer notification au secrétaire pour appeler le patient
-          // PAS de validation workflow - "Introduire" est une demande, pas une confirmation
+          // Le RPC met déjà le statut à 'appele'
           await handleCallPatient(patientId);
-          break;
+          await fetchWaitingQueue();
+          return;
         case 'receive':
           newStatus = 'present';
           break;
@@ -391,10 +410,10 @@ const MyWaitingQueuePage = () => {
           await handleConsultationStarted(patientId);
           break;
         case 'finish':
-          newStatus = 'finished';
-          // Notifier le secrétaire que la consultation est terminée
+          // Le RPC met déjà le statut à 'termine'
           await handleConsultationFinished(patientId);
-          break;
+          await fetchWaitingQueue();
+          return;
         case 'absent':
           newStatus = 'absent';
           break;
@@ -453,44 +472,17 @@ const MyWaitingQueuePage = () => {
       const patient = waitingQueue.find(p => p.id === waitingQueueId);
       if (!patient) return;
 
-      // Trouver un secrétaire (premier utilisateur avec le rôle 'secretary')
-      const { data: secretaries } = await supabase
-        .from('users')
-        .select('id')
-        .eq('role', 'secretary')
-        .limit(1);
-
-      if (!secretaries || secretaries.length === 0) {
-        console.log('⚠️ [MyWaitingQueue] Aucun secrétaire trouvé');
-        return;
-      }
-
-      const secretaryId = secretaries[0].id;
-      const patientName = `${patient.patient?.prenom} ${patient.patient?.nom}`;
-      const doctorName = `Dr. ${userProfile?.prenom} ${userProfile?.nom}`;
-
-      // Envoyer la notification via le nouveau système avec le message personnalisé
-      await sendNotification(
-        NOTIFICATION_TYPES.PATIENT_READY,
-        userProfile.id,           // Médecin (expéditeur)
-        secretaryId,              // Secrétaire (destinataire)
-        null,                     // Pas de consultation_id
-        patientName,
-        {
-          waitingQueueId: waitingQueueId,
-          patientId: patient.patient_id,
-          medecinName: doctorName
-        }
-      );
+      // Utiliser le RPC pour appeler le patient
+      await doctorService.callPatient(waitingQueueId, userProfile.id);
 
       // Démarrer le compteur de 60 secondes
       setCallCountdown({
         waitingQueueId,
         seconds: 60,
-        patientName
+        patientName: `${patient.patient?.prenom} ${patient.patient?.nom}`
       });
 
-      console.log('✅ [MyWaitingQueue] Notification d\'introduction envoyée au secrétaire');
+      console.log('✅ [MyWaitingQueue] Patient appelé via RPC');
     } catch (error) {
       console.error('❌ [MyWaitingQueue] Erreur notification introduction:', error);
     }
@@ -522,46 +514,22 @@ const MyWaitingQueuePage = () => {
 
   const handleConsultationFinished = async (waitingQueueId) => {
     try {
-      const patient = waitingQueue.find(p => p.id === waitingQueueId);
-      if (!patient) return;
+      // Utiliser le RPC pour terminer la consultation
+      await doctorService.finishConsultation(waitingQueueId, userProfile.id);
 
-      const { data: secretaries } = await supabase
-        .from('users')
-        .select('id')
-        .eq('role', 'secretary')
-        .limit(1);
-
-      if (!secretaries || secretaries.length === 0) return;
-
-      const secretaryId = secretaries[0].id;
-      const patientName = `${patient.patient?.prenom} ${patient.patient?.nom}`;
-
-      // Envoyer la notification via le nouveau système
-      await sendNotification(
-        NOTIFICATION_TYPES.CONSULTATION_ENDED,
-        userProfile.id,           // Médecin (expéditeur)
-        secretaryId,              // Secrétaire (destinataire)
-        null,                     // Pas de consultation_id
-        patientName,
-        {
-          waitingQueueId: waitingQueueId,
-          patientId: patient.patient_id
-        }
-      );
-
-      console.log('✅ [MyWaitingQueue] Notification fin consultation envoyée');
+      console.log('✅ [MyWaitingQueue] Consultation terminée via RPC');
     } catch (error) {
-      console.error('❌ [MyWaitingQueue] Erreur notification fin consultation:', error);
+      console.error('❌ [MyWaitingQueue] Erreur fin consultation:', error);
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'waiting': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'called': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'en_attente': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'appele': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'present': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'in_consultation': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'finished': return 'bg-green-100 text-green-800 border-green-200';
+      case 'en_consultation': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'termine': return 'bg-green-100 text-green-800 border-green-200';
       case 'absent': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -569,11 +537,11 @@ const MyWaitingQueuePage = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'waiting': return <Clock className="w-4 h-4" />;
-      case 'called': return <PhoneCall className="w-4 h-4" />;
+      case 'en_attente': return <Clock className="w-4 h-4" />;
+      case 'appele': return <PhoneCall className="w-4 h-4" />;
       case 'present': return <UserCheck className="w-4 h-4" />;
-      case 'in_consultation': return <Stethoscope className="w-4 h-4" />;
-      case 'finished': return <CheckCircle className="w-4 h-4" />;
+      case 'en_consultation': return <Stethoscope className="w-4 h-4" />;
+      case 'termine': return <CheckCircle className="w-4 h-4" />;
       case 'absent': return <UserX className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
     }
@@ -581,11 +549,11 @@ const MyWaitingQueuePage = () => {
 
   const getStatusLabel = (status) => {
     switch (status) {
-      case 'waiting': return 'En attente';
-      case 'called': return 'Appelé';
+      case 'en_attente': return 'En attente';
+      case 'appele': return 'Appelé';
       case 'present': return 'Présent';
-      case 'in_consultation': return 'En consultation';
-      case 'finished': return 'Terminé';
+      case 'en_consultation': return 'En consultation';
+      case 'termine': return 'Terminé';
       case 'absent': return 'Absent';
       default: return status;
     }
@@ -633,28 +601,23 @@ const MyWaitingQueuePage = () => {
     );
   }
 
-  const patientsEnAttente = waitingQueue.filter(p => p.status === 'waiting');
-  const patientsPresents = waitingQueue.filter(p => p.status === 'present');
-  const patientsEnConsultation = waitingQueue.filter(p => p.status === 'in_consultation');
-  const patientsAppeles = waitingQueue.filter(p => p.status === 'called');
+  const patientsEnAttente = waitingQueue.filter((p) => isStrictlyWaitingStatus(p.status));
+  const patientsPresents = waitingQueue.filter((p) => isPresentInQueueStatus(p.status));
+  const patientsEnConsultation = waitingQueue.filter((p) => isInConsultationQueueStatus(p.status));
+  const patientsAppeles = waitingQueue.filter((p) => isCalledInQueueStatus(p.status));
+  const patientsVisibles = waitingQueue.filter((p) => isActiveQueueStatus(p.status));
 
   // Vérifier s'il y a une consultation en cours
   const consultationEnCours = patientsEnConsultation.length > 0;
   const patientEnConsultation = patientsEnConsultation[0]; // Un seul patient en consultation
   
-  // Filtrer les patients en attente par recherche
-  const filteredPatientsEnAttente = patientsEnAttente.filter(patient =>
+  const matchesSearch = (patient) =>
     patient.patient?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.patient?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.patient?.numero_dossier?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  // Filtrer les patients présents par recherche
-  const filteredPatientsPresents = patientsPresents.filter(patient =>
-    patient.patient?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.patient?.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.patient?.numero_dossier?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    patient.patient?.numero_dossier?.toLowerCase().includes(searchTerm.toLowerCase());
+
+  // Afficher tous les patients actifs (en_attente, appele, present, en_consultation…)
+  const filteredPatientsEnAttente = patientsVisibles.filter(matchesSearch);
 
   return (
     <div className="p-6 space-y-6">
@@ -821,7 +784,7 @@ const MyWaitingQueuePage = () => {
             </div>
             
             <div className="flex items-center gap-3">
-              {selectedPatient.status === 'present' && (
+              {isPresentInQueueStatus(selectedPatient.status) && (
                 <button
                   onClick={() => handlePatientAction(selectedPatient.id, 'consultation')}
                   className="btn bg-white text-medical-primary hover:bg-white/90 flex items-center gap-2 px-6 py-3 text-lg font-semibold"
@@ -830,7 +793,7 @@ const MyWaitingQueuePage = () => {
                   Consulter
                 </button>
               )}
-              {selectedPatient.status === 'in_consultation' && (
+              {isInConsultationQueueStatus(selectedPatient.status) && (
                 <button
                   onClick={() => handlePatientAction(selectedPatient.id, 'finish')}
                   className="btn bg-green-500 text-white hover:bg-green-600 flex items-center gap-2 px-6 py-3 text-lg font-semibold"
@@ -856,7 +819,7 @@ const MyWaitingQueuePage = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-section-title flex items-center gap-2">
               <Clock className="w-5 h-5 text-yellow-600" />
-              En Attente ({patientsEnAttente.length})
+              File active ({filteredPatientsEnAttente.length})
             </h2>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -872,13 +835,23 @@ const MyWaitingQueuePage = () => {
           
           <div className="space-y-3 overflow-y-auto max-h-96">
             {filteredPatientsEnAttente.map((patient, index) => {
-              const isCalled = patient.status === 'called';
-              const cardClass = isCalled 
-                ? 'border-orange-200 bg-orange-50' 
-                : 'border-yellow-200 bg-yellow-50';
-              const avatarClass = isCalled
-                ? 'bg-gradient-to-br from-orange-500 to-orange-600'
-                : 'bg-gradient-to-br from-medical-primary to-medical-secondary';
+              const isCalled = isCalledInQueueStatus(patient.status);
+              const isPresent = isPresentInQueueStatus(patient.status);
+              const isInConsultation = isInConsultationQueueStatus(patient.status);
+              const cardClass = isInConsultation
+                ? 'border-purple-200 bg-purple-50'
+                : isPresent
+                  ? 'border-blue-200 bg-blue-50'
+                  : isCalled
+                    ? 'border-orange-200 bg-orange-50'
+                    : 'border-yellow-200 bg-yellow-50';
+              const avatarClass = isInConsultation
+                ? 'bg-gradient-to-br from-purple-500 to-purple-600'
+                : isPresent
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-600'
+                  : isCalled
+                    ? 'bg-gradient-to-br from-orange-500 to-orange-600'
+                    : 'bg-gradient-to-br from-medical-primary to-medical-secondary';
               
               return (
                 <div key={patient.id} className={`border ${cardClass} rounded-lg p-4 hover:shadow-md transition-shadow ${isCalled ? 'animate-pulse' : ''}`}>
@@ -897,6 +870,12 @@ const MyWaitingQueuePage = () => {
                         <p className="text-body">Dossier: {patient.patient?.numero_dossier}</p>
                         {isCalled && (
                           <p className="text-xs text-orange-600 font-medium">📞 Appelé</p>
+                        )}
+                        {isPresent && (
+                          <p className="text-xs text-blue-600 font-medium">✓ Présent</p>
+                        )}
+                        {isInConsultation && (
+                          <p className="text-xs text-purple-600 font-medium">🩺 En consultation</p>
                         )}
                       </div>
                     </div>
@@ -926,7 +905,7 @@ const MyWaitingQueuePage = () => {
                   </div>
                   
                   <div className="flex gap-2">
-                    {!isCalled && (
+                    {isStrictlyWaitingStatus(patient.status) && !isCalled && (
                       <>
                         {callCountdown && callCountdown.waitingQueueId === patient.id ? (
                           <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-200 text-gray-600 text-xs font-medium rounded cursor-not-allowed">
@@ -948,6 +927,27 @@ const MyWaitingQueuePage = () => {
                         )}
                       </>
                     )}
+                    {isPresent && (
+                      <button
+                        onClick={() => handlePatientAction(patient.id, 'consultation')}
+                        disabled={consultationEnCours}
+                        className={`btn btn-success btn-sm flex items-center gap-2 ${
+                          consultationEnCours ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        <Stethoscope className="w-4 h-4" />
+                        Consulter
+                      </button>
+                    )}
+                    {isInConsultation && (
+                      <button
+                        onClick={() => handlePatientAction(patient.id, 'finish')}
+                        className="btn btn-success btn-sm flex items-center gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Terminer
+                      </button>
+                    )}
                   </div>
                 </div>
                 </div>
@@ -957,7 +957,10 @@ const MyWaitingQueuePage = () => {
             {filteredPatientsEnAttente.length === 0 && (
               <div className="text-center py-8">
                 <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">Aucun patient en attente</p>
+                <p className="text-gray-500">Aucun patient dans la file active</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Les patients apparaissent ici après confirmation de présence par la secrétaire.
+                </p>
               </div>
             )}
           </div>

@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { notificationService } from './notificationService';
+import { sendNotification, NOTIFICATION_TYPES } from '../lib/notifications';
 
 export const doctorService = {
   // Récupérer la file d'attente d'un médecin
@@ -71,9 +72,32 @@ export const doctorService = {
     }
   },
 
-  // Appeler un patient (changer statut à 'appele')
-  async callPatient(patientId) {
-    return this.updatePatientStatus(patientId, 'appele');
+  // Appeler un patient (changer statut à 'appele' via RPC)
+  async callPatient(waitingQueueId, medecinId) {
+    try {
+      const { data, error } = await supabase.rpc('medecin_appelle_patient', {
+        p_waiting_queue_id: waitingQueueId,
+        p_medecin_id: medecinId
+      });
+
+      if (error) throw error;
+
+      // Envoyer notification à la secrétaire
+      const patientName = data?.patient_name || 'Patient';
+      await sendNotification(
+        NOTIFICATION_TYPES.PATIENT_CALLED,
+        medecinId,
+        null, // sera envoyé à toutes les secrétaires actives
+        null,
+        patientName,
+        { waitingQueueId, patientId: data?.patient_id }
+      );
+
+      return data;
+    } catch (error) {
+      console.error('Erreur lors de l\'appel du patient:', error);
+      throw error;
+    }
   },
 
   // Recevoir un patient (changer statut à 'entre')
@@ -81,9 +105,32 @@ export const doctorService = {
     return this.updatePatientStatus(patientId, 'entre');
   },
 
-  // Terminer une consultation (changer statut à 'termine')
-  async finishConsultation(patientId) {
-    return this.updatePatientStatus(patientId, 'termine');
+  // Terminer une consultation (changer statut à 'termine' via RPC)
+  async finishConsultation(waitingQueueId, medecinId) {
+    try {
+      const { data, error } = await supabase.rpc('medecin_termine_consultation', {
+        p_waiting_queue_id: waitingQueueId,
+        p_medecin_id: medecinId
+      });
+
+      if (error) throw error;
+
+      // Envoyer notification à la secrétaire
+      const patientName = data?.patient_name || 'Patient';
+      await sendNotification(
+        NOTIFICATION_TYPES.CONSULTATION_ENDED,
+        medecinId,
+        null, // sera envoyé à toutes les secrétaires actives
+        null,
+        patientName,
+        { waitingQueueId, patientId: data?.patient_id }
+      );
+
+      return data;
+    } catch (error) {
+      console.error('Erreur lors de la fin de consultation:', error);
+      throw error;
+    }
   },
 
   // Créer une notification pour la secrétaire

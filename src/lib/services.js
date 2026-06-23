@@ -279,6 +279,7 @@ export const appointmentService = {
     }
 
     // Ajouter created_by et updated_by si disponibles
+    // Note: currentUser.id est un UUID de Supabase Auth, created_by/updated_by sont aussi UUID
     if (currentUser?.id) {
       appointmentData.created_by = currentUser.id;
       appointmentData.updated_by = currentUser.id;
@@ -349,6 +350,67 @@ export const appointmentService = {
 
     return conflicts || [];
   },
+
+  /**
+   * Vérification des conflits de rendez-vous pour un patient
+   * Vérifie si le patient a déjà un rendez-vous à la même date et heure
+   */
+  async checkPatientAppointmentConflicts(patientId, dateHeure, excludeId = null) {
+    let query = supabase
+      .from('appointments')
+      .select('id, date_heure, medecin_id, statut')
+      .eq('patient_id', patientId)
+      .eq('date_heure', dateHeure)
+      .neq('statut', 'annule')
+      .neq('statut', 'termine');
+
+    if (excludeId) {
+      query = query.neq('id', excludeId);
+    }
+
+    const { data: conflicts, error } = await query;
+
+    if (error) {
+      console.warn('Impossible de vérifier les conflits patient:', error);
+      return [];
+    }
+
+    return conflicts || [];
+  },
+
+  /**
+   * Vérification des doublons de rendez-vous (même patient, même médecin, même jour)
+   * Règle métier : Un patient ne peut avoir qu'un seul rendez-vous par jour avec un médecin spécifique
+   */
+  async checkPatientDoctorSameDayConflict(patientId, medecinId, dateHeure, excludeId = null) {
+    const appointmentDate = new Date(dateHeure);
+    const startOfDay = new Date(appointmentDate.setHours(0, 0, 0, 0)).toISOString();
+    const endOfDay = new Date(appointmentDate.setHours(23, 59, 59, 999)).toISOString();
+
+    let query = supabase
+      .from('appointments')
+      .select('id, date_heure, statut')
+      .eq('patient_id', patientId)
+      .eq('medecin_id', medecinId)
+      .gte('date_heure', startOfDay)
+      .lte('date_heure', endOfDay)
+      .neq('statut', 'annule')
+      .neq('statut', 'reporte');
+
+    if (excludeId) {
+      query = query.neq('id', excludeId);
+    }
+
+    const { data: conflicts, error } = await query;
+
+    if (error) {
+      console.warn('Impossible de vérifier les conflits patient/médecin/jour:', error);
+      return [];
+    }
+
+    return conflicts || [];
+  },
+
   // Récupérer tous les rendez-vous avec les détails des patients et médecins
   async getAll(options = {}) {
     const { ignoreSpecialityFilter = false } = options || {}
@@ -501,13 +563,35 @@ export const appointmentService = {
 
       // 4. Vérification des conflits (optionnel)
       if (!skipConflictCheck) {
-        const conflicts = await this.checkTimeSlotConflicts(
-          appointmentData.medecin_id, 
+        // 4.1 Vérifier les conflits pour le médecin
+        const doctorConflicts = await this.checkTimeSlotConflicts(
+          appointmentData.medecin_id,
           appointmentData.date_heure
         );
 
-        if (conflicts.length > 0) {
+        if (doctorConflicts.length > 0) {
           throw new Error('Créneau déjà occupé pour ce médecin à cette heure');
+        }
+
+        // 4.2 Vérifier les conflits pour le patient
+        const patientConflicts = await this.checkPatientAppointmentConflicts(
+          appointmentData.patient_id,
+          appointmentData.date_heure
+        );
+
+        if (patientConflicts.length > 0) {
+          throw new Error('Ce patient possède déjà un rendez-vous programmé à cette date et à cette heure');
+        }
+
+        // 4.3 Vérifier les doublons (même patient, même médecin, même jour)
+        const sameDayConflicts = await this.checkPatientDoctorSameDayConflict(
+          appointmentData.patient_id,
+          appointmentData.medecin_id,
+          appointmentData.date_heure
+        );
+
+        if (sameDayConflicts.length > 0) {
+          throw new Error('Ce patient a déjà un rendez-vous avec ce médecin aujourd\'hui');
         }
       }
 
@@ -541,7 +625,9 @@ export const appointmentService = {
               duree: appointmentData.duree,
               priorite: appointmentData.priorite,
               statut: appointmentData.statut,
-              notes: appointmentData.notes
+              notes: appointmentData.notes,
+              created_by: appointmentData.created_by,
+              updated_by: appointmentData.updated_by
             }])
             .select()
             .single();
@@ -594,14 +680,26 @@ export const appointmentService = {
     await this.verifyDoctorExists(appointmentData.medecin_id);
 
     // Vérification des conflits (exclure le RDV actuel)
-    const conflicts = await this.checkTimeSlotConflicts(
-      appointmentData.medecin_id, 
+    // 4.1 Vérifier les conflits pour le médecin
+    const doctorConflicts = await this.checkTimeSlotConflicts(
+      appointmentData.medecin_id,
       appointmentData.date_heure,
       appointmentId
     );
 
-    if (conflicts.length > 0) {
+    if (doctorConflicts.length > 0) {
       throw new Error('Créneau déjà occupé pour ce médecin à cette heure');
+    }
+
+    // 4.2 Vérifier les conflits pour le patient
+    const patientConflicts = await this.checkPatientAppointmentConflicts(
+      appointmentData.patient_id,
+      appointmentData.date_heure,
+      appointmentId
+    );
+
+    if (patientConflicts.length > 0) {
+      throw new Error('Ce patient possède déjà un rendez-vous programmé à cette date et à cette heure');
     }
 
     // Mise à jour
@@ -623,9 +721,77 @@ export const appointmentService = {
   },
 
   /**
+   * Message affiché lorsqu'un patient a déjà un RDV avec le même médecin le même jour
+   */
+  SAME_DAY_DOCTOR_CONFLICT_MESSAGE:
+    'Le patient possède déjà un rendez-vous avec ce médecin pour cette journée.',
+
+  isSameDayDoctorConflict(error) {
+    const msg = String(error?.message || error?.details || error?.hint || '');
+    const code = String(error?.code || '');
+    return (
+      msg.includes('aujourd\'hui') ||
+      msg.includes('idx_appointments_patient_medecin_date') ||
+      msg.includes('patient_medecin_date') ||
+      (code === '23505' && msg.toLowerCase().includes('appointments'))
+    );
+  },
+
+  /**
+   * Retourne le type, titre et message à afficher lors d'un échec de création/modification
+   */
+  getCreationErrorNotification(error) {
+    if (this.isSameDayDoctorConflict(error)) {
+      return {
+        type: 'warning',
+        title: 'Impossible de créer le rendez-vous',
+        message: this.SAME_DAY_DOCTOR_CONFLICT_MESSAGE,
+      };
+    }
+
+    const msg = String(error?.message || '');
+
+    if (msg.includes('Créneau déjà occupé')) {
+      return {
+        type: 'warning',
+        title: 'Créneau indisponible',
+        message:
+          'Ce créneau horaire est déjà occupé pour ce médecin. Veuillez choisir une autre heure.',
+      };
+    }
+
+    if (msg.includes('déjà un rendez-vous programmé')) {
+      return {
+        type: 'warning',
+        title: 'Impossible de créer le rendez-vous',
+        message:
+          'Ce patient a déjà un rendez-vous programmé à cette date et à cette heure.',
+      };
+    }
+
+    if (msg.includes('Création déjà en cours')) {
+      return {
+        type: 'warning',
+        title: 'Création en cours',
+        message: 'Un rendez-vous est déjà en cours de création. Veuillez patienter.',
+      };
+    }
+
+    return {
+      type: 'error',
+      title: 'Erreur',
+      message: this.getErrorMessage(error),
+    };
+  },
+
+  /**
    * Gestion d'erreur unifiée avec messages spécifiques
    */
   getErrorMessage(error) {
+    if (this.isSameDayDoctorConflict(error)) {
+      return this.SAME_DAY_DOCTOR_CONFLICT_MESSAGE;
+    }
+
     if (error.message?.includes('foreign key')) {
       if (error.message.includes('patient')) {
         return 'Patient sélectionné invalide. Veuillez choisir un autre patient.';

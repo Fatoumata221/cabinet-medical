@@ -68,26 +68,52 @@ const SalleAttente = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayStart = today.toISOString();
-      
+
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStart = tomorrow.toISOString();
-      
+
       const { data, error } = await supabase
         .from('waiting_queue')
         .select(`
           *,
           patients:patient_id (nom, prenom, numero_dossier),
           medecins:medecin_id (nom, prenom, specialite),
-          appointments(date_heure, statut_arrivee, heure_arrivee)
+          appointments(date_heure, statut_arrivee, heure_arrivee, statut)
         `)
         .gte('appointments.date_heure', todayStart)
         .lt('appointments.date_heure', tomorrowStart)
         .eq('appointments.statut_arrivee', 'arrive')
+        .neq('appointments.statut', 'termine')
+        .neq('appointments.statut', 'annule')
         .order('appointments.heure_arrivee', { ascending: true });
 
       if (error) throw error;
-      setWaitingQueue(data || []);
+
+      // Filtrer supplémentairement pour exclure les rendez-vous passés qui ne sont plus en consultation
+      const now = new Date();
+      const filteredData = (data || []).filter(item => {
+        if (!item.appointments) return false;
+
+        const appointmentDate = new Date(item.appointments.date_heure);
+        const appointmentStatus = item.appointments.statut;
+        const waitingQueueStatus = item.status;
+
+        // Si le rendez-vous est dans le futur, l'inclure
+        if (appointmentDate > now) return true;
+
+        // Si le rendez-vous est passé, vérifier si le patient est encore actif
+        // Inclure si le patient est: waiting, called, present, ou in_consultation
+        const activeStatuses = ['waiting', 'called', 'present', 'in_consultation'];
+        if (activeStatuses.includes(waitingQueueStatus)) {
+          return true;
+        }
+
+        // Sinon, exclure ce rendez-vous passé
+        return false;
+      });
+
+      setWaitingQueue(filteredData);
     } catch (error) {
       console.error('Erreur lors du chargement de la salle d\'attente:', error);
     }

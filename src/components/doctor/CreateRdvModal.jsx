@@ -229,7 +229,12 @@ const CreateRdvModal = ({
 
     } catch (error) {
       console.error('❌ [CreateRdvModal] Erreur création RDV:', error);
-      unifiedNotificationService.error(`Erreur lors de la création du rendez-vous: ${error.message}`);
+      const notification = appointmentService.getCreationErrorNotification(error);
+      if (notification.type === 'warning') {
+        unifiedNotificationService.warning(notification.message);
+      } else {
+        unifiedNotificationService.error(notification.message);
+      }
     } finally {
       setLoading(false);
     }
