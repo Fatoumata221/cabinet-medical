@@ -215,6 +215,19 @@ export const sendNotification = async (type, senderId, receiverId, consultationI
       insertData.consultation_id = consultationIdValue;
     }
 
+    console.log('🔍 [Notifications] Insertion dans notifications_medecin_secretaire:', {
+      insertData,
+      types: {
+        medecin_id: typeof insertData.medecin_id,
+        secretaire_id: typeof insertData.secretaire_id,
+        patient_id: typeof insertData.patient_id,
+        waiting_queue_id: typeof insertData.waiting_queue_id,
+        consultation_id: typeof insertData.consultation_id
+      },
+      additionalData_keys: Object.keys(additionalData),
+      additionalData_values: additionalData
+    });
+
     // Insérer dans notifications_medecin_secretaire
     const { data: notification, error } = await supabase
       .from('notifications_medecin_secretaire')

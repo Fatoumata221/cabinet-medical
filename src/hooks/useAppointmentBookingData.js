@@ -64,6 +64,18 @@ export const useAppointmentBookingData = (selectedDateFilter, selectedDoctorIdFi
 
       const fetchedAppointments = await appointmentService.getAppointmentsByDateAndDoctor(dayString, selectedDoctorIdFilter);
 
+      console.log('📋 [useAppointmentBookingData] Rendez-vous récupérés:', {
+        date: dayString,
+        doctorId: selectedDoctorIdFilter,
+        count: fetchedAppointments?.length || 0,
+        appointments: fetchedAppointments?.map(a => ({
+          id: a.id,
+          statut: a.statut,
+          statut_arrivee: a.statut_arrivee,
+          patient: a.patient?.nom
+        }))
+      });
+
       setAppointments(fetchedAppointments || []);
     } catch (err) {
       console.error('Error fetching appointments:', err);

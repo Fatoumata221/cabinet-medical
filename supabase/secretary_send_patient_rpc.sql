@@ -3,9 +3,13 @@
 -- Description: Cette fonction change le statut du patient de 'appele' à 'en_consultation'
 -- après que la secrétaire a confirmé l'envoi du patient
 
+-- Supprimer TOUTES les versions de la fonction pour éviter les conflits de surcharge
+DROP FUNCTION IF EXISTS public.secretaire_envoie_patient(bigint, uuid) CASCADE;
+DROP FUNCTION IF EXISTS public.secretaire_envoie_patient(bigint, bigint) CASCADE;
+
 CREATE OR REPLACE FUNCTION secretaire_envoie_patient(
     p_waiting_queue_id bigint,
-    p_secretaire_id uuid
+    p_secretaire_id bigint
 )
 RETURNS jsonb AS $$
 DECLARE
@@ -48,7 +52,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Accorder les permissions nécessaires
-GRANT EXECUTE ON FUNCTION secretaire_envoie_patient(bigint, uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION secretaire_envoie_patient(bigint, uuid) TO anon;
+GRANT EXECUTE ON FUNCTION secretaire_envoie_patient(bigint, bigint) TO authenticated;
+GRANT EXECUTE ON FUNCTION secretaire_envoie_patient(bigint, bigint) TO anon;
 
 RAISE NOTICE '✅ Fonction RPC secretaire_envoie_patient créée avec succès';

@@ -33,7 +33,7 @@ import { Step1DoctorAvailability } from '../../components/rendez-vous/Step1Docto
 import { Step2Confirmation } from '../../components/rendez-vous/Step2Confirmation';
 
 const PriseRendezVousPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const [searchParams] = useSearchParams();
   const { dialogState, showError, showConfirm, closeDialog } = useConfirmDialog();
   const { showError: showAlertError, showSuccess, showWarning, showInfo } = useAlert();
@@ -104,12 +104,12 @@ const PriseRendezVousPage = () => {
     setLocalEditingAppointment(editingAppointment);
   }, [editingAppointment]);
 
-  // Initialiser secretaireId avec l'ID de l'utilisateur connecté
+  // Initialiser secretaireId avec l'ID de l'utilisateur connecté (userProfile.id est bigint, currentUser.id est UUID)
   useEffect(() => {
-    if (currentUser?.id) {
-      setSecretaireId(currentUser.id);
+    if (userProfile?.id) {
+      setSecretaireId(userProfile.id);
     }
-  }, [currentUser]);
+  }, [userProfile]);
 
   // Pré-sélectionner le patient si patientId est dans l'URL
   useEffect(() => {
@@ -140,6 +140,12 @@ const PriseRendezVousPage = () => {
         return;
       }
 
+      console.log('🔍 [ConfirmPresence] Appel RPC avec:', {
+        appointment_id: appointment.id,
+        secretaire_id: secId,
+        type_secretaire_id: typeof secId
+      });
+
       const { data, error } = await supabase.rpc('secretaire_confirme_patient_presence', {
         p_appointment_id: appointment.id,
         p_secretaire_id: secId
@@ -147,11 +153,30 @@ const PriseRendezVousPage = () => {
 
       if (error) throw error;
 
+      console.log('✅ [ConfirmPresence] RPC réussi:', data);
+
       setConfirmedPresenceAppointmentId(appointment.id);
       // Envoyer notification au médecin que le patient est dans la salle d'attente
       if (data?.medecin_id && appointment.patient) {
         const { sendNotification, NOTIFICATION_TYPES } = await import('../../lib/notifications');
         const patientName = `${appointment.patient.prenom ?? ''} ${appointment.patient.nom ?? ''}`.trim();
+
+        console.log('📤 [ConfirmPresence] Envoi notification avec:', {
+          type: NOTIFICATION_TYPES.PATIENT_ARRIVED,
+          senderId: secId,
+          receiverId: data.medecin_id,
+          patientName,
+          additionalData: {
+            appointment_id: appointment.id,
+            patient_id: data.patient_id
+          },
+          types: {
+            senderId_type: typeof secId,
+            receiverId_type: typeof data.medecin_id,
+            appointment_id_type: typeof appointment.id,
+            patient_id_type: typeof data.patient_id
+          }
+        });
 
         await sendNotification(
           NOTIFICATION_TYPES.PATIENT_ARRIVED,
@@ -160,16 +185,18 @@ const PriseRendezVousPage = () => {
           null,
           patientName,
           {
-            appointment_id: appointment.id,
-            patient_id: data.patient_id
+            appointmentId: appointment.id,
+            patientId: data.patient_id
           }
         );
       }
 
-      refreshAppointments();
+      console.log('🔄 [ConfirmPresence] Rafraîchissement des rendez-vous...');
+      await refreshAppointments();
+      console.log('✅ [ConfirmPresence] Rendez-vous rafraîchis');
       showSuccess(data?.message || 'Patient confirmé présent et ajouté à la salle d\'attente');
     } catch (err) {
-      console.error('Erreur handleConfirmPatientPresence:', err);
+      console.error('❌ [ConfirmPresence] Erreur:', err);
       showAlertError(err.message || 'Erreur lors de la confirmation de présence');
     }
   };
@@ -486,7 +513,22 @@ const PriseRendezVousPage = () => {
                 </div>
                 
                 <div className="flex space-x-2 mt-2">
-                  {appointment.statut === 'confirme' && appointment.statut_arrivee !== 'arrive' && (
+                  {(() => {
+                    console.log('🔍 [PriseRendezVous] État du rendez-vous:', {
+                      id: appointment.id,
+                      statut: appointment.statut,
+                      statut_arrivee: appointment.statut_arrivee,
+                      shouldShowConfirmed: appointment.statut === 'arrive' || appointment.statut_arrivee === 'arrive',
+                      shouldShowButton: appointment.statut === 'confirme'
+                    });
+                    return null;
+                  })()}
+                  {appointment.statut === 'arrive' || appointment.statut_arrivee === 'arrive' ? (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Présence confirmée
+                    </span>
+                  ) : appointment.statut === 'confirme' && (
                     <button
                       onClick={() => handleConfirmPatientPresence(appointment)}
                       disabled={confirmedPresenceAppointmentId === appointment.id}

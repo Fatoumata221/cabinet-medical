@@ -247,7 +247,7 @@ const MyWaitingQueuePage = () => {
         .from('waiting_queue')
         .select(`
           *,
-          appointments(date_heure, statut_arrivee, heure_arrivee, status, statut, motif, duree)
+          appointments(date_heure, statut_arrivee, heure_arrivee, statut, motif, duree)
         `)
         .eq('medecin_id', profile.id)
         .in('status', WAITING_QUEUE_ACTIVE_STATUSES)

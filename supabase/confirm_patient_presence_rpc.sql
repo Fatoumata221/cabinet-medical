@@ -4,12 +4,14 @@
 -- ET l'ajoute à la file d'attente avec le statut 'en_attente' en une seule action
 -- Le patient doit être au statut 'confirme' pour pouvoir confirmer sa présence
 
--- Supprimer d'abord l'ancienne version avec uuid pour éviter les conflits
+-- Supprimer TOUTES les versions de la fonction pour éviter les conflits de surcharge
+DROP FUNCTION IF EXISTS public.secretaire_confirme_patient_presence(bigint, uuid) CASCADE;
 DROP FUNCTION IF EXISTS public.secretaire_confirme_patient_presence(uuid, uuid) CASCADE;
+DROP FUNCTION IF EXISTS public.secretaire_confirme_patient_presence(bigint, bigint) CASCADE;
 
 CREATE OR REPLACE FUNCTION secretaire_confirme_patient_presence(
     p_appointment_id bigint,
-    p_secretaire_id uuid
+    p_secretaire_id bigint
 )
 RETURNS jsonb AS $$
 DECLARE
@@ -109,7 +111,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Accorder les permissions nécessaires
-GRANT EXECUTE ON FUNCTION secretaire_confirme_patient_presence(bigint, uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION secretaire_confirme_patient_presence(bigint, uuid) TO anon;
+GRANT EXECUTE ON FUNCTION secretaire_confirme_patient_presence(bigint, bigint) TO authenticated;
+GRANT EXECUTE ON FUNCTION secretaire_confirme_patient_presence(bigint, bigint) TO anon;
 
 RAISE NOTICE '✅ Fonction RPC secretaire_confirme_patient_presence créée avec succès';

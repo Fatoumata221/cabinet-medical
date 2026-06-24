@@ -588,6 +588,12 @@ const IntroductionPatientPage = () => {
     setIsLoading(prev => ({ ...prev, actions: true }));
 
     try {
+      console.log('🔍 [IntroductionPatient] Appel RPC avec:', {
+        appointment_id: appointmentId,
+        secretaire_id: userProfile?.id,
+        type_secretaire_id: typeof userProfile?.id
+      });
+
       const { data, error } = await supabase.rpc('secretaire_confirme_patient_presence', {
         p_appointment_id: appointmentId,
         p_secretaire_id: userProfile?.id
@@ -595,12 +601,31 @@ const IntroductionPatientPage = () => {
 
       if (error) throw error;
 
+      console.log('✅ [IntroductionPatient] RPC réussi:', data);
+
       if (data?.success) {
         setConfirmedPresenceAppointmentId(appointmentId);
         // Récupérer les infos du rendez-vous pour la notification
         const appointment = appointments.find(a => a.id === appointmentId);
         if (appointment && data?.medecin_id) {
           const patientName = `${appointment.patient?.prenom ?? ''} ${appointment.patient?.nom ?? ''}`.trim();
+
+          console.log('📤 [IntroductionPatient] Envoi notification avec:', {
+            type: NOTIFICATION_TYPES.PATIENT_ARRIVED,
+            senderId: userProfile?.id,
+            receiverId: data.medecin_id,
+            patientName,
+            additionalData: {
+              appointment_id: appointmentId,
+              patient_id: data.patient_id
+            },
+            types: {
+              senderId_type: typeof userProfile?.id,
+              receiverId_type: typeof data.medecin_id,
+              appointment_id_type: typeof appointmentId,
+              patient_id_type: typeof data.patient_id
+            }
+          });
 
           // Envoyer notification au médecin que le patient est dans la salle d'attente
           await sendNotification(
@@ -610,8 +635,8 @@ const IntroductionPatientPage = () => {
             null,
             patientName,
             {
-              appointment_id: appointmentId,
-              patient_id: data.patient_id
+              appointmentId: appointmentId,
+              patientId: data.patient_id
             }
           );
         }
@@ -1072,7 +1097,7 @@ const IntroductionPatientPage = () => {
                               Dr. {appointment.medecin?.prenom} {appointment.medecin?.nom}
                             </p>
                           </div>
-                          {isInWaitingQueue ? (
+                          {isInWaitingQueue || appointment.statut === 'arrive' || appointment.statut_arrivee === 'arrive' ? (
                             <button
                               disabled
                               className="flex items-center px-3 py-1.5 rounded text-xs bg-blue-100 text-blue-800 cursor-not-allowed"
@@ -1080,7 +1105,7 @@ const IntroductionPatientPage = () => {
                               <CheckCircle className="w-3 h-3 mr-1" />
                               Présent
                             </button>
-                          ) : appointment.statut === 'confirme' && appointment.statut_arrivee !== 'arrive' ? (
+                          ) : appointment.statut === 'confirme' ? (
                             <button
                               onClick={() => handleConfirmPatientPresence(appointment.id)}
                               disabled={isLoading.actions || confirmedPresenceAppointmentId === appointment.id}

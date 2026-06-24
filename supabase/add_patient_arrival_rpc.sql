@@ -3,9 +3,13 @@
 -- Description: Cette fonction met à jour le statut du rendez-vous de 'confirmé' à 'arrivé'
 -- Le patient apparaîtra dans les salles d'attente uniquement après ce changement
 
+-- Supprimer TOUTES les versions de la fonction pour éviter les conflits de surcharge
+DROP FUNCTION IF EXISTS public.secretaire_marque_patient_arrive(bigint, uuid) CASCADE;
+DROP FUNCTION IF EXISTS public.secretaire_marque_patient_arrive(bigint, bigint) CASCADE;
+
 CREATE OR REPLACE FUNCTION secretaire_marque_patient_arrive(
     p_appointment_id bigint,
-    p_secretaire_id uuid
+    p_secretaire_id bigint
 )
 RETURNS jsonb AS $$
 DECLARE
@@ -52,7 +56,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Accorder les permissions nécessaires
-GRANT EXECUTE ON FUNCTION secretaire_marque_patient_arrive(bigint, uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION secretaire_marque_patient_arrive(bigint, uuid) TO anon;
+GRANT EXECUTE ON FUNCTION secretaire_marque_patient_arrive(bigint, bigint) TO authenticated;
+GRANT EXECUTE ON FUNCTION secretaire_marque_patient_arrive(bigint, bigint) TO anon;
 
 RAISE NOTICE '✅ Fonction RPC secretaire_marque_patient_arrive créée avec succès';

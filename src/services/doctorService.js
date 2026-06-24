@@ -85,7 +85,7 @@ export const doctorService = {
       // Envoyer notification à la secrétaire
       const patientName = data?.patient_name || 'Patient';
       await sendNotification(
-        NOTIFICATION_TYPES.PATIENT_CALLED,
+        NOTIFICATION_TYPES.PATIENT_READY,
         medecinId,
         null, // sera envoyé à toutes les secrétaires actives
         null,
