@@ -90,7 +90,6 @@ const Sidebar = ({
         icon: CalendarDays,
         items: [
           { name: 'Prise de Rendez-vous', icon: CalendarPlus, path: '/rendez-vous/prise-rendez-vous' },
-          { name: 'File d\'attente', icon: Clock, path: '/waiting-queue' },
           { name: 'Salle d\'attente', icon: Clock3, path: '/salle-attente' },
           { name: 'Fiche Patient', icon: UserCheck, path: '/rendez-vous/fiche-patient' },
           { name: 'Recherche Rendez-vous', icon: Search, path: '/appointments/recherche' },
@@ -189,7 +188,6 @@ const Sidebar = ({
         items: [
           { name: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
           { name: 'Mes Rendez-vous', icon: Calendar, path: '/my-calendar' },
-          { name: 'Ma File d\'attente', icon: Clock, path: '/my-waiting-queue' },
         ]
       },
       {

@@ -304,8 +304,8 @@ const ConsultationDetail = () => {
         onConfirm: () => setShowCreateRdvModal(true),
         onCancel: () => {
           setTimeout(() => {
-            window.location.hash = '#/my-waiting-queue';
-            navigate('/my-waiting-queue', { replace: true });
+            window.location.hash = '#/dashboard';
+            navigate('/dashboard', { replace: true });
           }, 100);
         }
       });
@@ -390,9 +390,9 @@ const ConsultationDetail = () => {
 
       showSuccessDialog('Demande envoyée', 'La demande de rendez-vous a été envoyée à la secrétaire pour confirmation.');
 
-      // Redirection vers la file d'attente après envoi de la demande
+      // Redirection vers le dashboard après envoi de la demande
       setTimeout(() => {
-        navigate('/my-waiting-queue', { replace: true });
+        navigate('/dashboard', { replace: true });
       }, 1500);
       
     } catch (error) {

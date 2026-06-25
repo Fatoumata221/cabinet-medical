@@ -432,61 +432,15 @@ const PriseRendezVousPage = () => {
         </div>
       </div>
 
-      {/* Planning */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sélection manuelle uniquement (sans grille cliquable) */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-md border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Sélection manuelle de l&apos;heure (Jour: {new Date(selectedDate).toLocaleDateString('fr-FR')})
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Le(la) secrétaire choisit librement l&apos;heure dans le formulaire. Les rendez-vous existants du jour sont listés ci-dessous pour éviter les conflits.
-              </p>
-            </div>
-            <div className="p-6">
-              <div className="space-y-3">
-                {appointments.length > 0 ? (
-                  appointments.map((apt) => {
-                    const slotStatus = getSlotStatus(apt);
-                    return (
-                      <div key={apt.id} className={`p-3 rounded-md border ${slotStatus.status === 'past' ? 'bg-gray-50 opacity-60' : 'bg-white'}`}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="text-sm text-gray-900 font-medium">
-                            {formatTime(apt.date_heure)} — {apt.patient?.prenom} {apt.patient?.nom?.toUpperCase()}
-                          </div>
-                          {getStatusBadge(apt.statut)}
-                        </div>
-                        {apt.motif && (
-                          <div className="text-xs text-gray-600 ml-0">
-                            {apt.motif}
-                          </div>
-                        )}
-                        <div className="text-xs text-gray-500 mt-1">
-                          Dr. {apt.medecin?.prenom} {apt.medecin?.nom}
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-sm text-gray-500">Aucun rendez-vous ce jour.</div>
-                )}
-              </div>
-            </div>
-          </div>
+      {/* Rendez-vous du jour */}
+      <div className="bg-white rounded-lg shadow-md border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Rendez-vous du jour</h2>
+          <p className="text-sm text-gray-600">{appointments.length} rendez-vous</p>
         </div>
 
-        {/* Rendez-vous du jour */}
-        <div>
-          <div className="bg-white rounded-lg shadow-md border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Rendez-vous du jour</h2>
-              <p className="text-sm text-gray-600">{appointments.length} rendez-vous</p>
-            </div>
-            
-            <div className="max-h-96 overflow-y-auto">
-            {appointments.map((appointment) => (
+        <div className="max-h-96 overflow-y-auto">
+          {appointments.map((appointment) => (
               <div 
                 key={appointment.id} 
                 className={`p-4 border-b border-gray-100 border-l-4 ${getPriorityColor(appointment.priorite)}`}
@@ -564,8 +518,6 @@ const PriseRendezVousPage = () => {
                   <p className="text-gray-500">Aucun rendez-vous ce jour</p>
                 </div>
               )}
-            </div>
-          </div>
         </div>
       </div>
 

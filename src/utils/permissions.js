@@ -195,7 +195,6 @@ export const isPathAccessible = (path, userRole) => {
     [ROLES.SECRETARY]: [
       '/dashboard',
       '/appointments',
-      '/waiting-queue',
       '/salle-attente',
       '/rendez-vous',
       '/patients',
@@ -213,7 +212,6 @@ export const isPathAccessible = (path, userRole) => {
     [ROLES.DOCTOR]: [
       '/dashboard',
       '/appointments',
-      '/my-waiting-queue',
       '/my-patients',
       '/patients',
       '/introduction-patient',

@@ -391,8 +391,6 @@ const Header = () => {
       '/dashboard': 'Tableau de Bord',
       '/secretary': 'Dashboard Secrétaire',
       '/doctor': 'Dashboard Médecin',
-      '/my-waiting-queue': 'Ma File d\'Attente',
-      '/waiting-queue': 'Files d\'Attente',
       '/patients': 'Gestion Patients',
       '/appointments': 'Calendrier',
       '/consultations': 'Consultations',

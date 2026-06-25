@@ -140,30 +140,6 @@ export const PAGES_CONFIG = [
     isSubPage: true
   },
 
-  // FILES D'ATTENTE
-  {
-    id: 'waiting-queue',
-    title: 'Files d\'Attente',
-    description: 'Gestion globale des files d\'attente',
-    path: '/waiting-queue',
-    category: 'Files d\'Attente',
-    icon: 'Users',
-    keywords: ['files attente', 'queue', 'patients en attente', 'gestion'],
-    allowedRoles: [ROLES.ADMIN, ROLES.SECRETARY],
-    isMainPage: true
-  },
-  {
-    id: 'my-waiting-queue',
-    title: 'Ma File d\'Attente',
-    description: 'File d\'attente spécifique au médecin',
-    path: '/my-waiting-queue',
-    category: 'Files d\'Attente',
-    icon: 'UserCheck',
-    keywords: ['ma file attente', 'patients médecin', 'consultation'],
-    allowedRoles: [ROLES.DOCTOR],
-    isMainPage: true
-  },
-
   // CONSULTATIONS
   {
     id: 'consultations',

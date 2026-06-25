@@ -41,7 +41,7 @@ const SmartDashboard = () => {
   if (role === ROLES.ADMIN) {
     return <Dashboard />;
   } else if (role === ROLES.DOCTOR) {
-    return <Navigate to="/my-waiting-queue" replace />;
+    return <Navigate to="/dashboard" replace />;
   } else if (role === ROLES.SECRETARY) {
     return <Navigate to="/secretary" replace />;
   } else {
@@ -298,12 +298,6 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="/waiting-queue" element={
-          <ProtectedRoute>
-            <LazyPageWrapper Component={WaitingQueuePage} message="Chargement file d'attente..." />
-          </ProtectedRoute>
-        } />
-        
         {/* Routes de paramétrage avec lazy loading */}
         <Route path="/parametrage/medecins" element={
           <ProtectedRoute allowedRoles={['admin']}>
@@ -348,12 +342,6 @@ const AppContent = () => {
         <Route path="/my-patients" element={
           <ProtectedRoute allowedRoles={['doctor']}>
             <LazyPageWrapper Component={MesPatientsPage} message="Chargement mes patients..." />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/my-waiting-queue" element={
-          <ProtectedRoute allowedRoles={['doctor']}>
-            <LazyPageWrapper Component={MyWaitingQueuePage} message="Chargement ma file d'attente..." />
           </ProtectedRoute>
         } />
         
