@@ -848,6 +848,11 @@ export const appointmentService = {
     }
   },
 
+  // Alias pour deleteAppointmentAndQueue (compatibilité avec code existant)
+  async deleteAppointment(appointmentId) {
+    return this.deleteAppointmentAndQueue(appointmentId);
+  },
+
   // Récupérer les rendez-vous par mois et spécialité
   async getByMonthAndSpeciality(selectedSpecialite, selectedMonth) {
     try {
