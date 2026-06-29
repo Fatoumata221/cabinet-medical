@@ -111,10 +111,24 @@ export const matchesQueueFilterStatus = (filterStatus, patientStatus) => {
 
 /** Vérifie si un patient en file d'attente a un rendez-vous passé */
 export const hasPastAppointment = (queueItem, now = new Date()) => {
-  if (!queueItem?.appointment?.date_heure) return false;
+  // Gérer différentes structures de données
+  const appointment = queueItem?.appointment || queueItem?.appointments;
   
-  const appointmentTime = new Date(queueItem.appointment.date_heure);
-  const durationMinutes = Number(queueItem.appointment.duree ?? 30);
+  // Récupérer la date du rendez-vous depuis différentes structures possibles
+  const appointmentDate = appointment?.date_heure || queueItem?.date_heure;
+  
+  if (!appointmentDate) return false;
+  
+  const appointmentTime = new Date(appointmentDate);
+  
+  // Récupérer la durée depuis différentes structures possibles
+  const durationMinutes = Number(
+    appointment?.duree || 
+    queueItem?.duree || 
+    queueItem?.appointment?.duree || 
+    30
+  );
+  
   const appointmentEndTime = new Date(appointmentTime.getTime() + durationMinutes * 60000);
   
   return appointmentEndTime.getTime() < now.getTime();

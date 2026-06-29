@@ -39,6 +39,17 @@ export const PAGES_CONFIG = [
     isMainPage: true
   },
   {
+    id: 'my-waiting-queue',
+    title: 'Ma File d\'Attente',
+    description: 'File d\'attente personnelle du médecin',
+    path: '/my-waiting-queue',
+    category: 'Rendez-vous',
+    icon: 'Users',
+    keywords: ['file attente', 'patients en attente', 'ma file', 'queue'],
+    allowedRoles: [ROLES.DOCTOR],
+    isMainPage: true
+  },
+  {
     id: 'patient-form',
     title: 'Nouveau Patient',
     description: 'Formulaire d\'ajout d\'un nouveau patient',

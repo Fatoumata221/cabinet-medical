@@ -212,6 +212,7 @@ export const isPathAccessible = (path, userRole) => {
     [ROLES.DOCTOR]: [
       '/dashboard',
       '/appointments',
+      '/my-waiting-queue',
       '/my-patients',
       '/patients',
       '/introduction-patient',

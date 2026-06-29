@@ -120,16 +120,19 @@ const SalleAttentePage = () => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStart = tomorrow.toISOString();
 
-      // 1) Patients en file d'attente avec rendez-vous aujourd'hui
+      // 1) Patients en file d'attente avec rendez-vous aujourd'hui et présence confirmée
       const { data: queueData, error: queueError } = await supabase
         .from('waiting_queue')
         .select(`
           *,
           appointments(date_heure, statut_arrivee, heure_arrivee, statut)
         `)
+        .gte('created_at', todayStart)
+        .lt('created_at', tomorrowStart)
         .gte('appointments.date_heure', todayStart)
         .lt('appointments.date_heure', tomorrowStart)
         .eq('appointments.statut', 'arrive')
+        .in('status', ['waiting', 'en_attente', 'present', 'arrive'])
         .order('order_position', { ascending: true });
 
       if (queueError) throw queueError;
@@ -199,34 +202,13 @@ const SalleAttentePage = () => {
         medecin: doctorMap[item.medecin_id] || { id: item.medecin_id, nom: 'Inconnu', prenom: 'Dr.', specialite: 'N/A' },
       }));
 
-      // 4) Mettre à jour automatiquement le statut des patients avec rendez-vous passés
-      const now = new Date();
-      const pastAppointments = enriched.filter(item => hasPastAppointment(item, now));
-      
-      if (pastAppointments.length > 0) {
-        // Mettre à jour le statut des patients passés à "Non honoré"
-        for (const item of pastAppointments) {
-          try {
-            await supabase
-              .from('waiting_queue')
-              .update({ 
-                status: 'non_honore',
-                updated_at: now.toISOString()
-              })
-              .eq('id', item.id);
-          } catch (error) {
-            console.error('Erreur lors de la mise à jour du statut du patient passé:', error);
-          }
-        }
-      }
-
-      // 5) Filtrer uniquement les patients en attente (exclure appelés, en consultation, terminés)
-      const finalFilteredItems = enriched.filter(item => 
-        !isCalledInQueueStatus(item.status) && 
-        !isInConsultationQueueStatus(item.status) && 
-        !isTerminalQueueStatus(item.status) &&
-        !hasPastAppointment(item, now)
-      );
+      // 4) Filtrer client-side pour garantir que seuls les patients créés aujourd'hui sont affichés
+      const finalFilteredItems = enriched.filter(item => {
+        const createdAt = new Date(item.created_at);
+        const itemDate = new Date(createdAt.getFullYear(), createdAt.getMonth(), createdAt.getDate());
+        const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        return itemDate.getTime() === todayDate.getTime();
+      });
 
       setPatientsEnAttente(finalFilteredItems);
     } catch (error) {

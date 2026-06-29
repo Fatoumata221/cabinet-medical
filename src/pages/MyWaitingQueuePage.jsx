@@ -239,10 +239,12 @@ const MyWaitingQueuePage = () => {
       // Calculer les bornes de la date d'aujourd'hui
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStart = tomorrow.toISOString();
 
-      // Récupérer la file d'attente active du médecin (statuts FR + EN)
+      // Récupérer la file d'attente active du médecin avec présence confirmée et statut d'attente
       const { data: queueData, error: queueError } = await supabase
         .from('waiting_queue')
         .select(`
@@ -250,7 +252,12 @@ const MyWaitingQueuePage = () => {
           appointments(date_heure, statut_arrivee, heure_arrivee, statut, motif, duree)
         `)
         .eq('medecin_id', profile.id)
-        .in('status', WAITING_QUEUE_ACTIVE_STATUSES)
+        .gte('created_at', todayStart)
+        .lt('created_at', tomorrowStart)
+        .gte('appointments.date_heure', todayStart)
+        .lt('appointments.date_heure', tomorrowStart)
+        .eq('appointments.statut', 'arrive') // Only patients with confirmed presence
+        .in('status', ['waiting', 'en_attente', 'present', 'arrive']) // Only waiting status
         .order('order_position', { ascending: true });
 
       if (queueError) {
@@ -258,11 +265,7 @@ const MyWaitingQueuePage = () => {
         throw queueError;
       }
 
-      const queueList = filterActiveQueueItems(Array.isArray(queueData) ? queueData : [])
-        .filter((item) => {
-          const eventDate = new Date(item.arrived_at || item.created_at);
-          return eventDate >= today && eventDate < tomorrow;
-        });
+      const queueList = Array.isArray(queueData) ? queueData : [];
 
       if (queueList.length === 0) {
         console.log('⚠️ [MyWaitingQueue] Aucune entrée active pour aujourd\'hui (medecin_id=', profile.id, ')');

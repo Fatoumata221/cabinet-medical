@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Users, 
-  Calendar as CalendarIcon, 
   Clock, 
   Coins, 
   AlertTriangle,
@@ -16,35 +15,25 @@ import {
   VolumeX
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import TestNotifications from '../components/TestNotifications';
 import { useDashboardData } from '../hooks/useDashboardData'; // Import the new hook
-import NewCalendar from '../components/NewCalendar';
 
 const Dashboard = () => {
   const { currentUser, hasRole } = useAuth();
   const navigate = useNavigate();
 
-  // Local states for filtering, kept in Dashboard.jsx for now
-  const [selectedSpecialite, setSelectedSpecialite] = useState(null);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM format
-
   // Use the new useDashboardData hook
   const { 
-    specialites, 
     patients, 
-    medecins: fetchedMedecins, // Renamed to avoid conflict with local state usage in queueByDoctor
-    appointments, 
+    medecins: fetchedMedecins,
     loading: dataLoading, 
     error, 
-    fetchSpecialites, 
-    fetchPatients, 
-    fetchMedecins, 
-    fetchAppointments 
+    fetchPatients
   } = useDashboardData();
 
   const [stats, setStats] = useState({
     totalPatients: 0,
-    appointmentsToday: 0,
     patientsWaiting: 0,
     consultationsCompleted: 0,
     totalRevenue: 0,
@@ -55,41 +44,74 @@ const Dashboard = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const audioRef = useRef(null);
 
-  // Initial data load for specialties and patients
+  // Initial data load for patients
   useEffect(() => {
-    fetchSpecialites();
     fetchPatients();
-  }, [fetchSpecialites, fetchPatients]);
+  }, [fetchPatients]);
 
-  // Fetch doctors when selectedSpecialite changes
+  // Fetch real waiting queue data and calculate statistics
   useEffect(() => {
-    if (selectedSpecialite) {
-      fetchMedecins(selectedSpecialite);
-    }
-  }, [selectedSpecialite, fetchMedecins]);
+    const fetchWaitingQueueData = async () => {
+      try {
+        const today = new Date();
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStart = tomorrow.toISOString();
 
-  // Fetch appointments when selectedSpecialite or selectedMonth changes
-  useEffect(() => {
-    if (selectedSpecialite && selectedMonth) {
-      fetchAppointments(selectedSpecialite, selectedMonth);
-    }
-  }, [selectedSpecialite, selectedMonth, fetchAppointments]);
+        const { data: queueData, error } = await supabase
+          .from('waiting_queue')
+          .select(`
+            *,
+            appointments(date_heure, statut_arrivee, heure_arrivee, statut)
+          `)
+          .gte('appointments.date_heure', todayStart)
+          .lt('appointments.date_heure', tomorrowStart)
+          .eq('appointments.statut', 'arrive')
+          .order('order_position', { ascending: true });
 
-  // Écouter les changements de la file d'attente en temps réel (simplifié) - KEEP AS IS FOR NOW
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulation de mise à jour temps réel
-      // For now, this simulation continues to update `stats.patientsWaiting`
-      if (Math.random() > 0.8) {
-        setStats(prev => ({
-          ...prev,
-          patientsWaiting: Math.max(0, prev.patientsWaiting + (Math.random() > 0.5 ? 1 : -1))
-        }));
+        if (error) throw error;
+
+        const queue = Array.isArray(queueData) ? queueData : [];
+        setWaitingQueue(queue);
+
+        // Calculate real statistics
+        const stats = {
+          totalPatients: patients.length,
+          patientsWaiting: queue.filter(q => 
+            q.status === 'waiting' || 
+            q.status === 'en_attente' || 
+            q.status === 'present' || 
+            q.status === 'arrive'
+          ).length,
+          consultationsCompleted: queue.filter(q => 
+            q.status === 'in_consultation' || 
+            q.status === 'en_consultation'
+          ).length,
+          totalRevenue: 0, // Would need to fetch from actual revenue data
+          totalUsers: fetchedMedecins.length
+        };
+
+        setStats(stats);
+      } catch (error) {
+        console.error('Erreur lors du chargement de la file d\'attente:', error);
       }
-    }, 5000);
+    };
 
-    return () => clearInterval(interval);
-  }, [soundEnabled]); // Removed waitingQueue from dependencies as it's a local state and not directly driving this simulation
+    fetchWaitingQueueData();
+
+    // Real-time subscription to waiting_queue changes
+    const subscription = supabase
+      .channel('waiting_queue_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'waiting_queue' }, () => {
+        fetchWaitingQueueData();
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [patients, fetchedMedecins]);
 
   const playNotificationSound = () => {
     if (audioRef.current) {
@@ -155,26 +177,6 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          {/* Speciality Selector (example, replace with actual component) */}
-          <select 
-            value={selectedSpecialite || ''} 
-            onChange={(e) => setSelectedSpecialite(e.target.value === '' ? null : e.target.value)}
-            className="p-2 border border-gray-300 rounded-lg"
-          >
-            <option value="">Toutes Spécialités</option>
-            {specialites.map(spec => (
-              <option key={spec} value={spec}>{spec}</option>
-            ))}
-          </select>
-
-          {/* Month Selector (example, replace with actual component) */}
-          <input 
-            type="month" 
-            value={selectedMonth} 
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="p-2 border border-gray-300 rounded-lg"
-          />
-
           {(hasRole(['admin']) || hasRole(['doctor'])) && (
             <button
               onClick={() => navigate('/personnalisation')}
@@ -199,7 +201,7 @@ const Dashboard = () => {
       </div>
 
       {/* Cartes de statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -209,7 +211,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Patients</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{patients.length}</p> {/* Use actual patients count */}
+              <p className="text-2xl font-bold text-gray-900 mt-1">{patients.length}</p>
             </div>
             <div className="p-3 rounded-full bg-blue-100">
               <Users className="w-6 h-6 text-blue-600" />
@@ -221,23 +223,6 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-lg shadow-md p-6 border border-gray-200"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">RDV Ce Mois</p> {/* Changed to "RDV Ce Mois" */}
-              <p className="text-2xl font-bold text-gray-900 mt-1">{appointments.length}</p> {/* Use actual appointments count */}
-            </div>
-            <div className="p-3 rounded-full bg-green-100">
-              <CalendarIcon className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
           className="bg-white rounded-lg shadow-md p-6 border border-gray-200"
         >
           <div className="flex items-center justify-between">
@@ -254,7 +239,7 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.3 }}
           className="bg-white rounded-lg shadow-md p-6 border border-gray-200"
         >
           <div className="flex items-center justify-between">
@@ -271,7 +256,7 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.4 }}
           className="bg-white rounded-lg shadow-md p-6 border border-gray-200"
         >
           <div className="flex items-center justify-between">
@@ -290,13 +275,13 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.5 }}
           className="bg-white rounded-lg shadow-md p-6 border border-gray-200"
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Utilisateurs</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{fetchedMedecins.length}</p> {/* Use actual doctors count for users */}
+              <p className="text-2xl font-bold text-gray-900 mt-1">{fetchedMedecins.length}</p>
             </div>
             <div className="p-3 rounded-full bg-indigo-100">
               <Users className="w-6 h-6 text-indigo-600" />
@@ -426,24 +411,6 @@ const Dashboard = () => {
         </motion.div>
       </div>
 
-      {/* Calendrier intégré */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9 }}
-        className="bg-white rounded-lg shadow-md border border-gray-200"
-      >
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-            <CalendarIcon className="w-5 h-5 mr-2 text-medical-primary" />
-            Calendrier des Rendez-vous
-          </h2>
-        </div>
-        <div className="p-6">
-          <NewCalendar appointments={appointments} /> {/* Pass fetched appointments to calendar */}
-        </div>
-      </motion.div>
-
       {/* Actions rapides */}
       {hasRole(['admin', 'secretaire']) && (
         <motion.div
@@ -456,20 +423,13 @@ const Dashboard = () => {
             <Plus className="w-5 h-5 mr-2 text-medical-primary" />
             Actions Rapides
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button 
               onClick={() => navigate('/introduction-patient')}
               className="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Users className="w-5 h-5 mr-2" />
               Nouveau Patient
-            </button>
-            <button 
-              onClick={() => navigate('/rendez-vous')}
-              className="flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <CalendarIcon className="w-5 h-5 mr-2" />
-              Nouveau RDV
             </button>
             <button 
               onClick={() => navigate('/facturation')}

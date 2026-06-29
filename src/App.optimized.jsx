@@ -357,6 +357,12 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
         
+        <Route path="/my-waiting-queue" element={
+          <ProtectedRoute allowedRoles={['doctor', 'admin']}>
+            <LazyPageWrapper Component={MyWaitingQueuePage} message="Chargement ma file d'attente..." />
+          </ProtectedRoute>
+        } />
+        
         {/* Routes secrétaire avec lazy loading */}
         <Route path="/secretary-dashboard" element={
           <ProtectedRoute allowedRoles={[ROLES.SECRETARY, ROLES.ADMIN]}>

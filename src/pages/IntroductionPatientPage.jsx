@@ -41,6 +41,10 @@ import 'react-toastify/dist/ReactToastify.css';
 const IntroductionPatientPage = () => {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
+  
+  // Configuration pour masquer/afficher la section "Rendez-vous du jour"
+  const SHOW_APPOINTMENTS_SECTION = false; // Mettre à true pour réactiver la section
+  
   // États de l'application
   const [mode, setMode] = useState('arrivals'); // 'arrivals', 'select' ou 'create'
   const [patients, setPatients] = useState([]);
@@ -1069,7 +1073,7 @@ const IntroductionPatientPage = () => {
             </div>
 
             {/* Liste des rendez-vous du jour avec bouton Arrivé */}
-            {visibleTodayAppointments.length > 0 && (
+            {SHOW_APPOINTMENTS_SECTION && visibleTodayAppointments.length > 0 && (
               <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-base font-semibold text-gray-900 flex items-center">
