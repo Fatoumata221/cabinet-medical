@@ -236,11 +236,10 @@ export const useNewCalendar = ({
 
   const doctorColorMap = useMemo(() => {
     const map = new Map()
-    const sortedMedecins = [...medecins].sort((a, b) =>
-      String(a.id).localeCompare(String(b.id)),
-    )
-    sortedMedecins.forEach((medecin, index) => {
-      map.set(String(medecin.id), getDoctorCalendarColor(medecin.id, index))
+    medecins.forEach((medecin) => {
+      // Utiliser la couleur du médecin depuis la base de données, ou une couleur par défaut
+      const doctorColor = medecin?.couleur || getDoctorCalendarColor(medecin.id, 0)
+      map.set(String(medecin.id), doctorColor)
     })
     return map
   }, [medecins])

@@ -19,10 +19,12 @@ import {
   Unlock,
   Key,
   Award,
-  X
+  X,
+  Palette
 } from 'lucide-react';
 import { ROLES, getRoleDisplayName } from '../../utils/permissions';
 import { useToast } from '../../hooks/useToast.jsx';
+import { DOCTOR_COLOR_PALETTE, getContrastTextColor } from '../../utils/doctorColors';
 
 const GestionMedecins = () => {
   const { currentUser, tenantId } = useAuth();
@@ -37,7 +39,9 @@ const GestionMedecins = () => {
   const [selectedMedecin, setSelectedMedecin] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showColorModal, setShowColorModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [stats, setStats] = useState({
@@ -225,6 +229,32 @@ const GestionMedecins = () => {
     setNewPassword(password);
   };
 
+  const handleColorChange = async () => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ couleur: selectedColor })
+        .eq('id', selectedMedecin.id);
+
+      if (error) throw error;
+
+      showSuccess('Couleur modifiée avec succès');
+      setShowColorModal(false);
+      setSelectedMedecin(null);
+      setSelectedColor('');
+      fetchMedecins();
+    } catch (error) {
+      console.error('Erreur lors de la modification de la couleur:', error);
+      showError('Erreur lors de la modification de la couleur: ' + error.message);
+    }
+  };
+
+  const openColorModal = (medecin) => {
+    setSelectedMedecin(medecin);
+    setSelectedColor(medecin.couleur || DOCTOR_COLOR_PALETTE[0]);
+    setShowColorModal(true);
+  };
+
   const filteredMedecins = medecins.filter(medecin => {
     // Recherche dans les noms, prénom, email et spécialités (texte libre)
     const matchesSearch = 
@@ -399,6 +429,7 @@ const GestionMedecins = () => {
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Contact</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-900 w-32">Spécialité</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-900 w-24">Statut</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-900 w-24">Couleur</th>
                 <th className="text-right py-3 px-4 font-semibold text-gray-900">Actions</th>
               </tr>
             </thead>
@@ -473,6 +504,20 @@ const GestionMedecins = () => {
                         </span>
                       )}
                     </div>
+                  </td>
+                  
+                  <td className="py-4 px-4 w-24">
+                    <button
+                      onClick={() => openColorModal(medecin)}
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                      title="Modifier la couleur"
+                    >
+                      <div
+                        className="w-6 h-6 rounded-full border-2 border-gray-300"
+                        style={{ backgroundColor: medecin.couleur || '#3b82f6' }}
+                      />
+                      <Palette className="w-4 h-4 text-gray-400" />
+                    </button>
                   </td>
                   
                   <td className="py-4 px-4">
@@ -672,6 +717,69 @@ const GestionMedecins = () => {
                 disabled={!newPassword || newPassword.length < 6}
               >
                 Modifier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de modification de couleur */}
+      {showColorModal && selectedMedecin && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <Palette className="w-6 h-6 text-purple-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Modifier la couleur</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-4">
+              Couleur pour <strong>{selectedMedecin.prenom} {selectedMedecin.nom}</strong>
+            </p>
+            
+            <div className="grid grid-cols-4 gap-3 mb-6">
+              {DOCTOR_COLOR_PALETTE.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => setSelectedColor(color)}
+                  type="button"
+                  className={`w-12 h-12 rounded-full border-2 transition-all ${
+                    selectedColor === color
+                      ? 'border-gray-900 scale-110'
+                      : 'border-gray-300 hover:border-gray-500'
+                  }`}
+                  style={{ backgroundColor: color }}
+                  title={color}
+                />
+              ))}
+            </div>
+            
+            <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-lg">
+              <div
+                className="w-10 h-10 rounded-full border-2 border-gray-300"
+                style={{ backgroundColor: selectedColor }}
+              />
+              <div>
+                <p className="text-sm font-medium text-gray-900">Couleur sélectionnée</p>
+                <p className="text-xs text-gray-600">{selectedColor}</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowColorModal(false);
+                  setSelectedMedecin(null);
+                  setSelectedColor('');
+                }}
+                className="btn btn-secondary"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleColorChange}
+                className="btn btn-primary"
+              >
+                Appliquer
               </button>
             </div>
           </div>

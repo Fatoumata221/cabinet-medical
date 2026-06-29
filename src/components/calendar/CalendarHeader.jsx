@@ -220,7 +220,7 @@ const CalendarHeader = ({
                 <option value="all">Tous les médecins</option>
                 {medecins.map((medecin) => (
                   <option key={medecin.id} value={medecin.id}>
-                    Dr. {medecin.prenom} {medecin.nom}
+                    {medecin.couleur ? `● ` : ''}Dr. {medecin.prenom} {medecin.nom}
                   </option>
                 ))}
               </select>

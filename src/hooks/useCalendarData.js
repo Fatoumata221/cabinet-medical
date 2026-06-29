@@ -70,6 +70,7 @@ export const useCalendarData = (currentUser, options = {}) => {
             patientService.getAll(),
             userService.getDoctors({
               ignoreSpecialityFilter: ignoreSpecialityForSecretary,
+              select: '*, couleur' // Inclure le champ couleur
             }),
             specialtyService.getAll(),
           ])

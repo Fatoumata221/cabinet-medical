@@ -34,6 +34,7 @@ import {
   isPresentInQueueStatus,
   isCalledInQueueStatus,
   isInConsultationQueueStatus,
+  isTerminalQueueStatus,
   hasPastAppointment,
   filterOutPastAppointments,
   isStuckInConsultation,
@@ -119,14 +120,13 @@ const SalleAttentePage = () => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStart = tomorrow.toISOString();
 
-      // 1) Tous les patients actifs en file avec rendez-vous aujourd'hui et statut = 'arrive' (pas 'confirme')
+      // 1) Patients en file d'attente avec rendez-vous aujourd'hui
       const { data: queueData, error: queueError } = await supabase
         .from('waiting_queue')
         .select(`
           *,
           appointments(date_heure, statut_arrivee, heure_arrivee, statut)
         `)
-        .in('status', WAITING_QUEUE_ACTIVE_STATUSES)
         .gte('appointments.date_heure', todayStart)
         .lt('appointments.date_heure', tomorrowStart)
         .eq('appointments.statut', 'arrive')
@@ -202,7 +202,6 @@ const SalleAttentePage = () => {
       // 4) Mettre à jour automatiquement le statut des patients avec rendez-vous passés
       const now = new Date();
       const pastAppointments = enriched.filter(item => hasPastAppointment(item, now));
-      const stuckConsultations = enriched.filter(item => isStuckInConsultation(item, now));
       
       if (pastAppointments.length > 0) {
         // Mettre à jour le statut des patients passés à "Non honoré"
@@ -221,27 +220,13 @@ const SalleAttentePage = () => {
         }
       }
 
-      if (stuckConsultations.length > 0) {
-        // Mettre à jour le statut des consultations bloquées à "Terminé"
-        for (const item of stuckConsultations) {
-          try {
-            await supabase
-              .from('waiting_queue')
-              .update({ 
-                status: 'termine',
-                updated_at: now.toISOString()
-              })
-              .eq('id', item.id);
-          } catch (error) {
-            console.error('Erreur lors de la mise à jour du statut de consultation bloquée:', error);
-          }
-        }
-      }
-
-      // 5) Filtrer les patients actifs et exclure ceux avec rendez-vous passés et consultations bloquées
-      const activeItems = filterActiveQueueItems(enriched);
-      const filteredItems = filterOutPastAppointments(activeItems, now);
-      const finalFilteredItems = filterOutStuckConsultations(filteredItems, now);
+      // 5) Filtrer uniquement les patients en attente (exclure appelés, en consultation, terminés)
+      const finalFilteredItems = enriched.filter(item => 
+        !isCalledInQueueStatus(item.status) && 
+        !isInConsultationQueueStatus(item.status) && 
+        !isTerminalQueueStatus(item.status) &&
+        !hasPastAppointment(item, now)
+      );
 
       setPatientsEnAttente(finalFilteredItems);
     } catch (error) {
