@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, X, Clock } from 'lucide-react';
+import { Bell, Check, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { sendNotification, NOTIFICATION_TYPES, markAllAsRead } from '../../lib/notifications';
 
@@ -56,27 +56,6 @@ const NotificationPanel = ({ notifications, onRefresh, userProfile, waitingQueue
     }
   };
 
-  const handlePostpone = async (notification) => {
-    try {
-      // Marquer la notification comme lue
-      await handleMarkAsRead(notification);
-      
-      // Mettre le patient en attente (statut 'waiting')
-      const waitingQueueId = notification.waiting_queue_id;
-      if (waitingQueueId) {
-        await supabase
-          .from('waiting_queue')
-          .update({ status: 'waiting', updated_at: new Date().toISOString() })
-          .eq('id', waitingQueueId);
-        
-        // Rafraîchir la file d'attente
-        if (onRefresh) onRefresh();
-      }
-    } catch (error) {
-      console.error('Erreur report:', error);
-    }
-  };
-
   if (notifications.length === 0) return null;
 
   return (
@@ -110,13 +89,6 @@ const NotificationPanel = ({ notifications, onRefresh, userProfile, waitingQueue
                   >
                     <Check className="w-3 h-3" />
                     Confirmer - Je l'introduis
-                  </button>
-                  <button
-                    onClick={() => handlePostpone(notification)}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded hover:bg-orange-600 transition-colors"
-                  >
-                    <Clock className="w-3 h-3" />
-                    Reporter
                   </button>
                 </div>
               )}

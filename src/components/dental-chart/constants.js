@@ -11,6 +11,7 @@ export const TOOTH_STATES = {
   CROWN: { id: 'CROWN', name: 'Couronne', color: '#FEF08A', borderColor: '#EAB308' }, // Yellow 200/500
   ROOT_CANAL: { id: 'ROOT_CANAL', name: 'Trait. Racine', color: '#E9D5FF', borderColor: '#A855F7' }, // Purple 200/500
   BRIDGE: { id: 'BRIDGE', name: 'Bridge', color: '#FBCFE8', borderColor: '#EC4899' }, // Pink 200/500
+  TREATED: { id: 'TREATED', name: 'Traitée', color: '#D1FAE5', borderColor: '#10B981' }, // Green 100/500
 };
 
 export const TOOTH_NAMES = {

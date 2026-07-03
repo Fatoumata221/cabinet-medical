@@ -213,11 +213,28 @@ const MouthCanvas = ({ teeth, onToothClick, readOnly = false, toothStates }) => 
       />
       {hoveredTooth && (
         <div 
-            className="fixed pointer-events-none bg-gray-900 text-white text-xs rounded py-1 px-2 z-50 shadow-lg transform -translate-x-1/2 -translate-y-full mt-[-10px]"
+            className="fixed pointer-events-none bg-gray-900 text-white text-xs rounded py-2 px-3 z-50 shadow-lg transform -translate-x-1/2 -translate-y-full mt-[-10px] max-w-xs"
             style={{ left: tooltipPos.x, top: tooltipPos.y }}
         >
-            <div className="font-bold">Dent {hoveredTooth}</div>
-            <div className="text-gray-300">{TOOTH_NAMES[hoveredTooth]}</div>
+            <div className="font-bold mb-1">Dent {hoveredTooth}</div>
+            <div className="text-gray-300 mb-2">{TOOTH_NAMES[hoveredTooth]}</div>
+            {/* Afficher l'historique des actes si disponible */}
+            {teeth[hoveredTooth]?.history && teeth[hoveredTooth].history.length > 0 && (
+                <div className="border-t border-gray-700 pt-2 mt-2">
+                    <div className="text-xs font-semibold text-gray-400 mb-1">Actes récents :</div>
+                    {teeth[hoveredTooth].history.slice(0, 3).map((item, idx) => (
+                        <div key={idx} className="text-xs text-gray-300 py-0.5">
+                            <span className="text-blue-400">•</span> {item.name}
+                            {item.price && <span className="text-gray-500 ml-1">({item.price} FCFA)</span>}
+                        </div>
+                    ))}
+                    {teeth[hoveredTooth].history.length > 3 && (
+                        <div className="text-xs text-gray-500 italic">
+                            +{teeth[hoveredTooth].history.length - 3} autre(s) acte(s)
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
       )}
     </div>

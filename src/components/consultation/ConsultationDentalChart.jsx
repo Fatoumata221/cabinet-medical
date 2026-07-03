@@ -6,8 +6,9 @@ import { useToothSelector } from '../dental-chart/useToothSelector';
 import { updateDentalState } from '../../services/consultation/consultationService';
 import { useAlert } from '../../contexts/AlertContext';
 import { useToothStates } from '../../hooks/useToothStates';
+import { supabase } from '../../lib/supabase';
 
-const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActes, isTerminated = false }) => {
+const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActes, patientId, isTerminated = false }) => {
     const { showError, showSuccess } = useAlert();
     const [isSaving, setIsSaving] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,6 +26,107 @@ const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActe
              hasChangesRef.current = true;
         }
     );
+
+    // Charger l'historique des actes dentaires depuis la base de données
+    useEffect(() => {
+        const loadDentalHistory = async () => {
+            if (!patientId) return;
+
+            try {
+                // Récupérer tous les actes dentaires du patient (consultations passées)
+                const { data: dentalActs, error } = await supabase
+                    .from('actes_consultation')
+                    .select(`
+                        dent_id,
+                        dent_nom,
+                        tarif_unitaire,
+                        notes,
+                        created_at,
+                        consultations (
+                            id,
+                            date_heure,
+                            statut
+                        ),
+                        types_actes (
+                            nom,
+                            code_ccam
+                        )
+                    `)
+                    .not('dent_id', 'is', null)
+                    .eq('consultations.patient_id', patientId)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('[DentalChart] Erreur chargement historique dentaire:', error);
+                    return;
+                }
+
+                if (dentalActs && dentalActs.length > 0) {
+                    // Construire l'historique par dent
+                    const historyByTooth = {};
+                    dentalActs.forEach(act => {
+                        const toothId = act.dent_id;
+                        if (!toothId) return;
+
+                        if (!historyByTooth[toothId]) {
+                            historyByTooth[toothId] = [];
+                        }
+
+                        historyByTooth[toothId].push({
+                            date: act.created_at,
+                            type: 'PROCEDURE',
+                            code: act.types_actes?.code_ccam || 'ACTE',
+                            name: act.types_actes?.nom || 'Acte dentaire',
+                            note: act.notes,
+                            consultationId: act.consultations?.id,
+                            consultationDate: act.consultations?.date_heure,
+                            price: act.tarif_unitaire
+                        });
+                    });
+
+                    // Fusionner avec l'état existant
+                    const updatedTeeth = { ...teeth };
+                    Object.keys(historyByTooth).forEach(toothId => {
+                        const existingData = updatedTeeth[toothId] || { state: 'HEALTHY' };
+                        const existingHistory = existingData.history || [];
+                        
+                        // Fusionner l'historique (éviter les doublons)
+                        const mergedHistory = [
+                            ...historyByTooth[toothId],
+                            ...existingHistory.filter(item => 
+                                !historyByTooth[toothId].some(h => 
+                                    h.date === item.date && h.name === item.name
+                                )
+                            )
+                        ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                        updatedTeeth[toothId] = {
+                            ...existingData,
+                            history: mergedHistory
+                        };
+
+                        // Mettre à jour l'état visuel si des actes existent
+                        if (mergedHistory.length > 0) {
+                            // Vérifier si c'est une extraction
+                            const hasExtraction = mergedHistory.some(h => 
+                                h.name.toLowerCase().includes('extraction')
+                            );
+                            if (hasExtraction) {
+                                updatedTeeth[toothId].state = 'EXTRACTED';
+                            }
+                        }
+                    });
+
+                    updateToothData(null, updatedTeeth);
+                    console.log('[DentalChart] Historique dentaire chargé pour', Object.keys(historyByTooth).length, 'dents');
+                }
+            } catch (err) {
+                console.error('[DentalChart] Erreur lors du chargement de l\'historique:', err);
+            }
+        };
+
+        loadDentalHistory();
+    }, [patientId, consultationId]);
 
     // Garder la ref à jour avec le dernier état
     useEffect(() => {

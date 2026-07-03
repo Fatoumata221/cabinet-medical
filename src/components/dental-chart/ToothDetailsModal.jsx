@@ -77,16 +77,29 @@ const ToothDetailsModal = ({ isOpen, onClose, toothId, toothData, onUpdateTooth,
       type: 'PROCEDURE',
       code: procedure.code_ccam || `ACT-${procedure.id}`,
       name: procedure.nom,
-      note: note
+      note: note,
+      price: parseFloat(procedure.tarif_defaut || 0)
     };
 
     const newHistory = [newHistoryItem, ...history];
     
-    // Auto-update state si c'est une extraction (basé sur le nom)
+    // Auto-update state en fonction du type d'acte
     const isExtraction = procedure.nom.toLowerCase().includes('extraction');
-    const newState = isExtraction 
-        ? TOOTH_STATES.EXTRACTED.id
-        : toothData?.state;
+    const isPlombage = procedure.nom.toLowerCase().includes('plombage') || procedure.nom.toLowerCase().includes('obturation');
+    const isDétartrage = procedure.nom.toLowerCase().includes('détartrage') || procedure.nom.toLowerCase().includes('detartrage');
+    const isDevitalisation = procedure.nom.toLowerCase().includes('devitalisation') || procedure.nom.toLowerCase().includes('traitement canalaire');
+    
+    let newState = toothData?.state;
+    
+    if (isExtraction) {
+        newState = TOOTH_STATES.EXTRACTED.id;
+    } else if (isDevitalisation) {
+        newState = 'TREATED'; // État pour dent traitée (devitalisée)
+    } else if (isPlombage || isDétartrage) {
+        // Pour les plombages et détartrages, on peut garder l'état actuel ou mettre un état "traité"
+        // On ne change pas l'état visuel pour ces actes mineurs
+        newState = toothData?.state;
+    }
 
     // 1. Mettre à jour le schéma dentaire (history locale)
     onUpdateTooth(toothId, { 

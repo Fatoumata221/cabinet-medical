@@ -457,7 +457,19 @@ const ConsultationDetail = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-  const isDentist = hasRole('doctor') && userProfile?.specialite?.toLowerCase().includes('dent');
+  const isDentist = hasRole('doctor') && (
+    userProfile?.specialite?.toLowerCase().includes('dent') || 
+    userProfile?.specialite?.toLowerCase().includes('orthodontiste') ||
+    userProfile?.specialite?.toLowerCase().includes('chirurgien buccal') ||
+    userProfile?.specialite?.toLowerCase().includes('endodont') ||
+    userProfile?.specialite?.toLowerCase().includes('parodont') ||
+    userProfile?.specialite?.toLowerCase().includes('pédodont') ||
+    userProfile?.specialite?.toLowerCase().includes('pedodont') ||
+    userProfile?.specialite?.toLowerCase().includes('prosthodont')
+  );
+  
+  // Debug log
+  console.log('🦷 [Consultation] isDentist:', isDentist, 'specialite:', userProfile?.specialite);
   const isTerminated = consultation?.statut === 'terminee';
 
   const tabs = [
@@ -766,6 +778,7 @@ const ConsultationDetail = () => {
               consultationId={id}
               initialDentalState={consultation.dental_state}
               fetchActes={refetchFunctions.refetchActes}
+              patientId={patient?.id}
               isTerminated={isTerminated}
             />
           </div>
