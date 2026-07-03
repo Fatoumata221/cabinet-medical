@@ -63,7 +63,7 @@ export const userService = {
     const specialiteId = ignoreSpecialityFilter ? null : await getSpecialityFilter()
     let query = supabase
       .from('users')
-      .select('*')
+      .select('*, couleur')
       .eq('role', 'doctor')
       .eq('actif', true) // Seulement les médecins actifs
     
@@ -421,7 +421,7 @@ export const appointmentService = {
       .select(`
         *,
         patient:patients(nom, prenom, telephone),
-        medecin:users!fk_appointments_medecin(nom, prenom, specialite, specialite_id)
+        medecin:users!fk_appointments_medecin(nom, prenom, specialite, specialite_id, couleur)
       `)
       .order('date_heure', { ascending: true })
     
@@ -457,7 +457,7 @@ export const appointmentService = {
       .select(`
         *,
         patient:patients(nom, prenom, telephone),
-        medecin:users!fk_appointments_medecin(nom, prenom, specialite, specialite_id)
+        medecin:users!fk_appointments_medecin(nom, prenom, specialite, specialite_id, couleur)
       `)
       .eq('medecin_id', medecinId)
       .order('date_heure', { ascending: true })

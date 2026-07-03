@@ -435,6 +435,7 @@ const IntroductionPatientPage = () => {
   const fetchWaitingQueue = useCallback(async () => {
     setIsLoading(prev => ({ ...prev, waitingQueue: true }));
     try {
+      console.log('🔄 [IntroductionPatient] Récupération de la file d\'attente...');
       // Calculer la date d'aujourd'hui (minuit)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -449,11 +450,13 @@ const IntroductionPatientPage = () => {
         `)
         .in('status', WAITING_QUEUE_ACTIVE_STATUSES)
         .gte('appointments.date_heure', todayStart)
-        .neq('appointments.statut', 'termine')
         .order('created_at', { ascending: false });
       if (qErr) throw qErr;
 
       const list = Array.isArray(queue) ? queue : [];
+      console.log('📊 [IntroductionPatient] Données brutes récupérées:', list.length, 'entrées');
+      console.log('📊 [IntroductionPatient] Statuts présents:', [...new Set(list.map(i => i.status))]);
+      
       if (list.length === 0) {
         setWaitingQueue([]);
         return [];

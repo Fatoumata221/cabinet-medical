@@ -29,6 +29,7 @@ import NotificationPanel from '../components/secretary/NotificationPanel';
 import PatientQueueCard from '../components/waitingqueue/PatientQueueCard';
 import AppointmentCard from '../components/waitingqueue/AppointmentCard';
 import { secretaryService } from '../services/secretaryService';
+import { isTerminalQueueStatus } from '../utils/waitingQueueStatus';
 
 const WaitingQueuePage = () => {
   const { currentUser, getUserProfile } = useAuth();
@@ -872,6 +873,11 @@ const WaitingQueuePage = () => {
   };
 
   const getStatusBadge = (status, patient = null) => {
+    // Si le statut est terminal (terminé, absent, etc.), ne pas afficher de badge
+    if (isTerminalQueueStatus(status)) {
+      return null;
+    }
+
     // Vérifier si le rendez-vous est passé
     const isPast = patient && patient.appointment_id && patient.date_heure ? (() => {
       const appointmentTime = new Date(patient.date_heure);

@@ -458,12 +458,6 @@ const SalleAttente = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Médecin
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Motif
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statut
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -474,7 +468,7 @@ const SalleAttente = () => {
                 );
                 
                 return (
-                  <tr key={appointment.id} className="hover:bg-gray-50">
+                  <tr key={appointment.id} className={`hover:bg-gray-50 ${isInQueue ? 'bg-green-50' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {new Date(appointment.date_heure).toLocaleTimeString('fr-FR', { 
                         hour: '2-digit', 
@@ -482,33 +476,14 @@ const SalleAttente = () => {
                       })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {appointment.patients?.prenom} {appointment.patients?.nom}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {appointment.patients?.numero_dossier}
-                        </div>
+                      <div className="text-sm font-bold text-gray-900">
+                        {appointment.patients?.prenom} {appointment.patients?.nom}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {formatDoctorSpecialties(appointment.medecins)}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {appointment.motif}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {isInQueue ? (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                          Présent
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                          En attente
-                        </span>
-                      )}
                     </td>
                   </tr>
                 );

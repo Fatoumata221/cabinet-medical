@@ -7,7 +7,7 @@ import { updateDentalState } from '../../services/consultation/consultationServi
 import { useAlert } from '../../contexts/AlertContext';
 import { useToothStates } from '../../hooks/useToothStates';
 
-const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActes }) => {
+const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActes, isTerminated = false }) => {
     const { showError, showSuccess } = useAlert();
     const [isSaving, setIsSaving] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,6 +43,7 @@ const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActe
     }, [consultationId]);
 
     const handleToothClick = (toothId) => {
+        if (isTerminated) return;
         setSelectedToothId(toothId);
         setIsModalOpen(true);
     };

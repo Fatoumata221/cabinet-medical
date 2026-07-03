@@ -7,7 +7,8 @@ import CertificatModal from './modals/CertificatsModal';
 export default function CertificatsTab(
   { certificats, typesCertificats, typesCertificatsRef, generateCertificatsPDF, generateSingleCertificatPDF,
     fetchCertificats,
-    consultation, id
+    consultation, id,
+    isTerminated = false
    }
 
 ) {
@@ -26,13 +27,15 @@ export default function CertificatsTab(
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Certificats médicaux</h2>
           <div className="flex gap-2">
-            <button 
-              onClick={handleAddCertificat}
-              className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Créer
-            </button>
+            {!isTerminated && (
+              <button 
+                onClick={handleAddCertificat}
+                className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Créer
+              </button>
+            )}
             {certificats.length > 0 && (
               <button 
                 onClick={generateCertificatsPDF}

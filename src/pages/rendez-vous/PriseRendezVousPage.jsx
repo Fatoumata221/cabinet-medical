@@ -20,7 +20,9 @@ import {
   CalendarDays,
   Save,
   X,
-  UserCheck
+  UserCheck,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { formatDoctorSpecialties } from '../../utils/doctorUtils';
 
@@ -443,71 +445,47 @@ const PriseRendezVousPage = () => {
           {appointments.map((appointment) => (
               <div 
                 key={appointment.id} 
-                className={`p-4 border-b border-gray-100 border-l-4 ${getPriorityColor(appointment.priorite)}`}
+                className={`p-3 border-b border-gray-100 border-l-4 ${getPriorityColor(appointment.priorite)}`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium text-sm">
-                    {formatTime(appointment.date_heure)}
-                  </div>
-                  {getStatusBadge(appointment.statut)}
-                </div>
-                
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">
-                    {appointment.patient?.prenom} {appointment.patient?.nom}
-                  </div>
-                  <div className="text-gray-600">
-                    {formatDoctorSpecialties(appointment.medecin)}
-                  </div>
-                  {appointment.motif && (
-                    <div className="text-gray-500 mt-1">
-                      {appointment.motif}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                      {formatTime(appointment.date_heure).split(':')[0]}
                     </div>
-                  )}
-                </div>
-                
-                <div className="flex space-x-2 mt-2">
-                  {(() => {
-                    console.log('🔍 [PriseRendezVous] État du rendez-vous:', {
-                      id: appointment.id,
-                      statut: appointment.statut,
-                      statut_arrivee: appointment.statut_arrivee,
-                      shouldShowConfirmed: appointment.statut === 'arrive' || appointment.statut_arrivee === 'arrive',
-                      shouldShowButton: appointment.statut === 'confirme'
-                    });
-                    return null;
-                  })()}
-                  {appointment.statut === 'arrive' || appointment.statut_arrivee === 'arrive' ? (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Présence confirmée
-                    </span>
-                  ) : appointment.statut === 'confirme' && (
+                    <div className="flex-1">
+                      <div className="font-bold text-gray-900 text-base">
+                        {appointment.patient?.prenom} {appointment.patient?.nom}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {formatTime(appointment.date_heure)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {appointment.statut !== 'arrive' && (
+                      <button
+                        onClick={() => handleConfirmPatientPresence(appointment)}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Confirmer la présence"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleConfirmPatientPresence(appointment)}
-                      disabled={confirmedPresenceAppointmentId === appointment.id}
-                      className={`text-green-600 hover:text-green-800 text-xs ${
-                        confirmedPresenceAppointmentId === appointment.id ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      onClick={() => setEditingAppointment(appointment)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Modifier le rendez-vous"
                     >
-                      {confirmedPresenceAppointmentId === appointment.id ? 'Confirmé' : 'Confirmer la présence'}
+                      <Edit className="w-4 h-4" />
                     </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setEditingAppointment(appointment);
-                      setConfirmedPresenceAppointmentId(null);
-                    }}
-                    className="text-blue-600 hover:text-blue-800 text-xs"
-                  >
-                    Modifier
-                  </button>
-                  <button
-                    onClick={() => handleDelete(appointment.id)}
-                    className="text-red-600 hover:text-red-800 text-xs"
-                  >
-                    Supprimer
-                  </button>
+                    <button
+                      onClick={() => handleDelete(appointment.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Supprimer le rendez-vous"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

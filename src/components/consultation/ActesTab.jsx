@@ -5,7 +5,7 @@ import ActesModal from './modals/ActesModal';
 
 
 export default function ActesTab(
-  { actes, fetchActes, actesRef, setActesRef, id, patient, consultation }
+  { actes, fetchActes, actesRef, setActesRef, id, patient, consultation, isTerminated = false }
 ) {
   // Handlers détectés et injectés automatiquement
   const [showActeModal, setShowActeModal] = useState(false)
@@ -20,13 +20,15 @@ export default function ActesTab(
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Actes médicaux</h2>
-          <button 
-            onClick={handleAddActe}
-            className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Ajouter
-          </button>
+          {!isTerminated && (
+            <button 
+              onClick={handleAddActe}
+              className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Ajouter
+            </button>
+          )}
         </div>
     
         {actes.length > 0 ? (

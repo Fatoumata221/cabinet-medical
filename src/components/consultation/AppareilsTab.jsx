@@ -11,8 +11,8 @@ export default function AppareilsTab(
   consultation,
   setMedecinInfo,
   fetchExamensAppareils
-  ,appareilsRef
-
+  ,appareilsRef,
+  isTerminated = false
   }
 ) {
   
@@ -43,13 +43,15 @@ export default function AppareilsTab(
      <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Examens des appareils</h2>
-          <button 
-            onClick={handleAddAppareil}
-            className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Ajouter
-          </button>
+          {!isTerminated && (
+            <button 
+              onClick={handleAddAppareil}
+              className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Ajouter
+            </button>
+          )}
         </div>
     
         {examensAppareils.length > 0 ? (

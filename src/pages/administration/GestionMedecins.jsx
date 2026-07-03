@@ -58,7 +58,7 @@ const GestionMedecins = () => {
     try {
       let query = supabase
         .from('users')
-        .select('*, specialites:specialite_id(id, nom)')
+        .select('*, specialites:specialite_id(id, nom), couleur')
         .eq('role', ROLES.DOCTOR)
         .order('nom');
         

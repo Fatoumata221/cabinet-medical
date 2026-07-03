@@ -39,6 +39,7 @@ import {
   filterOutPastAppointments,
   isStuckInConsultation,
   filterOutStuckConsultations,
+  isActiveQueueStatus,
 } from '../utils/waitingQueueStatus';
 import {
   confirmSkippedWorkflowSteps,
@@ -99,7 +100,8 @@ const SalleAttentePage = () => {
         event: '*', 
         schema: 'public', 
         table: 'waiting_queue'
-      }, () => {
+      }, (payload) => {
+        console.log('🔄 [SalleAttente] Changement temps réel détecté:', payload);
         fetchPatientsEnAttente();
       })
       .subscribe();
@@ -111,6 +113,7 @@ const SalleAttentePage = () => {
 
   const fetchPatientsEnAttente = async () => {
     try {
+      console.log('🔄 [SalleAttente] Récupération des patients en attente...');
       // Calculer les bornes de la date d'aujourd'hui
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -132,12 +135,16 @@ const SalleAttentePage = () => {
         .gte('appointments.date_heure', todayStart)
         .lt('appointments.date_heure', tomorrowStart)
         .eq('appointments.statut', 'arrive')
-        .in('status', ['waiting', 'en_attente', 'present', 'arrive'])
+        .in('status', WAITING_QUEUE_ACTIVE_STATUSES)
         .order('order_position', { ascending: true });
 
       if (queueError) throw queueError;
 
       const list = Array.isArray(queueData) ? queueData : [];
+      console.log('📊 [SalleAttente] Données brutes récupérées:', list.length, 'entrées');
+      console.log('📊 [SalleAttente] Statuts présents:', [...new Set(list.map(i => i.status))]);
+      console.log('📊 [SalleAttente] WAITING_QUEUE_ACTIVE_STATUSES:', WAITING_QUEUE_ACTIVE_STATUSES);
+      
       if (list.length === 0) {
         setPatientsEnAttente([]);
         return;
@@ -207,9 +214,20 @@ const SalleAttentePage = () => {
         const createdAt = new Date(item.created_at);
         const itemDate = new Date(createdAt.getFullYear(), createdAt.getMonth(), createdAt.getDate());
         const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        return itemDate.getTime() === todayDate.getTime();
+        const isToday = itemDate.getTime() === todayDate.getTime();
+        const isActive = isActiveQueueStatus(item.status);
+        if (!isActive) {
+          console.log('⚠️ [SalleAttente] Patient filtré (statut inactif):', {
+            patient_id: item.patient_id,
+            status: item.status,
+            patient_name: item.patient?.prenom + ' ' + item.patient?.nom
+          });
+        }
+        return isToday && isActive;
       });
 
+      console.log('✅ [SalleAttente] Patients après filtre final:', finalFilteredItems.length, 'patients');
+      console.log('📊 [SalleAttente] Statuts après filtre:', [...new Set(finalFilteredItems.map(i => i.status))]);
       setPatientsEnAttente(finalFilteredItems);
     } catch (error) {
       console.error('Erreur lors du chargement des patients en attente:', error);
@@ -265,9 +283,21 @@ const SalleAttentePage = () => {
     }, 5000);
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, queueItem = null) => {
+    // Si le statut est terminal (terminé, absent, etc.), ne pas afficher de badge
+    if (isTerminalQueueStatus(status)) {
+      return null;
+    }
+
+    // Vérifier si le rendez-vous est en retard
+    const isOverdue = queueItem && hasPastAppointment(queueItem);
+
     const statusConfig = {
-      waiting: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, label: 'En attente' },
+      waiting: { 
+        color: isOverdue ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800', 
+        icon: isOverdue ? AlertTriangle : Clock, 
+        label: isOverdue ? 'Retard' : 'En attente' 
+      },
       present: { color: 'bg-blue-100 text-blue-800', icon: UserCheck, label: 'Présent' },
       arrive: { color: 'bg-blue-100 text-blue-800', icon: UserCheck, label: 'Arrivé' },
       called: { color: 'bg-orange-100 text-orange-800', icon: Bell, label: 'Appelé' },
@@ -534,7 +564,7 @@ const SalleAttentePage = () => {
                           <h3 className="text-sm font-semibold text-gray-900">
                             {item.patient?.prenom} {item.patient?.nom}
                           </h3>
-                          {getStatusBadge(item.status)}
+                          {getStatusBadge(item.status, item)}
                         </div>
                         
                         <div className="mt-1 flex items-center space-x-4 text-xs text-gray-600">
@@ -670,7 +700,7 @@ const SalleAttentePage = () => {
                     </div>
                     <div>
                       <span className="font-medium text-gray-500">Status:</span>
-                      <span className="ml-2">{getStatusBadge(selectedPatient.status)}</span>
+                      <span className="ml-2">{getStatusBadge(selectedPatient.status, selectedPatient)}</span>
                     </div>
                   </div>
                 </div>

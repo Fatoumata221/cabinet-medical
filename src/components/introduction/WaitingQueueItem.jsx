@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock, CheckCircle, UserCheck, Activity, Phone, CheckSquare, RefreshCw } from 'lucide-react';
+import { isTerminalQueueStatus } from '../../utils/waitingQueueStatus';
 
 const WaitingQueueItem = ({ item, index, onAuthorize, onMarkInConsultation, onReassign, isLoading }) => {
   // Vérifier si le rendez-vous est passé (date/heure dépassée)
@@ -13,6 +14,11 @@ const WaitingQueueItem = ({ item, index, onAuthorize, onMarkInConsultation, onRe
   };
 
   const getStatusConfig = (status) => {
+    // Si le statut est terminal (terminé, absent, etc.), ne pas afficher de badge
+    if (isTerminalQueueStatus(status)) {
+      return null;
+    }
+
     // Si le rendez-vous est passé, forcer le statut "Terminé"
     if (isAppointmentPast()) {
       return { color: 'bg-green-100 text-green-800', label: 'Terminé' };
@@ -53,6 +59,11 @@ const WaitingQueueItem = ({ item, index, onAuthorize, onMarkInConsultation, onRe
   };
 
   const getStatusIndicator = (status) => {
+    // Si le statut est terminal (terminé, absent, etc.), ne pas afficher de badge
+    if (isTerminalQueueStatus(status)) {
+      return null;
+    }
+
     // Si le rendez-vous est passé, forcer le statut "Terminé"
     if (isAppointmentPast()) {
       return { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Terminé' };
@@ -78,7 +89,7 @@ const WaitingQueueItem = ({ item, index, onAuthorize, onMarkInConsultation, onRe
 
   const statusConfig = getStatusConfig(item.status);
   const statusIndicator = getStatusIndicator(item.status);
-  const StatusIcon = statusIndicator.icon;
+  const StatusIcon = statusIndicator?.icon;
   const isDisabled = ['in_consultation'].includes(item.status);
   const isReady = ['medecin_pret', 'authorized'].includes(item.status);
   const isEnRoute = item.status === 'en_route';

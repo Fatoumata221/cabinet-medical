@@ -730,6 +730,11 @@ const DoctorDashboard = () => {
             return;
           }
 
+          console.log('🔄 [DoctorDashboard] Appel RPC medecin_termine_consultation:', {
+            p_waiting_queue_id: patientId,
+            p_medecin_id: userProfile.id
+          });
+
           // Utiliser la fonction SQL pour terminer la consultation
           const { data: result, error: finishError } = await supabase
             .rpc('medecin_termine_consultation', {
@@ -738,11 +743,14 @@ const DoctorDashboard = () => {
             });
 
           if (finishError) {
-            console.error('Erreur fonction SQL:', finishError);
+            console.error('❌ [DoctorDashboard] Erreur fonction SQL:', finishError);
             throw new Error(`Erreur lors de la fin de consultation: ${finishError.message}`);
           }
 
+          console.log('✅ [DoctorDashboard] Résultat RPC:', result);
+
           if (!result.success) {
+            console.error('❌ [DoctorDashboard] RPC retourné success=false:', result);
             throw new Error(result.error);
           }
 

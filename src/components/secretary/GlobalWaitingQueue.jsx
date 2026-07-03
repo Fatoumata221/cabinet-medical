@@ -799,49 +799,15 @@ const GlobalWaitingQueue = ({
                       {todaysAppointments.slice(0, 5).map((appt) => {
                         const inQueue = isAppointmentInQueue(doctor.id, appt);
                         return (
-                          <div key={appt.id} className={`flex items-center justify-between border rounded-md px-3 py-2 ${inQueue ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                            <div className="min-w-0">
-                              <div className="flex items-center space-x-2">
-                                <div className="w-7 h-7 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                                  {formatTime(appt.date_heure)}
-                                </div>
-                                <div className="truncate">
-                                  <p className="text-sm font-medium text-gray-900 truncate">
-                                    {appt.patient?.prenom} {appt.patient?.nom}
-                                  </p>
-                                  <p className="text-xs text-gray-500 truncate">{appt.motif || 'Motif non défini'}</p>
-                                </div>
-                              </div>
+                          <div key={appt.id} className={`flex items-center space-x-3 border rounded-md px-3 py-2 ${inQueue ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="w-8 h-8 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                              {formatTime(appt.date_heure).split(':')[0]}
                             </div>
-                            <div className="flex flex-col items-end space-y-2">
-                              {inQueue ? (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                                  <CheckCircle className="w-3 h-3 mr-1" /> En file
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleAddAppointmentToQueue(doctor.id, appt);
-                                  }}
-                                  className="inline-flex items-center px-3 py-1 bg-medical-primary text-white rounded-md hover:bg-medical-primary-dark text-xs"
-                                >
-                                  <UserCheck className="w-3 h-3 mr-1" /> Présent
-                                </button>
-                              )}
-
-                              {/* Bouton pour scanner des documents */}
-                              <button
-                                onClick={() => {
-                                  setSelectedPatientForUpload(appt.patient);
-                                  setShowUploadModal(true);
-                                }}
-                                className="inline-flex items-center px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-colors duration-200 shadow-sm hover:shadow-md"
-                                title="Scanner des documents"
-                              >
-                                <Upload className="w-3 h-3 mr-1" />
-                                Scanner
-                              </button>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-gray-900 truncate">
+                                {appt.patient?.prenom} {appt.patient?.nom}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">{formatTime(appt.date_heure)}</p>
                             </div>
                           </div>
                         );

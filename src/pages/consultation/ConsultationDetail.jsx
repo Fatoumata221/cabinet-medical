@@ -33,7 +33,8 @@ import {
   FileImage,
   Star,
   X,
-  Smile
+  Smile,
+  Lock
 } from 'lucide-react';
 import { generateCertificatsPDF, generateSingleCertificatPDF } from '../../services/impression/certificatPdf';
 import { printConsultationReport } from '../../services/impression/rapportConsultationPrint';
@@ -278,6 +279,7 @@ const ConsultationDetail = () => {
       }
 
       console.log('🔄 [Consultation] Mise à jour de la file d\'attente...');
+      console.log('📋 [Consultation] waitingQueueId:', waitingQueueId);
       if (waitingQueueId) {
         const { error: statusError } = await supabase
           .from('waiting_queue')
@@ -289,8 +291,13 @@ const ConsultationDetail = () => {
           .eq('id', Number(waitingQueueId));
 
         if (statusError) {
+          console.error('❌ [Consultation] Erreur mise à jour waiting_queue:', statusError);
           showWarning(`Attention: Le statut de la file d'attente n'a pas pu être mis à jour: ${statusError.message}`);
+        } else {
+          console.log('✅ [Consultation] waiting_queue mis à jour avec succès');
         }
+      } else {
+        console.warn('⚠️ [Consultation] waitingQueueId manquant, impossible de mettre à jour la file d\'attente');
       }
 
       await showSuccessDialog('Consultation terminée', `La consultation a été terminée avec succès. La secrétaire a été notifiée.`);
@@ -450,7 +457,8 @@ const ConsultationDetail = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-  const isDentist = hasRole('doctor') && userProfile?.specialite?.toLowerCase() === 'dentiste';
+  const isDentist = hasRole('doctor') && userProfile?.specialite?.toLowerCase().includes('dent');
+  const isTerminated = consultation?.statut === 'terminee';
 
   const tabs = [
     { id: 'examen', name: 'Examen Général', icon: Eye },
@@ -584,6 +592,27 @@ const ConsultationDetail = () => {
         </div>
       </div>
 
+      {/* Read-only banner for terminated consultations */}
+      {isTerminated && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center">
+          <Lock className="w-5 h-5 text-amber-600 mr-3" />
+          <div>
+            <p className="text-amber-800 font-medium">Consultation terminée — Lecture seule</p>
+            <p className="text-amber-600 text-sm">
+              {consultation?.heure_fin_consultation 
+                ? `Terminée le ${new Date(consultation.heure_fin_consultation).toLocaleDateString('fr-FR', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}`
+                : 'Cette consultation ne peut plus être modifiée.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Onglets */}
       <div className="border-b border-gray-200 mb-6">
         <div className="flex flex-col space-y-2">
@@ -631,6 +660,7 @@ const ConsultationDetail = () => {
             fetchAntecedents={refetchFunctions.refetchAntecedents}
             antecedentsRef={referenceData.antecedentsRef}
             patient={patient}
+            isTerminated={isTerminated}
           />
         )}
         {activeTab === 'constantes' && (
@@ -640,6 +670,7 @@ const ConsultationDetail = () => {
             showAddModal={showConstanteModal}
             onCloseAddModal={() => setShowConstanteModal(false)}
             onOpenAddModal={() => setShowConstanteModal(true)}
+            isTerminated={isTerminated}
           />
         )}
         {activeTab === 'examen' && (
@@ -650,6 +681,7 @@ const ConsultationDetail = () => {
             signesCliniquesRef={referenceData.signesCliniquesRef}
             fetchAutresSignesCliniques={refetchFunctions.refetchAutresSignes}
             id={consultation.id}
+            isTerminated={isTerminated}
           />
         )}
         {activeTab === 'appareils' && (
@@ -661,6 +693,7 @@ const ConsultationDetail = () => {
             setMedecinInfo={setMedecinInfo}
             fetchExamensAppareils={refetchFunctions.refetchExamensAppareils}
             appareilsRef={referenceData.appareilsRef}
+            isTerminated={isTerminated}
           />
         )}
         {activeTab === 'diagnostics' && (
@@ -669,6 +702,7 @@ const ConsultationDetail = () => {
             fetchDiagnostics={refetchFunctions.refetchDiagnostics}
             diagnosticsRef={referenceData.diagnosticsRef}
             id={consultation.id}
+            isTerminated={isTerminated}
           />
         )}
         {activeTab === 'actes' && (
@@ -679,6 +713,7 @@ const ConsultationDetail = () => {
             id={consultation.id}
             patient={patient}
             consultation={consultation}
+            isTerminated={isTerminated}
           />
         )}
         {activeTab === 'ordonnances' && (
@@ -689,6 +724,7 @@ const ConsultationDetail = () => {
             medicamentsRef={referenceData.medicamentsRef}
             patient={patient}
             calculateAge={calculateAge}
+            isTerminated={isTerminated}
           />
         )}
         {activeTab === 'certificats' && (
@@ -700,6 +736,7 @@ const ConsultationDetail = () => {
             consultation={consultation}
             generateCertificatsPDF={() => generateCertificatsPDF(supabase, certificats, patient, medecinInfo, tenantId)}
             generateSingleCertificatPDF={(certificat) => generateSingleCertificatPDF(supabase, certificat, patient, medecinInfo, tenantId)}
+            isTerminated={isTerminated}
           />
         )}
         {activeTab === 'synthese' && (
@@ -720,6 +757,7 @@ const ConsultationDetail = () => {
             fetchSyntheses={refetchFunctions.refetchSyntheses}
             syntheseMode={syntheseMode}
             setSyntheseMode={setSyntheseMode}
+            isTerminated={isTerminated}
           />
         )}
         {activeTab === 'dental' && isDentist && (
@@ -728,6 +766,7 @@ const ConsultationDetail = () => {
               consultationId={id}
               initialDentalState={consultation.dental_state}
               fetchActes={refetchFunctions.refetchActes}
+              isTerminated={isTerminated}
             />
           </div>
         )}

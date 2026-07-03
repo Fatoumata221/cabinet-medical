@@ -42,9 +42,12 @@ const RechercheRendezVousPage = () => {
 
   const specialitesDisponibles = useMemo(() => {
     const values = doctors
-      .map((doctor) => doctor.specialite)
-      .filter((value) => value && value.trim() !== '');
-    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+      .map((doctor) => ({ id: doctor.specialite_id, nom: doctor.specialite }))
+      .filter((value) => value.id && value.nom && value.nom.trim() !== '');
+    // Remove duplicates by id
+    const uniqueMap = new Map();
+    values.forEach(s => uniqueMap.set(s.id, s));
+    return Array.from(uniqueMap.values()).sort((a, b) => a.nom.localeCompare(b.nom));
   }, [doctors]);
 
   useEffect(() => {
@@ -58,7 +61,7 @@ const RechercheRendezVousPage = () => {
               .order('nom', { ascending: true }),
             supabase
               .from('users')
-              .select('id, nom, prenom, specialite')
+              .select('id, nom, prenom, specialite, specialite_id')
               .eq('role', 'doctor')
               .eq('actif', true)
               .order('nom', { ascending: true })
@@ -163,8 +166,9 @@ const RechercheRendezVousPage = () => {
 
       let filtered = data || [];
       if (activeFilters.specialite) {
+        const specialiteId = parseInt(activeFilters.specialite);
         filtered = filtered.filter(
-          (appointment) => appointment.medecin?.specialite === activeFilters.specialite
+          (appointment) => appointment.medecin?.specialite_id === specialiteId
         );
       }
 
@@ -352,8 +356,8 @@ const RechercheRendezVousPage = () => {
               >
                 <option value="">Toutes les spécialités</option>
                 {specialitesDisponibles.map((specialite) => (
-                  <option key={specialite} value={specialite}>
-                    {specialite}
+                  <option key={specialite.id} value={specialite.id}>
+                    {specialite.nom}
                   </option>
                 ))}
               </select>

@@ -9,7 +9,8 @@ const ExamenMedicaux = ({
   autresSignes,
   signesCliniquesRef,
   fetchAutresSignesCliniques,
-  id
+  id,
+  isTerminated = false
 }) => {
   // State
   const [showSigneModal, setShowSigneModal] = useState(false);
@@ -30,8 +31,8 @@ const handleAddSigne = () => {
    <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">Examen général</h2>
-              {/* Afficher le bouton Ajouter uniquement s'il y a déjà des signes cliniques */}
-              {signesCliniques.length > 0 && (
+              {/* Afficher le bouton Ajouter uniquement s'il y a déjà des signes cliniques et consultation non terminée */}
+              {signesCliniques.length > 0 && !isTerminated && (
                 <button 
                   onClick={handleAddSigne}
                   className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
@@ -82,13 +83,15 @@ const handleAddSigne = () => {
                 ) : (
                   <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
                     <p className="text-gray-500 text-sm mb-4">Aucun signe clinique observé</p>
-                    <button 
-                      onClick={handleAddSigne}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm mx-auto"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Ajouter des signes cliniques
-                    </button>
+                    {!isTerminated && (
+                      <button 
+                        onClick={handleAddSigne}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm mx-auto"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Ajouter des signes cliniques
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -97,13 +100,15 @@ const handleAddSigne = () => {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-medium text-gray-900">Autres signes physiques</h3>
-                  <button 
-                    onClick={handleAddAutreSigne}
-                    className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Ajouter
-                  </button>
+                  {!isTerminated && (
+                    <button 
+                      onClick={handleAddAutreSigne}
+                      className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Ajouter
+                    </button>
+                  )}
                 </div>
                 {autresSignes && autresSignes.length > 0 ? (
                   <div className="space-y-3">

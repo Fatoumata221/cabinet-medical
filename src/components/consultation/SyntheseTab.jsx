@@ -23,7 +23,8 @@ export default function SyntheseTab(
     elementsSyntheseRef,
     fetchSyntheses,
     syntheseMode,
-    setSyntheseMode
+    setSyntheseMode,
+    isTerminated = false
   }
 ) {
   const { tenantId } = useAuth();
@@ -442,13 +443,15 @@ export default function SyntheseTab(
                 </button>
               </div>
             </div>
-            <button 
-              onClick={handleAddSynthese}
-              className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Ajouter manuel
-            </button>
+            {!isTerminated && (
+              <button 
+                onClick={handleAddSynthese}
+                className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Ajouter manuel
+              </button>
+            )}
           </div>
     
           {/* Vue consultation actuelle */}

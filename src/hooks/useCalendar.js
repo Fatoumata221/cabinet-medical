@@ -344,7 +344,8 @@ export const useCalendar = ({ initialView = 'timeGridWeek', selectedDoctorFilter
     const duree = apt.duree || 30;
     const medecin = apt.medecin || medecins.find(m => m.id === apt.medecin_id);
     const specialiteNom = medecin?.specialite || null;
-    const couleur = getEventColor(apt.statut, apt.priorite, apt.couleur, specialiteNom);
+    const doctorColor = medecin?.couleur || null;
+    const couleur = getEventColor(apt.statut, apt.priorite, doctorColor, specialiteNom);
     
     return {
       id: apt.id,

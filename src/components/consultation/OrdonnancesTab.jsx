@@ -9,8 +9,8 @@ export default function OrdonnancesTab({
   fetchOrdonnances,
   patient,
   calculateAge,
-  medicamentsRef
-
+  medicamentsRef,
+  isTerminated = false
 }) {
   // Handlers détectés et injectés automatiquement
   const [showOrdonnanceModal, setShowOrdonnanceModal] = useState(false)
@@ -25,13 +25,15 @@ export default function OrdonnancesTab({
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Ordonnances</h2>
           <div className="flex gap-2">
-            <button 
-              onClick={handleAddOrdonnance}
-              className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Créer
-            </button>
+            {!isTerminated && (
+              <button 
+                onClick={handleAddOrdonnance}
+                className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Créer
+              </button>
+            )}
           </div>
         </div>
     

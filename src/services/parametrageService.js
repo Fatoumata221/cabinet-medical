@@ -12,14 +12,18 @@ export const fetchParametres = async (tenantId = null) => {
     let cabinetQuery = supabase
       .from('parametres_cabinet')
       .select('*')
-      .maybeSingle();
+      .order('id', { ascending: true })
+      .limit(1);
 
     // Si tenantId est fourni, filtrer par tenant_id
     if (tenantId) {
       cabinetQuery = cabinetQuery.eq('tenant_id', tenantId);
     }
 
-    const { data: cabinetData, error: cabinetError } = await cabinetQuery;
+    const { data: cabinetDataArray, error: cabinetError } = await cabinetQuery;
+
+    // Prendre le premier élément du tableau ou null
+    const cabinetData = cabinetDataArray && cabinetDataArray.length > 0 ? cabinetDataArray[0] : null;
 
 if (cabinetError) {
   console.warn('Paramètres cabinet non disponibles, utilisation des valeurs par défaut.', cabinetError);

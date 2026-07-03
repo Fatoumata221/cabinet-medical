@@ -74,19 +74,21 @@ const AutreConstanteInput = ({ constante, saving, onValueChange, onDelete }) => 
             }}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
             placeholder="Saisir la valeur"
-            disabled={saving}
+            disabled={saving || isTerminated}
           />
           <span className="text-sm text-gray-500 whitespace-nowrap">
             {constante.unite || constante.constantes?.unite || ''}
           </span>
-          <button
-            onClick={() => onDelete(constante)}
-            className="ml-2 text-red-600 hover:text-red-800 flex-shrink-0"
-            title="Supprimer"
-            disabled={saving}
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!isTerminated && (
+            <button
+              onClick={() => onDelete(constante)}
+              className="ml-2 text-red-600 hover:text-red-800 flex-shrink-0"
+              title="Supprimer"
+              disabled={saving}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -98,7 +100,8 @@ const ConstantesTab = ({
   activeTab,
   showAddModal,
   onCloseAddModal,
-  onOpenAddModal
+  onOpenAddModal,
+  isTerminated = false
 }) => {
   const { showSuccess, showWarning, showError, showInfo } = useAlert();
 
@@ -625,14 +628,16 @@ const ConstantesTab = ({
     <div className="p-3 sm:p-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Constantes vitales</h2>
-        <button
-          onClick={onOpenAddModal}
-          className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm w-full sm:w-auto justify-center"
-          disabled={saving}
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Ajouter
-        </button>
+        {!isTerminated && (
+          <button
+            onClick={onOpenAddModal}
+            className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm w-full sm:w-auto justify-center"
+            disabled={saving}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Ajouter
+          </button>
+        )}
       </div>
 
       {/* Liste des constantes principales */}
@@ -670,7 +675,7 @@ const ConstantesTab = ({
                 }}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                 placeholder="Ex: 37.2"
-                disabled={saving}
+                disabled={saving || isTerminated}
               />
               <span className="text-sm text-gray-500 whitespace-nowrap">
                 {constantesValues.temperature.unite}
@@ -712,7 +717,7 @@ const ConstantesTab = ({
                 }}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                 placeholder="Ex: 70.5"
-                disabled={saving}
+                disabled={saving || isTerminated}
               />
               <span className="text-sm text-gray-500 whitespace-nowrap">
                 {constantesValues.poids.unite}
@@ -755,7 +760,7 @@ const ConstantesTab = ({
                   }}
                   className="flex-1 min-w-0 px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   placeholder="Systolique"
-                  disabled={saving}
+                  disabled={saving || isTerminated}
                 />
                 <span className="text-gray-400 flex-shrink-0">/</span>
                 <input
@@ -784,7 +789,7 @@ const ConstantesTab = ({
                   }}
                   className="flex-1 min-w-0 px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   placeholder="Diastolique"
-                  disabled={saving}
+                  disabled={saving || isTerminated}
                 />
               </div>
               <span className="text-sm text-gray-500 whitespace-nowrap flex-shrink-0">

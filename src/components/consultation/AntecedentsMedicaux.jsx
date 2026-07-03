@@ -9,8 +9,8 @@ const AntecedentsMedicaux = ({
   antecedents,
   fetchAntecedents,
   antecedentsRef,
-  patient
-
+  patient,
+  isTerminated = false
 }) => {
   // State
   const [showAntecedentModal, setShowAntecedentModal] = useState(false);
@@ -41,13 +41,15 @@ const AntecedentsMedicaux = ({
         <h2 className="text-xl font-semibold text-gray-900">
           Antécédents médicaux
         </h2>
-        <button
-          onClick={handleAddAntecedent}
-          className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Ajouter
-        </button>
+        {!isTerminated && (
+          <button
+            onClick={handleAddAntecedent}
+            className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Ajouter
+          </button>
+        )}
       </div>
 
       {antecedents.length > 0 ? (
@@ -112,26 +114,28 @@ const AntecedentsMedicaux = ({
                     {antecedent.actif ? 'Actif' : 'Inactif'}
                   </span>
 
-                  <button
-                    onClick={() =>
-                      toggleAntecedentStatus(
-                        antecedent.id,
+                  {!isTerminated && (
+                    <button
+                      onClick={() =>
+                        toggleAntecedentStatus(
+                          antecedent.id,
+                          antecedent.actif
+                        )
+                      }
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
                         antecedent.actif
-                      )
-                    }
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                      antecedent.actif
-                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        : 'bg-green-200 text-green-700 hover:bg-green-300'
-                    }`}
-                    title={
-                      antecedent.actif
-                        ? 'Marquer comme inactif'
-                        : 'Marquer comme actif'
-                    }
-                  >
-                    {antecedent.actif ? 'Désactiver' : 'Activer'}
-                  </button>
+                          ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-green-200 text-green-700 hover:bg-green-300'
+                      }`}
+                      title={
+                        antecedent.actif
+                          ? 'Marquer comme inactif'
+                          : 'Marquer comme actif'
+                      }
+                    >
+                      {antecedent.actif ? 'Désactiver' : 'Activer'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -167,6 +171,6 @@ AntecedentsMedicaux.propTypes = {
   antecedents: PropTypes.array.isRequired,
   fetchAntecedents: PropTypes.func.isRequired,
   antecedentsRef: PropTypes.object,
-  setShowAntecedentModal: PropTypes.func.isRequired,
-  patient: PropTypes.object
+  patient: PropTypes.object,
+  isTerminated: PropTypes.bool
 };
