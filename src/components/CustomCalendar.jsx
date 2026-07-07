@@ -1215,6 +1215,7 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
                       type="datetime-local"
                       value={formData.date_heure ? formData.date_heure.slice(0, 16) : ''}
                       onChange={(e) => setFormData({...formData, date_heure: e.target.value})}
+                      min={new Date().toISOString().slice(0, 16)}
                       className={`w-full px-4 py-3 ${darkMode ? 'bg-gray-800 text-white' : 'bg-gray-50 text-gray-900'} rounded-2xl border ${darkMode ? 'border-gray-700' : 'border-gray-200'} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                       required
                     />

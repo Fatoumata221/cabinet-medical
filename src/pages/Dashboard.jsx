@@ -67,7 +67,8 @@ const Dashboard = () => {
           `)
           .gte('appointments.date_heure', todayStart)
           .lt('appointments.date_heure', tomorrowStart)
-          .eq('appointments.statut', 'arrive')
+          .eq('appointments.statut_arrivee', 'arrive')
+          .in('status', ['waiting', 'en_attente', 'present', 'arrive', 'authorized', 'called', 'appele', 'en_route', 'medecin_pret', 'in_consultation', 'en_consultation'])
           .order('order_position', { ascending: true });
 
         if (error) throw error;

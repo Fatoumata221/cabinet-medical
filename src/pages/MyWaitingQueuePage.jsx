@@ -245,6 +245,7 @@ const MyWaitingQueuePage = () => {
       const tomorrowStart = tomorrow.toISOString();
 
       // Récupérer la file d'attente active du médecin avec présence confirmée et statut d'attente
+      // Filtrer pour n'afficher que les patients réellement en attente (pas déjà en consultation)
       const { data: queueData, error: queueError } = await supabase
         .from('waiting_queue')
         .select(`
@@ -256,8 +257,8 @@ const MyWaitingQueuePage = () => {
         .lt('created_at', tomorrowStart)
         .gte('appointments.date_heure', todayStart)
         .lt('appointments.date_heure', tomorrowStart)
-        .eq('appointments.statut', 'arrive') // Only patients with confirmed presence
-        .in('status', WAITING_QUEUE_ACTIVE_STATUSES) // Only active waiting status
+        .eq('appointments.statut_arrivee', 'arrive') // Only patients with confirmed presence
+        .in('status', ['waiting', 'en_attente', 'present', 'arrive', 'authorized', 'called', 'appele', 'en_route', 'medecin_pret']) // Only waiting status (not in consultation)
         .order('order_position', { ascending: true });
 
       if (queueError) {

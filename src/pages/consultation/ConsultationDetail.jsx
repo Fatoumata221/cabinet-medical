@@ -374,19 +374,38 @@ const ConsultationDetail = () => {
     try {
       console.log('🔄 [Consultation] Envoi demande RDV de suivi à la secrétaire');
 
+      // Récupérer une secrétaire active du cabinet
+      const { data: secretaires } = await supabase
+        .from('users')
+        .select('id')
+        .eq('role', 'secretary')
+        .eq('actif', true)
+        .limit(1);
+
+      if (!secretaires || secretaires.length === 0) {
+        throw new Error('Aucune secrétaire active trouvée');
+      }
+
+      const secretaireId = secretaires[0].id;
+      const patientName = `${patient.prenom} ${patient.nom}`;
+      const message = `Dr ${userProfile?.nom || ''} - RDV suivi ${patient.prenom} ${patient.nom} - ${new Date(rdvForm.date_heure).toLocaleDateString('fr-FR')} ${new Date(rdvForm.date_heure).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})} - ${rdvForm.motif || 'Suivi'} - ${rdvForm.duree}min`;
+
       // Envoyer une notification à la secrétaire avec les détails du rendez-vous demandé
-      await sendNotification({
-        type: 'appointment_request',
-        recipient_role: 'secretary',
-        title: `Demande RDV ${patient.prenom} ${patient.nom}`,
-        message: `Dr ${userProfile?.nom || ''} - RDV suivi ${patient.prenom} ${patient.nom} - ${new Date(rdvForm.date_heure).toLocaleDateString('fr-FR')} ${new Date(rdvForm.date_heure).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})} - ${rdvForm.motif || 'Suivi'} - ${rdvForm.duree}min`,
-        patient_id: patient.id,
-        consultation_id: consultation.id,
-        medecin_id: consultation.medecin_id,
-        suggested_date: rdvForm.date_heure,
-        motif: (rdvForm.motif || 'Suivi').substring(0, 50),
-        duree: rdvForm.duree,
-      });
+      await sendNotification(
+        'appointment_request',
+        userProfile?.id,
+        secretaireId,
+        consultation.id,
+        patientName,
+        {
+          patient_id: patient.id,
+          medecin_id: consultation.medecin_id,
+          suggested_date: rdvForm.date_heure,
+          motif: rdvForm.motif || 'Suivi',
+          duree: rdvForm.duree,
+          message: message
+        }
+      );
 
       setShowCreateRdvModal(false);
       setRdvForm({

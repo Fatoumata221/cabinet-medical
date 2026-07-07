@@ -304,6 +304,7 @@ const PriseRendezVous = () => {
                   <input
                     type="datetime-local"
                     required
+                    min={new Date().toISOString().slice(0, 16)}
                     value={newAppointment.date_heure ? newAppointment.date_heure.slice(0, 16) : ''}
                     onChange={(e) => setNewAppointment({...newAppointment, date_heure: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

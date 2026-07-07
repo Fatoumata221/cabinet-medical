@@ -167,6 +167,17 @@ const PatientForm = ({
     
     if (!formData.date_naissance) {
       newErrors.date_naissance = 'La date de naissance est obligatoire';
+    } else {
+      // Validation de la date de naissance
+      const birthDate = new Date(formData.date_naissance);
+      const today = new Date();
+      const minDate = new Date(today.getFullYear() - 120, today.getMonth(), today.getDate());
+      
+      if (birthDate > today) {
+        newErrors.date_naissance = 'La date de naissance ne peut pas être dans le futur';
+      } else if (birthDate < minDate) {
+        newErrors.date_naissance = 'La date de naissance est invalide (âge supérieur à 120 ans)';
+      }
     }
     
     if (formData.telephone && !/^[0-9\s\+\-\(\)]{10,}$/.test(formData.telephone.replace(/\s/g, ''))) {
@@ -307,6 +318,7 @@ const PatientForm = ({
               type="date"
               value={formData.date_naissance}
               onChange={(e) => handleInputChange('date_naissance', e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
               className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-medical-primary focus:border-transparent ${
                 errors.date_naissance ? 'border-red-300' : 'border-gray-300'
               }`}

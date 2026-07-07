@@ -80,7 +80,6 @@ const Sidebar = ({
         name: 'PATIENTS',
         icon: Users,
         items: [
-          { name: 'Introduction Patient', icon: UserPlus, path: '/introduction-patient' },
           { name: 'Fiche Identification', icon: UserCheck, path: '/fiche-identification' },
           { name: 'Liste des Patients', icon: Users, path: '/patients' },
         ]

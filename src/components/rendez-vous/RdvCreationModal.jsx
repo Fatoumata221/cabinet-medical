@@ -681,56 +681,10 @@ const RdvCreationModal = ({
       } else {
         // Utilisez le service de rendez-vous mis à jour
         resultAppointment = await createAppointment(appointmentData);
-        const newAppointment = resultAppointment;
-
-        try {
-          const { data: existingQueue } = await supabase
-            .from('waiting_queue')
-            .select('id')
-            .eq('appointment_id', newAppointment.id)
-            .limit(1);
-
-          if (!existingQueue || existingQueue.length === 0) {
-            const { data: existingActive } = await supabase
-              .from('waiting_queue')
-              .select('id')
-              .eq('patient_id', newAppointment.patient_id)
-              .eq('medecin_id', newAppointment.medecin_id)
-              .eq('status', 'waiting')
-              .limit(1);
-
-            if (!existingActive || existingActive.length === 0) {
-              const { data: currentQueue } = await supabase
-                .from('waiting_queue')
-                .select('order_position')
-                .eq('medecin_id', newAppointment.medecin_id)
-                .order('order_position', { ascending: false })
-                .limit(1);
-
-              const nextPosition = currentQueue && currentQueue.length > 0 ? currentQueue[0].order_position + 1 : 1;
-
-              const insertData = {
-                patient_id: newAppointment.patient_id,
-                medecin_id: newAppointment.medecin_id,
-                appointment_id: newAppointment.id,
-                status: 'waiting',
-                arrived_at: new Date().toISOString(),
-                order_position: nextPosition,
-                motif_consultation: newAppointment.motif
-              };
-
-              const { error: qError } = await supabase
-                .from('waiting_queue')
-                .insert([insertData]);
-
-              if (!qError) {
-                addedToWaitingQueue = true;
-              }
-            }
-          }
-        } catch (queueError) {
-          console.error('Erreur file d\'attente:', queueError);
-        }
+        
+        // NE PLUS ajouter automatiquement à la salle d'attente
+        // Le patient sera ajouté à la salle d'attente uniquement lorsqu'il se présentera physiquement
+        // via le bouton "Confirmer la présence" dans la liste des rendez-vous
       }
 
       if (onSuccess) {

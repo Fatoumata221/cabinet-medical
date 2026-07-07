@@ -671,6 +671,7 @@ const FichePatientOnly = () => {
                   value={appointmentForm.date_heure}
                   onChange={(e) => setAppointmentForm({...appointmentForm, date_heure: e.target.value})}
                   required
+                  min={new Date().toISOString().slice(0, 16)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
                 />
               </div>

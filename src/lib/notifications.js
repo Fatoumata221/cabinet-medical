@@ -290,6 +290,8 @@ const generateNotificationMessage = (type, patientName, medecinName) => {
       return `Patient ${patientName} appelé. Veuillez l'envoyer dans le cabinet.`;
     case NOTIFICATION_TYPES.PATIENT_IN_CONSULTATION:
       return `Patient ${patientName} envoyé dans le cabinet. Consultation en cours.`;
+    case 'appointment_request':
+      return `Demande de rendez-vous de suivi pour ${patientName}`;
     default:
       return 'Nouvelle notification';
   }
@@ -312,6 +314,8 @@ const generateNotificationTitle = (type) => {
       return 'Patient appelé';
     case NOTIFICATION_TYPES.PATIENT_IN_CONSULTATION:
       return 'Patient en consultation';
+    case 'appointment_request':
+      return 'Demande de rendez-vous de suivi';
     default:
       return 'Notification';
   }

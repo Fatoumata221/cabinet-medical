@@ -374,6 +374,7 @@ const PatientsPage = () => {
                   value={formData.date_naissance}
                   onChange={handleInputChange}
                   required
+                  max={new Date().toISOString().split('T')[0]}
                   className="input-field"
                 />
               </div>

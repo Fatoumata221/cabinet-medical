@@ -83,7 +83,7 @@ const AppointmentModal = ({
                 )}
               </div>
             </div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-2">Date et heure *</label><input type="datetime-local" value={formData.date_heure ? formData.date_heure.slice(0, 16) : ''} onChange={(e) => setFormData({...formData, date_heure: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl" required /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-2">Date et heure *</label><input type="datetime-local" value={formData.date_heure ? formData.date_heure.slice(0, 16) : ''} onChange={(e) => setFormData({...formData, date_heure: e.target.value})} min={new Date().toISOString().slice(0, 16)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl" required /></div>
             <AppointmentTypeMotifFields
               typeRdv={formData.type_rdv || 'consultation'}
               motif={formData.motif || ''}

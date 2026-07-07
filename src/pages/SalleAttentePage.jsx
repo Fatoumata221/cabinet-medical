@@ -42,9 +42,9 @@ import {
   isActiveQueueStatus,
 } from '../utils/waitingQueueStatus';
 import {
-  confirmSkippedWorkflowSteps,
   validateQueueTransition,
 } from '../utils/workflowGuards';
+import { sendNotification, NOTIFICATION_TYPES } from '../lib/notifications';
 
 const SalleAttentePage = () => {
   const { currentUser } = useAuth();
@@ -53,6 +53,7 @@ const SalleAttentePage = () => {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showPatientDetails, setShowPatientDetails] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [patientReadyNotifications, setPatientReadyNotifications] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedPatientForUpload, setSelectedPatientForUpload] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -62,6 +63,7 @@ const SalleAttentePage = () => {
   useEffect(() => {
     fetchPatientsEnAttente();
     setupRealtimeSubscription();
+    fetchPatientReadyNotifications();
 
     // Actualisation automatique toutes les 30 secondes
     const interval = setInterval(fetchPatientsEnAttente, 30000);
@@ -104,11 +106,43 @@ const SalleAttentePage = () => {
         console.log('🔄 [SalleAttente] Changement temps réel détecté:', payload);
         fetchPatientsEnAttente();
       })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'notifications_medecin_secretaire'
+      }, (payload) => {
+        console.log('🔄 [SalleAttente] Changement notification détecté:', payload);
+        fetchPatientReadyNotifications();
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
+  };
+
+  const fetchPatientReadyNotifications = async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
+
+      const { data: notificationsData, error: notificationsError } = await supabase
+        .from('notifications_medecin_secretaire')
+        .select('*')
+        .eq('type_notification', 'patient_ready')
+        .eq('lu', false)
+        .gte('created_at', todayStart)
+        .order('created_at', { ascending: false });
+
+      if (notificationsError) throw notificationsError;
+
+      const notifications = Array.isArray(notificationsData) ? notificationsData : [];
+      console.log('🔔 [SalleAttente] Notifications patient_ready récupérées:', notifications.length);
+      setPatientReadyNotifications(notifications);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des notifications:', error);
+    }
   };
 
   const fetchPatientsEnAttente = async () => {
@@ -118,24 +152,26 @@ const SalleAttentePage = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayStart = today.toISOString();
-      
+
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStart = tomorrow.toISOString();
 
       // 1) Patients en file d'attente avec rendez-vous aujourd'hui et présence confirmée
+      // Filtrer pour n'afficher que les patients réellement en attente (pas déjà en consultation)
       const { data: queueData, error: queueError } = await supabase
         .from('waiting_queue')
         .select(`
           *,
-          appointments(date_heure, statut_arrivee, heure_arrivee, statut)
+          appointments!inner(date_heure, statut_arrivee, heure_arrivee, statut)
         `)
+        .not('appointment_id', 'is', null)
         .gte('created_at', todayStart)
         .lt('created_at', tomorrowStart)
         .gte('appointments.date_heure', todayStart)
         .lt('appointments.date_heure', tomorrowStart)
-        .eq('appointments.statut', 'arrive')
-        .in('status', WAITING_QUEUE_ACTIVE_STATUSES)
+        .eq('appointments.statut_arrivee', 'arrive')
+        .in('status', ['waiting', 'en_attente', 'present', 'arrive', 'authorized', 'called', 'appele', 'en_route', 'medecin_pret'])
         .order('order_position', { ascending: true });
 
       if (queueError) throw queueError;
@@ -143,7 +179,22 @@ const SalleAttentePage = () => {
       const list = Array.isArray(queueData) ? queueData : [];
       console.log('📊 [SalleAttente] Données brutes récupérées:', list.length, 'entrées');
       console.log('📊 [SalleAttente] Statuts présents:', [...new Set(list.map(i => i.status))]);
+      console.log('📊 [SalleAttente] Statuts arrivee des rendez-vous:', [...new Set(list.map(i => i.appointments?.statut_arrivee))]);
       console.log('📊 [SalleAttente] WAITING_QUEUE_ACTIVE_STATUSES:', WAITING_QUEUE_ACTIVE_STATUSES);
+
+      // Log pour débogage: vérifier s'il y a des entrées sans appointment_id ou avec statut_arrivee != 'arrive'
+      const { data: allQueueData, error: allQueueError } = await supabase
+        .from('waiting_queue')
+        .select('id, patient_id, medecin_id, appointment_id, status, created_at')
+        .gte('created_at', todayStart)
+        .lt('created_at', tomorrowStart);
+
+      if (!allQueueError && allQueueData) {
+        const withoutAppointment = allQueueData.filter(q => !q.appointment_id);
+        const withInvalidStatus = allQueueData.filter(q => q.appointment_id); // On ne peut pas vérifier statut_arrivee sans join
+        console.log('🔍 [SalleAttente] Entrées sans appointment_id:', withoutAppointment.length);
+        console.log('🔍 [SalleAttente] Total entrées waiting_queue aujourd\'hui:', allQueueData.length);
+      }
       
       if (list.length === 0) {
         setPatientsEnAttente([]);
@@ -265,6 +316,108 @@ const SalleAttentePage = () => {
     } catch (error) {
       console.error('Erreur lors de la mise à jour du status:', error);
       addNotification('Erreur lors de la mise à jour', 'error');
+    }
+  };
+
+  const handleSendToDoctor = async (patientId) => {
+    try {
+      const currentPatient = patientsEnAttente.find(p => p.id === patientId);
+      if (!currentPatient) {
+        addNotification('Patient non trouvé', 'error');
+        return;
+      }
+
+      // Mettre à jour le statut en 'en_route'
+      const { error } = await supabase
+        .from('waiting_queue')
+        .update({
+          status: 'en_route',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', patientId);
+
+      if (error) throw error;
+
+      // Envoyer notification au médecin
+      const patientName = `${currentPatient.patient?.prenom} ${currentPatient.patient?.nom}`;
+      const medecinId = currentPatient.medecin_id;
+
+      try {
+        await sendNotification(
+          NOTIFICATION_TYPES.PATIENT_ON_WAY,
+          currentUser.id,
+          medecinId,
+          null,
+          patientName,
+          {
+            waitingQueueId: patientId,
+            patientId: currentPatient.patient_id
+          }
+        );
+      } catch (nerr) {
+        console.warn('Envoi notification médecin échoué (non bloquant):', nerr);
+      }
+
+      addNotification(`Patient envoyé au médecin avec succès`, 'success');
+      fetchPatientsEnAttente();
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi au médecin:', error);
+      addNotification('Erreur lors de l\'envoi au médecin', 'error');
+    }
+  };
+
+  const handleConfirmPatientIntroduction = async (notification) => {
+    try {
+      const waitingQueueId = notification.waiting_queue_id;
+      if (!waitingQueueId) {
+        console.error('ID de file d\'attente manquant');
+        addNotification('Erreur: ID de file d\'attente manquant', 'error');
+        return;
+      }
+
+      // Mettre à jour le statut du patient en 'en_route' (patient envoyé au médecin)
+      const { error: updateError } = await supabase
+        .from('waiting_queue')
+        .update({
+          status: 'en_route',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', waitingQueueId);
+
+      if (updateError) throw updateError;
+
+      // Envoyer notification au médecin que le patient est en route
+      const patientName = notification.message?.replace(/.*demande à introduire /, '') || 'Patient';
+      const medecinId = notification.medecin_id;
+
+      try {
+        await sendNotification(
+          NOTIFICATION_TYPES.PATIENT_ON_WAY,
+          currentUser.id,
+          medecinId,
+          null,
+          patientName,
+          {
+            waitingQueueId: waitingQueueId,
+            patientId: notification.patient_id
+          }
+        );
+      } catch (nerr) {
+        console.warn('Envoi notification médecin échoué (non bloquant):', nerr);
+      }
+
+      // Marquer la notification comme lue
+      await supabase
+        .from('notifications_medecin_secretaire')
+        .update({ lu: true, lu_at: new Date().toISOString() })
+        .eq('id', notification.id);
+
+      addNotification('Patient envoyé au médecin', 'success');
+      setPatientReadyNotifications(prev => prev.filter(n => n.id !== notification.id));
+      fetchPatientsEnAttente();
+    } catch (error) {
+      console.error('Erreur lors de la confirmation:', error);
+      addNotification('Erreur lors de la confirmation', 'error');
     }
   };
 
@@ -402,11 +555,11 @@ const SalleAttentePage = () => {
       {notifications.length > 0 && (
         <div className="flex-shrink-0 px-4 py-2 space-y-1">
           {notifications.map(notification => (
-            <div 
+            <div
               key={notification.id}
               className={`p-2 rounded border-l-4 text-xs ${
-                notification.type === 'success' 
-                  ? 'bg-green-50 border-green-500 text-green-800' 
+                notification.type === 'success'
+                  ? 'bg-green-50 border-green-500 text-green-800'
                   : 'bg-red-50 border-red-500 text-red-800'
               }`}
             >
@@ -414,7 +567,7 @@ const SalleAttentePage = () => {
                 <Bell className="w-3 h-3 mr-1.5" />
                 <span className="font-medium">{notification.message}</span>
                 <span className="ml-auto text-xs opacity-75">
-                  {notification.timestamp.toLocaleTimeString()}
+                  {notification.timestamp ? notification.timestamp.toLocaleTimeString() : ''}
                 </span>
               </div>
             </div>
@@ -472,6 +625,51 @@ const SalleAttentePage = () => {
           </div>
         </button>
       </div>
+
+      {/* Section des demandes d'introduction de patients */}
+      {patientReadyNotifications.length > 0 && (
+        <div className="px-4 pb-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center mb-3">
+              <Bell className="w-5 h-5 text-green-600 mr-2" />
+              <h3 className="text-sm font-semibold text-green-900">
+                Demandes d'introduction ({patientReadyNotifications.length})
+              </h3>
+            </div>
+            <div className="space-y-2">
+              {patientReadyNotifications.slice(0, 5).map((notification) => (
+                <div
+                  key={notification.id}
+                  className="bg-white p-3 rounded border border-green-100"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{notification.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {notification.created_at ? new Date(notification.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleConfirmPatientIntroduction(notification)}
+                      className="ml-3 inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors"
+                    >
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Confirmer
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Debug: Afficher si aucune notification n'est trouvée */}
+      {patientReadyNotifications.length === 0 && (
+        <div className="px-4 pb-2">
+          <p className="text-xs text-gray-400 text-center">Aucune demande d'introduction en attente</p>
+        </div>
+      )}
 
       {/* Contenu principal avec panneau redimensionnable */}
       <div className="flex-1 flex overflow-hidden px-4 pb-4">
@@ -597,6 +795,17 @@ const SalleAttentePage = () => {
                           className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs"
                         >
                           En consultation
+                        </button>
+                      )}
+                      
+                      {(item.status === 'waiting' || item.status === 'en_attente' || item.status === 'present' || item.status === 'arrive' || item.status === 'authorized') && (
+                        <button
+                          onClick={() => handleSendToDoctor(item.id)}
+                          className="inline-flex items-center px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors text-xs"
+                          title="Envoyer le patient au médecin"
+                        >
+                          <Stethoscope className="w-3 h-3 mr-1" />
+                          Envoyer
                         </button>
                       )}
                       

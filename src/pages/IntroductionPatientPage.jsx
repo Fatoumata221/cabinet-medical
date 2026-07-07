@@ -9,6 +9,8 @@ import {
   filterActiveQueueItems,
   isInConsultationQueueStatus,
   isOnWaitingBench,
+  hasPastAppointment,
+  filterOutPastAppointments,
 } from '../utils/waitingQueueStatus';
 import ClickableStatCard from '../components/common/ClickableStatCard';
 import {
@@ -254,11 +256,20 @@ const IntroductionPatientPage = () => {
   // Récupérer les notifications pour la secrétaire
   const fetchNotifications = useCallback(async () => {
     try {
+      // Calculer la date de début d'aujourd'hui
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
+
       // 1) Récupérer les notifications sans jointures
+      // Filtrer pour n'afficher que les notifications non lues ET du jour
+      // Exclure les notifications de type 'patient_ready' car elles sont gérées depuis la Salle d'attente
       const { data: notificationsData, error: notificationsError } = await supabase
         .from('notifications_medecin_secretaire')
         .select('*')
         .eq('lu', false)
+        .neq('type_notification', 'patient_ready')
+        .gte('created_at', todayStart)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -431,6 +442,31 @@ const IntroductionPatientPage = () => {
     }
   }, [handleError]);
 
+  // Marque en base les entrées de file d'attente dont le rendez-vous est déjà
+  // passé (statut -> 'non_honore') afin qu'elles ne réapparaissent jamais,
+  // même après un rafraîchissement ou un événement temps réel.
+  const archiveExpiredAppointments = useCallback(async (items) => {
+    const expiredItems = (items || []).filter((item) => hasPastAppointment(item));
+    if (expiredItems.length === 0) return;
+
+    console.log(
+      '🕒 [IntroductionPatient] Rendez-vous expirés détectés, archivage ->',
+      expiredItems.map((i) => i.id),
+    );
+
+    const { error } = await supabase
+      .from('waiting_queue')
+      .update({
+        status: 'non_honore',
+        updated_at: new Date().toISOString(),
+      })
+      .in('id', expiredItems.map((i) => i.id));
+
+    if (error) {
+      console.error('Erreur lors de l\'archivage des rendez-vous expirés:', error);
+    }
+  }, []);
+
   // Charger la file d'attente avec gestion du chargement et des erreurs
   const fetchWaitingQueue = useCallback(async () => {
     setIsLoading(prev => ({ ...prev, waitingQueue: true }));
@@ -503,15 +539,26 @@ const IntroductionPatientPage = () => {
         medecin: doctorMap[item.medecin_id] || null,
       }));
       const activeQueue = filterActiveQueueItems(enriched);
-      setWaitingQueue(activeQueue);
-      return activeQueue;
+
+      // Exclure les rendez-vous déjà passés (heure de fin < maintenant)
+      const withoutPastAppointments = filterOutPastAppointments(activeQueue);
+
+      const expiredCount = activeQueue.length - withoutPastAppointments.length;
+      if (expiredCount > 0) {
+        console.log(`🕒 [IntroductionPatient] ${expiredCount} rendez-vous passé(s) masqué(s) et archivé(s)`);
+        // Ne pas bloquer l'affichage : on archive en base en tâche de fond.
+        archiveExpiredAppointments(activeQueue);
+      }
+
+      setWaitingQueue(withoutPastAppointments);
+      return withoutPastAppointments;
     } catch (error) {
       handleError(error, 'la récupération de la file d\'attente');
       return [];
     } finally {
       setIsLoading(prev => ({ ...prev, waitingQueue: false }));
     }
-  }, [handleError]);
+  }, [handleError, archiveExpiredAppointments]);
 
   const clearWaitingQueue = async () => {
     if (!window.confirm('Êtes-vous sûr de vouloir vider complètement la file d\'attente ? Cette action est irréversible.')) {
@@ -980,15 +1027,6 @@ const IntroductionPatientPage = () => {
           </p>
         </div>
 
-        {/* Notifications médecin-secrétaire */}
-        <NotificationPanel 
-          notifications={notifications} 
-          onRefresh={fetchNotifications}
-          userProfile={userProfile}
-          waitingQueue={waitingQueue}
-          onAuthorizePatient={handleAuthorizePatient}
-        />
-
         {/* Boutons de mode compact */}
         <div className="mb-4 flex space-x-2">
           <button
@@ -1165,6 +1203,15 @@ const IntroductionPatientPage = () => {
                 )}
               </div>
             </div>
+
+            {/* Notifications médecin-secrétaire (en bas de page) */}
+            <NotificationPanel 
+              notifications={notifications} 
+              onRefresh={fetchNotifications}
+              userProfile={userProfile}
+              waitingQueue={waitingQueue}
+              onAuthorizePatient={handleAuthorizePatient}
+            />
           </div>
         )}
 
@@ -1277,6 +1324,7 @@ const IntroductionPatientPage = () => {
                       value={formData.date_naissance}
                       onChange={handleInputChange}
                       required
+                      max={new Date().toISOString().split('T')[0]}
                       className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent text-sm"
                     />
                   </div>

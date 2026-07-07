@@ -550,6 +550,7 @@ const PatientsPage = () => {
                       value={formData.date_naissance}
                       onChange={handleInputChange}
                       required
+                      max={new Date().toISOString().split('T')[0]}
                       className="input-field text-xs py-1.5"
                     />
                   </div>
