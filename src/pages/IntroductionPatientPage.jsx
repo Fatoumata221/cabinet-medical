@@ -642,6 +642,8 @@ const IntroductionPatientPage = () => {
     setIsLoading(prev => ({ ...prev, actions: true }));
 
     try {
+      console.log('🔍 [IntroductionPatient] userProfile:', userProfile);
+      console.log('🔍 [IntroductionPatient] currentUser:', currentUser);
       console.log('🔍 [IntroductionPatient] Appel RPC avec:', {
         appointment_id: appointmentId,
         secretaire_id: userProfile?.id,
@@ -659,6 +661,8 @@ const IntroductionPatientPage = () => {
 
       if (data?.success) {
         setConfirmedPresenceAppointmentId(appointmentId);
+        // Recharger les rendez-vous pour mettre à jour le statut
+        await fetchTodayAppointments();
         // Récupérer les infos du rendez-vous pour la notification
         const appointment = appointments.find(a => a.id === appointmentId);
         if (appointment && data?.medecin_id) {

@@ -42,6 +42,7 @@ const PriseRendezVousPage = () => {
   
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedDoctorFilter, setSelectedDoctorFilter] = useState('');
+  const [selectedSpecialiteFilter, setSelectedSpecialiteFilter] = useState('');
   const [secretaireId, setSecretaireId] = useState(null);
   const [searchTerm, setSearchTerm] = useState(''); // Keep searchTerm locally
   const [localEditingAppointment, setLocalEditingAppointment] = useState(null); // Local state to pass to form hook
@@ -51,15 +52,15 @@ const PriseRendezVousPage = () => {
   const preselectedPatientId = searchParams.get('patientId');
 
   // Use the appointment booking data hook
-  const { 
-    specialites, 
-    allPatients, 
-    allDoctors, 
-    appointments, 
-    loading: dataLoading, 
-    error: dataError, 
-    refreshAppointments 
-  } = useAppointmentBookingData(selectedDate, selectedDoctorFilter);
+  const {
+    specialites,
+    allPatients,
+    allDoctors,
+    appointments,
+    loading: dataLoading,
+    error: dataError,
+    refreshAppointments
+  } = useAppointmentBookingData(selectedDate, selectedDoctorFilter, selectedSpecialiteFilter);
 
   // Use the appointment form hook
   const {
@@ -108,8 +109,13 @@ const PriseRendezVousPage = () => {
 
   // Initialiser secretaireId avec l'ID de l'utilisateur connecté (userProfile.id est bigint, currentUser.id est UUID)
   useEffect(() => {
+    console.log('🔍 [PriseRendezVous] userProfile:', userProfile);
+    console.log('🔍 [PriseRendezVous] currentUser:', currentUser);
     if (userProfile?.id) {
+      console.log('✅ [PriseRendezVous] Setting secretaireId to:', userProfile.id);
       setSecretaireId(userProfile.id);
+    } else {
+      console.warn('⚠️ [PriseRendezVous] userProfile.id is null/undefined');
     }
   }, [userProfile]);
 
@@ -137,6 +143,10 @@ const PriseRendezVousPage = () => {
     try {
       if (!appointment?.id) return;
       const secId = secretaireId;
+      console.log('🔍 [ConfirmPresence] secId:', secId);
+      console.log('🔍 [ConfirmPresence] userProfile.id:', userProfile?.id);
+      console.log('🔍 [ConfirmPresence] currentUser.id:', currentUser?.id);
+
       if (!secId) {
         showAlertError("Impossible d'identifier la secrétaire (secretaireId manquant)");
         return;
@@ -158,6 +168,8 @@ const PriseRendezVousPage = () => {
       console.log('✅ [ConfirmPresence] RPC réussi:', data);
 
       setConfirmedPresenceAppointmentId(appointment.id);
+      // Recharger les rendez-vous pour mettre à jour le statut
+      await refreshAppointments();
       // Envoyer notification au médecin que le patient est dans la salle d'attente
       if (data?.medecin_id && appointment.patient) {
         const { sendNotification, NOTIFICATION_TYPES } = await import('../../lib/notifications');
@@ -394,24 +406,30 @@ const PriseRendezVousPage = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Spécialité</label>
             <select
-              value={selectedDoctorFilter}
-              onChange={(e) => setSelectedDoctorFilter(e.target.value)}
+              value={selectedSpecialiteFilter}
+              onChange={(e) => {
+                setSelectedSpecialiteFilter(e.target.value);
+                setSelectedDoctorFilter(''); // Reset doctor filter when speciality changes
+              }}
               className="input-field"
             >
               <option value="">Toutes les spécialités</option>
-              {allDoctors.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>
-                  {formatDoctorSpecialties(doctor)} - Dr. {doctor.prenom} {doctor.nom}
+              {specialites.map((specialite) => (
+                <option key={specialite} value={specialite}>
+                  {specialite}
                 </option>
               ))}
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Médecin</label>
             <select
               value={selectedDoctorFilter}
-              onChange={(e) => setSelectedDoctorFilter(e.target.value)}
+              onChange={(e) => {
+                setSelectedDoctorFilter(e.target.value);
+                setSelectedSpecialiteFilter(''); // Reset speciality filter when doctor changes
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-primary focus:border-transparent"
             >
               <option value="">Tous les médecins</option>

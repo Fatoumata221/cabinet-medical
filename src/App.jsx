@@ -261,7 +261,13 @@ const LazyComponentWrapper = ({ Component, message }) => (
 const AppointmentsPage = lazy(() => import('./pages/AppointmentsPage'));
 
 // Pages du module secrétaire - Rendez-vous
-const SalleAttentePage = lazy(() => import('./pages/SalleAttentePage'));
+const SalleAttentePage = lazy(() => {
+  console.log('🔄 [App.jsx] Lazy loading SalleAttentePage...');
+  return import('./pages/SalleAttentePage').catch(err => {
+    console.error('❌ [App.jsx] Erreur lazy loading SalleAttentePage:', err);
+    throw err;
+  });
+});
 const FichePatientRdv = lazy(() => import('./pages/rendez-vous/FichePatientRdv'));
 const FichePatientOnly = lazy(() => import('./pages/rendez-vous/FichePatientOnly'));
 const PriseRendezVousPage = lazy(() => import('./pages/rendez-vous/PriseRendezVousPage'));

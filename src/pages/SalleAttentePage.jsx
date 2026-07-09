@@ -1,11 +1,13 @@
+console.log('📦 [SalleAttentePage.jsx] Fichier chargé');
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { 
-  Users, 
-  Clock, 
-  User, 
-  Phone, 
+import {
+  Users,
+  Clock,
+  User,
+  Phone,
   Calendar,
   AlertTriangle,
   CheckCircle,
@@ -47,7 +49,11 @@ import {
 import { sendNotification, NOTIFICATION_TYPES } from '../lib/notifications';
 
 const SalleAttentePage = () => {
-  const { currentUser } = useAuth();
+  console.log('🚀 [SalleAttente] Composant rendu - DÉBUT');
+
+  const { currentUser, userProfile } = useAuth();
+  console.log('👤 [SalleAttente] Auth hook exécuté:', { currentUser, userProfile });
+
   const [patientsEnAttente, setPatientsEnAttente] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -61,6 +67,12 @@ const SalleAttentePage = () => {
   const [isResizing, setIsResizing] = useState(false);
 
   useEffect(() => {
+    if (!userProfile?.cabinet_id) {
+      console.log('⏳ [SalleAttente] En attente du profil utilisateur...');
+      return;
+    }
+
+    console.log('✅ [SalleAttente] Profil chargé, initialisation...');
     fetchPatientsEnAttente();
     setupRealtimeSubscription();
     fetchPatientReadyNotifications();
@@ -68,7 +80,7 @@ const SalleAttentePage = () => {
     // Actualisation automatique toutes les 30 secondes
     const interval = setInterval(fetchPatientsEnAttente, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [userProfile?.cabinet_id]);
 
   // Gestion du redimensionnement du panneau
   useEffect(() => {
@@ -97,28 +109,42 @@ const SalleAttentePage = () => {
   }, [isResizing]);
 
   const setupRealtimeSubscription = () => {
-    const channel = supabase.channel('salle_attente_changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'waiting_queue'
-      }, (payload) => {
-        console.log('🔄 [SalleAttente] Changement temps réel détecté:', payload);
-        fetchPatientsEnAttente();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'notifications_medecin_secretaire'
-      }, (payload) => {
-        console.log('🔄 [SalleAttente] Changement notification détecté:', payload);
-        fetchPatientReadyNotifications();
-      })
-      .subscribe();
+    if (!userProfile?.cabinet_id) {
+      console.warn('⚠️ [SalleAttente] Impossible de configurer Realtime: cabinet_id non disponible');
+      return () => {};
+    }
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    try {
+      const channel = supabase.channel('salle_attente_changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'waiting_queue',
+          filter: `cabinet_id=eq.${userProfile?.cabinet_id}`
+        }, (payload) => {
+          console.log('🔄 [SalleAttente] Changement temps réel détecté (waiting_queue):', payload);
+          fetchPatientsEnAttente();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'notifications_medecin_secretaire',
+          filter: `cabinet_id=eq.${userProfile?.cabinet_id}`
+        }, (payload) => {
+          console.log('🔄 [SalleAttente] Changement notification détecté:', payload);
+          fetchPatientReadyNotifications();
+        })
+        .subscribe((status) => {
+          console.log('📡 [SalleAttente] Realtime subscription status:', status);
+        });
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (error) {
+      console.error('❌ [SalleAttente] Erreur lors de la configuration Realtime:', error);
+      return () => {};
+    }
   };
 
   const fetchPatientReadyNotifications = async () => {
@@ -132,6 +158,7 @@ const SalleAttentePage = () => {
         .select('*')
         .eq('type_notification', 'patient_ready')
         .eq('lu', false)
+        .eq('cabinet_id', userProfile?.cabinet_id)
         .gte('created_at', todayStart)
         .order('created_at', { ascending: false });
 
@@ -139,6 +166,7 @@ const SalleAttentePage = () => {
 
       const notifications = Array.isArray(notificationsData) ? notificationsData : [];
       console.log('🔔 [SalleAttente] Notifications patient_ready récupérées:', notifications.length);
+      console.log('🔔 [SalleAttente] Cabinet ID pour notifications:', userProfile?.cabinet_id);
       setPatientReadyNotifications(notifications);
     } catch (error) {
       console.error('Erreur lors de la récupération des notifications:', error);
@@ -148,6 +176,14 @@ const SalleAttentePage = () => {
   const fetchPatientsEnAttente = async () => {
     try {
       console.log('🔄 [SalleAttente] Récupération des patients en attente...');
+      console.log('👤 [SalleAttente] User profile:', userProfile);
+
+      if (!userProfile?.cabinet_id) {
+        console.warn('⚠️ [SalleAttente] Cabinet ID non disponible dans le profil utilisateur');
+        setPatientsEnAttente([]);
+        return;
+      }
+
       // Calculer les bornes de la date d'aujourd'hui
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -171,13 +207,19 @@ const SalleAttentePage = () => {
         .gte('appointments.date_heure', todayStart)
         .lt('appointments.date_heure', tomorrowStart)
         .eq('appointments.statut_arrivee', 'arrive')
+        .not('appointments.statut', 'in', '("termine", "annule", "reporte", "absent", "cancelled")')
         .in('status', ['waiting', 'en_attente', 'present', 'arrive', 'authorized', 'called', 'appele', 'en_route', 'medecin_pret'])
+        .eq('cabinet_id', userProfile?.cabinet_id)
         .order('order_position', { ascending: true });
 
-      if (queueError) throw queueError;
+      if (queueError) {
+        console.error('❌ [SalleAttente] Erreur lors de la récupération de la file d\'attente:', queueError);
+        throw queueError;
+      }
 
       const list = Array.isArray(queueData) ? queueData : [];
       console.log('📊 [SalleAttente] Données brutes récupérées:', list.length, 'entrées');
+      console.log('📊 [SalleAttente] Cabinet ID:', userProfile?.cabinet_id);
       console.log('📊 [SalleAttente] Statuts présents:', [...new Set(list.map(i => i.status))]);
       console.log('📊 [SalleAttente] Statuts arrivee des rendez-vous:', [...new Set(list.map(i => i.appointments?.statut_arrivee))]);
       console.log('📊 [SalleAttente] WAITING_QUEUE_ACTIVE_STATUSES:', WAITING_QUEUE_ACTIVE_STATUSES);
@@ -185,9 +227,10 @@ const SalleAttentePage = () => {
       // Log pour débogage: vérifier s'il y a des entrées sans appointment_id ou avec statut_arrivee != 'arrive'
       const { data: allQueueData, error: allQueueError } = await supabase
         .from('waiting_queue')
-        .select('id, patient_id, medecin_id, appointment_id, status, created_at')
+        .select('id, patient_id, medecin_id, appointment_id, status, created_at, cabinet_id')
         .gte('created_at', todayStart)
-        .lt('created_at', tomorrowStart);
+        .lt('created_at', tomorrowStart)
+        .eq('cabinet_id', userProfile?.cabinet_id);
 
       if (!allQueueError && allQueueData) {
         const withoutAppointment = allQueueData.filter(q => !q.appointment_id);

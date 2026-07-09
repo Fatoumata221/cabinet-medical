@@ -165,14 +165,23 @@ CREATE OR REPLACE FUNCTION public.annuler_rendez_vous(
   p_motif_annulation TEXT DEFAULT NULL
 ) RETURNS BOOLEAN AS $$
 BEGIN
+  -- Mettre à jour le statut du rendez-vous
   UPDATE public.appointments
-  SET 
+  SET
     statut = 'annule',
     traite_automatiquement = TRUE,
     date_traitement_automatique = NOW(),
     updated_at = NOW()
   WHERE id = p_appointment_id;
-  
+
+  -- Mettre à jour ou supprimer l'entrée correspondante dans waiting_queue
+  UPDATE public.waiting_queue
+  SET
+    status = 'annule',
+    updated_at = NOW()
+  WHERE appointment_id = p_appointment_id
+  AND status IN ('waiting', 'en_attente', 'present', 'arrive', 'authorized', 'called', 'appele', 'en_route', 'medecin_pret');
+
   RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql;

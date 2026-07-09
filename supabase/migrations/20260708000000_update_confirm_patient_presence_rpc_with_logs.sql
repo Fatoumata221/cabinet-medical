@@ -1,9 +1,6 @@
--- Fonction RPC pour que la secrétaire confirme la présence d'un patient et l'ajoute à la file d'attente
--- Date: 2026-06-23
--- Description: Cette fonction marque le patient comme arrivé (statut='arrive', statut_arrivee='arrive')
--- ET l'ajoute à la file d'attente avec le statut 'en_attente' en une seule action
--- Le patient doit être au statut 'confirme' pour pouvoir confirmer sa présence
--- Cette fonction vérifie que la secrétaire appartient au bon cabinet
+-- Migration pour mettre à jour la fonction RPC secretaire_confirme_patient_presence avec des logs de débogage
+-- Date: 2026-07-08
+-- Description: Ajout de logs de débogage pour identifier les problèmes multi-cabinet (Dakar vs Plateau)
 
 -- Supprimer TOUTES les versions de la fonction pour éviter les conflits de surcharge
 DROP FUNCTION IF EXISTS public.secretaire_confirme_patient_presence(bigint, uuid) CASCADE;

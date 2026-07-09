@@ -945,12 +945,55 @@ export const appointmentService = {
   },
 
   // Récupérer les rendez-vous pour une date donnée et un médecin spécifique
-  async getAppointmentsByDateAndDoctor(dayString, doctorId = null) {
+  async getAppointmentsByDateAndDoctor(dayString, doctorId = null, specialite = null) {
     try {
+      console.log("=== Début du filtrage dans getAppointmentsByDateAndDoctor ===");
+      console.log("Date :", dayString);
+      console.log("Médecin sélectionné :", doctorId);
+      console.log("Type du médecin :", typeof doctorId);
+      console.log("Spécialité :", specialite);
+
       let appointments = await this.getAppointmentsByDate(dayString);
 
+      console.log("Nombre de rendez-vous récupérés avant filtrage :", appointments.length);
+      console.table(appointments);
+
+      console.log("Avant d'appliquer le filtre par médecin dans services.js:");
+      appointments.forEach(rdv => {
+        console.log({
+          rendezVousId: rdv.id,
+          doctor_id: rdv.doctor_id,
+          medecin_id: rdv.medecin_id,
+          medecin: rdv.medecin,
+          filtre: doctorId
+        });
+      });
+
       if (doctorId) {
+        console.log('🎯 [getAppointmentsByDateAndDoctor] Filtrage par doctorId:', {
+          doctorId,
+          doctorIdType: typeof doctorId,
+          comparison: appointments.map(a => ({
+            medecin_id: a.medecin_id,
+            medecin_id_type: typeof a.medecin_id,
+            matches: a.medecin_id === doctorId,
+            matches_strict: a.medecin_id === doctorId,
+            matches_loose: a.medecin_id == doctorId
+          }))
+        });
+
         appointments = appointments.filter(apt => apt.medecin_id === doctorId);
+
+        console.log("Nombre de rendez-vous après filtrage par médecin :", appointments.length);
+        console.table(appointments);
+      } else if (specialite) {
+        appointments = appointments.filter(apt => {
+          const doctorSpecialite = apt.medecin?.specialite;
+          return doctorSpecialite === specialite;
+        });
+
+        console.log("Nombre de rendez-vous après filtrage par spécialité :", appointments.length);
+        console.table(appointments);
       }
 
       return appointments;

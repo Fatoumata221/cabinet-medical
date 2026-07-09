@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { userService, patientService, appointmentService } from '../lib/services';
 
-export const useAppointmentBookingData = (selectedDateFilter, selectedDoctorIdFilter) => {
+export const useAppointmentBookingData = (selectedDateFilter, selectedDoctorIdFilter, selectedSpecialiteFilter) => {
   const [specialites, setSpecialites] = useState([]);
   const [allPatients, setAllPatients] = useState([]);
   const [allDoctors, setAllDoctors] = useState([]);
@@ -45,6 +45,12 @@ export const useAppointmentBookingData = (selectedDateFilter, selectedDoctorIdFi
 
   // Fetch appointments for a specific date and optional doctor
   const fetchAppointments = useCallback(async () => {
+    console.log("=== Début du filtrage ===");
+    console.log("Date :", selectedDateFilter);
+    console.log("Médecin sélectionné :", selectedDoctorIdFilter);
+    console.log("Type du médecin :", typeof selectedDoctorIdFilter);
+    console.log("Spécialité :", selectedSpecialiteFilter);
+
     if (!selectedDateFilter) {
       setAppointments([]);
       return;
@@ -62,19 +68,33 @@ export const useAppointmentBookingData = (selectedDateFilter, selectedDoctorIdFi
 
       const dayString = targetDate.toISOString().split('T')[0];
 
-      const fetchedAppointments = await appointmentService.getAppointmentsByDateAndDoctor(dayString, selectedDoctorIdFilter);
-
-      console.log('📋 [useAppointmentBookingData] Rendez-vous récupérés:', {
-        date: dayString,
-        doctorId: selectedDoctorIdFilter,
-        count: fetchedAppointments?.length || 0,
-        appointments: fetchedAppointments?.map(a => ({
-          id: a.id,
-          statut: a.statut,
-          statut_arrivee: a.statut_arrivee,
-          patient: a.patient?.nom
-        }))
+      console.log("Construction de la requête...");
+      console.log('📅 [useAppointmentBookingData] Date convertie:', {
+        targetDate,
+        dayString,
+        isValid: !Number.isNaN(targetDate.getTime())
       });
+
+      const fetchedAppointments = await appointmentService.getAppointmentsByDateAndDoctor(dayString, selectedDoctorIdFilter, selectedSpecialiteFilter);
+
+      console.log("Nombre de rendez-vous récupérés :", fetchedAppointments?.length || 0);
+      console.table(fetchedAppointments);
+
+      console.log("Avant d'appliquer le filtre par médecin dans le hook:");
+      if (fetchedAppointments) {
+        fetchedAppointments.forEach(rdv => {
+          console.log({
+            rendezVousId: rdv.id,
+            doctor_id: rdv.doctor_id,
+            medecin_id: rdv.medecin_id,
+            medecin: rdv.medecin,
+            filtre: selectedDoctorIdFilter
+          });
+        });
+      }
+
+      console.log("Nombre de rendez-vous après filtrage :", fetchedAppointments?.length || 0);
+      console.table(fetchedAppointments);
 
       setAppointments(fetchedAppointments || []);
     } catch (err) {
@@ -83,7 +103,7 @@ export const useAppointmentBookingData = (selectedDateFilter, selectedDoctorIdFi
     } finally {
       setLoading(false);
     }
-  }, [selectedDateFilter, selectedDoctorIdFilter]);
+  }, [selectedDateFilter, selectedDoctorIdFilter, selectedSpecialiteFilter]);
 
   // Initial data load for specialties, patients, and doctors
   useEffect(() => {
