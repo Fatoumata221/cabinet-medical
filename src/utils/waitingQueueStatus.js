@@ -111,11 +111,11 @@ export const matchesQueueFilterStatus = (filterStatus, patientStatus) => {
 
 /** Vérifie si un patient en file d'attente a un rendez-vous passé */
 export const hasPastAppointment = (queueItem, now = new Date()) => {
-  if (
-    isPresentInQueueStatus(queueItem?.status) ||
-    isCalledInQueueStatus(queueItem?.status) ||
-    isInConsultationQueueStatus(queueItem?.status)
-  ) {
+  // Une ligne presente dans waiting_queue signifie que le patient est
+  // deja arrive physiquement. Le nettoyage "non honore" ne doit donc
+  // jamais s'appliquer ici, quel que soit le statut actif en cours
+  // (waiting, called, present, in_consultation, etc.).
+  if (isActiveQueueStatus(queueItem?.status)) {
     return false;
   }
   // Gérer différentes structures de données
