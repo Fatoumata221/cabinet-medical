@@ -111,6 +111,13 @@ export const matchesQueueFilterStatus = (filterStatus, patientStatus) => {
 
 /** Vérifie si un patient en file d'attente a un rendez-vous passé */
 export const hasPastAppointment = (queueItem, now = new Date()) => {
+  if (
+    isPresentInQueueStatus(queueItem?.status) ||
+    isCalledInQueueStatus(queueItem?.status) ||
+    isInConsultationQueueStatus(queueItem?.status)
+  ) {
+    return false;
+  }
   // Gérer différentes structures de données
   const appointment = queueItem?.appointment || queueItem?.appointments;
   
