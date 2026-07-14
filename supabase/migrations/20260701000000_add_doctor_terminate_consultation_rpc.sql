@@ -10,12 +10,14 @@ CREATE OR REPLACE FUNCTION medecin_termine_consultation(
 RETURNS jsonb AS $$
 DECLARE
     v_patient_id bigint;
+    v_patient_prenom text;
+    v_patient_nom text;
     v_patient_name text;
     v_message text;
 BEGIN
     -- Récupérer les informations du patient dans la file d'attente
-    SELECT wq.patient_id, p.nom, p.prenom
-    INTO v_patient_id, v_patient_name
+    SELECT wq.patient_id, p.prenom, p.nom
+    INTO v_patient_id, v_patient_prenom, v_patient_nom
     FROM public.waiting_queue wq
     JOIN public.patients p ON wq.patient_id = p.id
     WHERE wq.id = p_waiting_queue_id;
@@ -32,7 +34,11 @@ BEGIN
         updated_at = now()
     WHERE id = p_waiting_queue_id;
 
-    v_patient_name := COALESCE(v_patient_name, 'Patient inconnu');
+    -- Construire le nom complet (prénom + nom)
+    v_patient_name := TRIM(COALESCE(v_patient_prenom, '') || ' ' || COALESCE(v_patient_nom, ''));
+    IF v_patient_name = '' THEN
+        v_patient_name := 'Patient inconnu';
+    END IF;
 
     -- Retourner un message de succès
     RETURN jsonb_build_object(
