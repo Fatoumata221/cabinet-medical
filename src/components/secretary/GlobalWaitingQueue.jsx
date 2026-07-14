@@ -26,6 +26,7 @@ import {
   filterOutPastAppointments,
   isStuckInConsultation,
   filterOutStuckConsultations,
+  isAbandonedOver24h,
 } from '../../utils/waitingQueueStatus';
 import ClickableStatCard from '../common/ClickableStatCard';
 import { shouldHidePastAppointment } from '../../utils/appointmentDisplay';

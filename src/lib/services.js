@@ -982,7 +982,7 @@ export const appointmentService = {
           }))
         });
 
-        appointments = appointments.filter(apt => apt.medecin_id === doctorId);
+        appointments = appointments.filter(apt => Number(apt.medecin_id) === Number(doctorId));
 
         console.log("Nombre de rendez-vous après filtrage par médecin :", appointments.length);
         console.table(appointments);

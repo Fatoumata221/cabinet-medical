@@ -67,7 +67,7 @@ const SalleAttentePage = () => {
   const [isResizing, setIsResizing] = useState(false);
 
   useEffect(() => {
-    if (!userProfile?.cabinet_id) {
+    if (!userProfile?.tenant_id) {
       console.log('⏳ [SalleAttente] En attente du profil utilisateur...');
       return;
     }
@@ -80,7 +80,7 @@ const SalleAttentePage = () => {
     // Actualisation automatique toutes les 30 secondes
     const interval = setInterval(fetchPatientsEnAttente, 30000);
     return () => clearInterval(interval);
-  }, [userProfile?.cabinet_id]);
+  }, [userProfile?.tenant_id]);
 
   // Gestion du redimensionnement du panneau
   useEffect(() => {
@@ -109,8 +109,8 @@ const SalleAttentePage = () => {
   }, [isResizing]);
 
   const setupRealtimeSubscription = () => {
-    if (!userProfile?.cabinet_id) {
-      console.warn('⚠️ [SalleAttente] Impossible de configurer Realtime: cabinet_id non disponible');
+    if (!userProfile?.tenant_id) {
+      console.warn('⚠️ [SalleAttente] Impossible de configurer Realtime: tenant_id non disponible');
       return () => {};
     }
 
@@ -120,7 +120,7 @@ const SalleAttentePage = () => {
           event: '*',
           schema: 'public',
           table: 'waiting_queue',
-          filter: `cabinet_id=eq.${userProfile?.cabinet_id}`
+          filter: `tenant_id=eq.${userProfile?.tenant_id}`
         }, (payload) => {
           console.log('🔄 [SalleAttente] Changement temps réel détecté (waiting_queue):', payload);
           fetchPatientsEnAttente();
@@ -129,7 +129,7 @@ const SalleAttentePage = () => {
           event: '*',
           schema: 'public',
           table: 'notifications_medecin_secretaire',
-          filter: `cabinet_id=eq.${userProfile?.cabinet_id}`
+          filter: `tenant_id=eq.${userProfile?.tenant_id}`
         }, (payload) => {
           console.log('🔄 [SalleAttente] Changement notification détecté:', payload);
           fetchPatientReadyNotifications();
@@ -158,7 +158,7 @@ const SalleAttentePage = () => {
         .select('*')
         .eq('type_notification', 'patient_ready')
         .eq('lu', false)
-        .eq('cabinet_id', userProfile?.cabinet_id)
+        .eq('tenant_id', userProfile?.tenant_id)
         .gte('created_at', todayStart)
         .order('created_at', { ascending: false });
 
@@ -166,7 +166,7 @@ const SalleAttentePage = () => {
 
       const notifications = Array.isArray(notificationsData) ? notificationsData : [];
       console.log('🔔 [SalleAttente] Notifications patient_ready récupérées:', notifications.length);
-      console.log('🔔 [SalleAttente] Cabinet ID pour notifications:', userProfile?.cabinet_id);
+      console.log('🔔 [SalleAttente] Tenant ID pour notifications:', userProfile?.tenant_id);
       setPatientReadyNotifications(notifications);
     } catch (error) {
       console.error('Erreur lors de la récupération des notifications:', error);
@@ -178,7 +178,7 @@ const SalleAttentePage = () => {
       console.log('🔄 [SalleAttente] Récupération des patients en attente...');
       console.log('👤 [SalleAttente] User profile:', userProfile);
 
-      if (!userProfile?.cabinet_id) {
+      if (!userProfile?.tenant_id) {
         console.warn('⚠️ [SalleAttente] Cabinet ID non disponible dans le profil utilisateur');
         setPatientsEnAttente([]);
         return;
@@ -209,7 +209,7 @@ const SalleAttentePage = () => {
         .eq('appointments.statut_arrivee', 'arrive')
         .not('appointments.statut', 'in', '("termine", "annule", "reporte", "absent", "cancelled")')
         .in('status', ['waiting', 'en_attente', 'present', 'arrive', 'authorized', 'called', 'appele', 'en_route', 'medecin_pret'])
-        .eq('cabinet_id', userProfile?.cabinet_id)
+        .eq('tenant_id', userProfile?.tenant_id)
         .order('order_position', { ascending: true });
 
       if (queueError) {
@@ -219,7 +219,7 @@ const SalleAttentePage = () => {
 
       const list = Array.isArray(queueData) ? queueData : [];
       console.log('📊 [SalleAttente] Données brutes récupérées:', list.length, 'entrées');
-      console.log('📊 [SalleAttente] Cabinet ID:', userProfile?.cabinet_id);
+      console.log('📊 [SalleAttente] Tenant ID:', userProfile?.tenant_id);
       console.log('📊 [SalleAttente] Statuts présents:', [...new Set(list.map(i => i.status))]);
       console.log('📊 [SalleAttente] Statuts arrivee des rendez-vous:', [...new Set(list.map(i => i.appointments?.statut_arrivee))]);
       console.log('📊 [SalleAttente] WAITING_QUEUE_ACTIVE_STATUSES:', WAITING_QUEUE_ACTIVE_STATUSES);
@@ -227,10 +227,10 @@ const SalleAttentePage = () => {
       // Log pour débogage: vérifier s'il y a des entrées sans appointment_id ou avec statut_arrivee != 'arrive'
       const { data: allQueueData, error: allQueueError } = await supabase
         .from('waiting_queue')
-        .select('id, patient_id, medecin_id, appointment_id, status, created_at, cabinet_id')
+        .select('id, patient_id, medecin_id, appointment_id, status, created_at, tenant_id')
         .gte('created_at', todayStart)
         .lt('created_at', tomorrowStart)
-        .eq('cabinet_id', userProfile?.cabinet_id);
+        .eq('tenant_id', userProfile?.tenant_id);
 
       if (!allQueueError && allQueueData) {
         const withoutAppointment = allQueueData.filter(q => !q.appointment_id);

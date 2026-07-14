@@ -111,6 +111,13 @@ export const matchesQueueFilterStatus = (filterStatus, patientStatus) => {
 
 /** Vérifie si un patient en file d'attente a un rendez-vous passé */
 export const hasPastAppointment = (queueItem, now = new Date()) => {
+  // Une ligne presente dans waiting_queue signifie que le patient est
+  // deja arrive physiquement. Le nettoyage "non honore" ne doit donc
+  // jamais s'appliquer ici, quel que soit le statut actif en cours
+  // (waiting, called, present, in_consultation, etc.).
+  if (isActiveQueueStatus(queueItem?.status)) {
+    return false;
+  }
   // Gérer différentes structures de données
   const appointment = queueItem?.appointment || queueItem?.appointments;
   
@@ -152,4 +159,12 @@ export const filterOutPastAppointments = (queueItems, now = new Date()) => {
 /** Filtre les patients avec consultations bloquées depuis trop longtemps */
 export const filterOutStuckConsultations = (queueItems, now = new Date(), maxHours = 2) => {
   return (queueItems || []).filter(item => !isStuckInConsultation(item, now, maxHours));
+};
+
+export const isAbandonedOver24h = (queueItem, now = new Date(), maxHours = 24) => {
+  if (!queueItem) return false;
+  const start = new Date(queueItem.arrived_at || queueItem.created_at);
+  if (isNaN(start.getTime())) return false;
+  const hoursSince = (now - start) / (1000 * 60 * 60);
+  return hoursSince > maxHours;
 };
