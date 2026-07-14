@@ -666,7 +666,14 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
     }
   };
 
-  const deleteAppointment = async (id) => {
+  const deleteAppointment = async (id, status) => {
+    // Empêcher la suppression des rendez-vous déjà réalisés
+    const completedStatuses = ['termine', 'réalisé', 'consulté', 'termine_consultation', 'consultation_terminee'];
+    if (completedStatuses.includes(status?.toLowerCase())) {
+      alert('Impossible de supprimer un rendez-vous déjà réalisé. Ce rendez-vous fait partie de l\'historique médical.');
+      return;
+    }
+
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?')) {
       try {
         await appointmentService.delete(id);
@@ -1271,10 +1278,10 @@ const CustomCalendar = ({ selectedDoctorFilter = 'all' }) => {
 
               {/* Modal Footer */}
               <div className={`px-8 py-6 border-t ${darkMode ? 'border-gray-800' : 'border-gray-100'} flex items-center justify-end space-x-4`}>
-                {formData.id && (
+                {formData.id && formData.statut && !['termine', 'réalisé', 'consulté', 'termine_consultation', 'consultation_terminee'].includes(formData.statut.toLowerCase()) && (
                   <button
                     type="button"
-                    onClick={() => deleteAppointment(formData.id)}
+                    onClick={() => deleteAppointment(formData.id, formData.statut)}
                     className="px-4 py-2 text-red-700 bg-red-100 hover:bg-red-200 rounded-2xl transition-colors flex items-center space-x-2"
                   >
                     <Trash2 size={16} />

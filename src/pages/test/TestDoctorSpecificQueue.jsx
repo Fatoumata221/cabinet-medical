@@ -84,7 +84,7 @@ const TestDoctorSpecificQueue = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Test DoctorSpecificQueue</h1>
-                <p className="text-sm text-gray-600">Composant de test pour la file d'attente spécifique au médecin</p>
+                <p className="text-sm text-gray-600">Composant de test pour la salle d'attente spécifique au médecin</p>
               </div>
             </div>
             

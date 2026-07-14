@@ -204,7 +204,7 @@ INSERT INTO types_certificats (nom, description, duree_defaut) VALUES
 ('Certificat de travail', 'Certificat pour reprise de travail', 30),
 ('Certificat de sport', 'Certificat pour pratique sportive', 90),
 ('Certificat de grossesse', 'Certificat de grossesse', 180),
-('Certificat de maladie', 'Certificat d''arrêt de travail', 7),
+('Certificat de maladie', 'Certificat d''arrêt de travail', 1),
 ('Certificat de vaccination', 'Certificat de vaccination', 365)
 ON CONFLICT DO NOTHING;
 

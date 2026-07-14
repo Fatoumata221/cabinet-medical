@@ -122,7 +122,7 @@ CREATE TRIGGER trigger_calculer_date_fin_certificat
 -- Types de certificats courants
 INSERT INTO public.types_certificats (nom, description, duree_defaut, template_contenu) VALUES
 ('Certificat médical', 'Certificat médical standard', 1, 'Je soussigné(e), Docteur {medecin_nom}, certifie avoir examiné {patient_nom} ce jour et atteste que son état de santé nécessite un repos de {duree_jours} jour(s).'),
-('Arrêt de travail', 'Certificat d''arrêt de travail', 7, 'Je soussigné(e), Docteur {medecin_nom}, certifie que l''état de santé de {patient_nom} nécessite un arrêt de travail du {date_debut} au {date_fin}.'),
+('Arrêt de travail', 'Certificat d''arrêt de travail', 1, 'Je soussigné(e), Docteur {medecin_nom}, certifie que l''état de santé de {patient_nom} nécessite un arrêt de travail du {date_debut} au {date_fin}.'),
 ('Certificat de sport', 'Certificat d''aptitude au sport', 365, 'Je soussigné(e), Docteur {medecin_nom}, certifie que {patient_nom} est apte à la pratique sportive.'),
 ('Certificat de non-contagion', 'Certificat de non-contagion', 1, 'Je soussigné(e), Docteur {medecin_nom}, certifie que {patient_nom} ne présente aucun signe de maladie contagieuse.'),
 ('Certificat d''aptitude', 'Certificat d''aptitude générale', 30, 'Je soussigné(e), Docteur {medecin_nom}, certifie que {patient_nom} est apte à {motif}.'),

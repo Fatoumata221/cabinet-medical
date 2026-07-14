@@ -828,11 +828,11 @@ const DoctorDashboard = () => {
             </div>
           </div>
 
-          {/* File d'attente */}
+          {/* Salle d'attente */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md border border-gray-200">
               <div className="p-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">File d'attente ({waitingQueue.filter(p => p.status === 'waiting').length})</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Salle d'attente ({waitingQueue.filter(p => p.status === 'waiting').length})</h3>
               </div>
               <div className="p-4 max-h-96 overflow-y-auto">
                 {waitingQueue.filter(p => p.status === 'waiting').length > 0 ? (

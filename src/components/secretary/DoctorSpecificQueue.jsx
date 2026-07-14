@@ -495,7 +495,7 @@ const DoctorSpecificQueue = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* File d'attente */}
+        {/* Salle d'attente */}
         <div
           ref={queueSectionRef}
           className="bg-white border border-gray-200 rounded-lg shadow-sm scroll-mt-4"
@@ -503,7 +503,7 @@ const DoctorSpecificQueue = ({
           <div className="p-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
               <Clock className="w-5 h-5 mr-2" />
-              File d'Attente ({filteredPatients.length})
+              Salle d'attente ({filteredPatients.length})
             </h3>
           </div>
           
@@ -625,7 +625,7 @@ const DoctorSpecificQueue = ({
             ) : (
               <div className="text-center py-8">
                 <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500">Aucun patient en file d'attente</p>
+                <p className="text-gray-500">Aucun patient en salle d'attente</p>
               </div>
             )}
           </div>

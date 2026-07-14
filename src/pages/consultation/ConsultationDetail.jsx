@@ -292,7 +292,7 @@ const ConsultationDetail = () => {
 
         if (statusError) {
           console.error('❌ [Consultation] Erreur mise à jour waiting_queue:', statusError);
-          showWarning(`Attention: Le statut de la file d'attente n'a pas pu être mis à jour: ${statusError.message}`);
+          showWarning(`Attention: Le statut de la salle d'attente n'a pas pu être mis à jour: ${statusError.message}`);
         } else {
           console.log('✅ [Consultation] waiting_queue mis à jour avec succès');
         }

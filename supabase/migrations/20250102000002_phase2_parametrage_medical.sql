@@ -173,7 +173,7 @@ INSERT INTO public.medicaments (nom, description, forme_pharmaceutique, dosage, 
 
 -- Types de certificats de base
 INSERT INTO public.types_certificats (nom, description, duree_defaut, specialite_id, ordre_affichage) VALUES
-('Certificat d''arrêt de travail', 'Certificat pour arrêt de travail', 7, NULL, 1),
+('Certificat d''arrêt de travail', 'Certificat pour arrêt de travail', 1, NULL, 1),
 ('Certificat de sport', 'Certificat d''aptitude au sport', 365, NULL, 2),
 ('Certificat de grossesse', 'Certificat de grossesse', 280, NULL, 3),
 ('Certificat de décès', 'Certificat de décès', 1, NULL, 4),

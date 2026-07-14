@@ -303,7 +303,7 @@ const SecretaryDashboard = () => {
                 onClick={() => setShowCalendarView(false)}
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
-                ← Retour à la file d'attente
+                ← Retour à la salle d'attente
               </button>
             </div>
             <CustomCalendar />

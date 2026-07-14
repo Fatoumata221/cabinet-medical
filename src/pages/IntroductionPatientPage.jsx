@@ -587,10 +587,10 @@ const IntroductionPatientPage = () => {
 
       // Rafraîchir la file d'attente
       await fetchWaitingQueue();
-      unifiedNotificationService.success('La file d\'attente a été vidée avec succès.');
+      unifiedNotificationService.success('La salle d\'attente a été vidée avec succès.');
     } catch (error) {
       console.error('Erreur lors de la suppression de la file d\'attente:', error);
-      unifiedNotificationService.error('Une erreur est survenue lors de la suppression de la file d\'attente.');
+      unifiedNotificationService.error('Une erreur est survenue lors de la suppression de la salle d\'attente.');
     } finally {
       setIsLoading(prev => ({ ...prev, actions: false }));
     }
