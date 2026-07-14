@@ -600,7 +600,7 @@ const WaitingQueuePage = () => {
       // Afficher un toast de succès
       if (window.showNotification) {
         window.showNotification({
-          message: `Patient ${transformedPatient.prenom} ${transformedPatient.nom} ajouté à la file d'attente !`,
+          message: `Patient ${transformedPatient.prenom} ${transformedPatient.nom} ajouté à la salle d'attente !`,
           type: 'success',
           duration: 3000
         });
@@ -612,7 +612,7 @@ const WaitingQueuePage = () => {
       console.error('❌ [WaitingQueue] Erreur lors de l\'ajout du patient:', error);
       if (window.showNotification) {
         window.showNotification({
-          message: "Erreur lors de l'ajout du patient à la file d'attente",
+          message: "Erreur lors de l'ajout du patient à la salle d'attente",
           type: 'error',
           duration: 5000
         });
@@ -1005,7 +1005,7 @@ const WaitingQueuePage = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-medical-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement de la file d'attente...</p>
+          <p className="text-gray-600">Chargement de la salle d'attente...</p>
         </div>
       </div>
     );
@@ -1018,7 +1018,7 @@ const WaitingQueuePage = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <ClockIcon className="w-6 h-6 text-medical-primary" />
-            File d'Attente
+            Salle d'attente
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
               realtimeStatus === 'connected' 
                 ? 'bg-green-100 text-green-800 animate-pulse' 
@@ -1176,7 +1176,7 @@ const WaitingQueuePage = () => {
         </div>
       </div>
 
-      {/* File d'attente compact */}
+      {/* Salle d'attente compact */}
       <div className="card">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
@@ -1280,7 +1280,7 @@ const WaitingQueuePage = () => {
             onAddAnother={() => {
               console.log('🔄 [WaitingQueue] Inscription d\'un autre patient');
             }}
-            title="Inscrire un patient à la file d'attente"
+            title="Inscrire un patient à la salle d'attente"
             submitText="Enregistrer et fermer"
             showAddAnother={true}
             defaultDoctor={selectedDoctor}

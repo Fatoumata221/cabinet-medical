@@ -374,7 +374,14 @@ const AppointmentsPage = () => {
     setShowForm(true);
   };
 
-  const handleDelete = async (appointmentId) => {
+  const handleDelete = async (appointmentId, appointmentStatus) => {
+    // Empêcher la suppression des rendez-vous déjà réalisés
+    const completedStatuses = ['termine', 'réalisé', 'consulté', 'termine_consultation', 'consultation_terminee'];
+    if (completedStatuses.includes(appointmentStatus?.toLowerCase())) {
+      alert('Impossible de supprimer un rendez-vous déjà réalisé. Ce rendez-vous fait partie de l\'historique médical.');
+      return;
+    }
+
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?')) {
       try {
         const { error } = await supabase
@@ -599,13 +606,15 @@ const AppointmentsPage = () => {
                       >
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleDelete(appointment.id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {appointment.statut && !['termine', 'réalisé', 'consulté', 'termine_consultation', 'consultation_terminee'].includes(appointment.statut.toLowerCase()) && (
+                        <button
+                          onClick={() => handleDelete(appointment.id, appointment.statut)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

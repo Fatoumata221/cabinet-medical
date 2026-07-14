@@ -187,7 +187,7 @@ const Sidebar = ({
         items: [
           { name: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
           { name: 'Mes Rendez-vous', icon: Calendar, path: '/my-calendar' },
-          { name: 'Ma File d\'attente', icon: Users, path: '/my-waiting-queue' },
+          { name: 'Salle d\'attente', icon: Users, path: '/my-waiting-queue' },
         ]
       },
       {

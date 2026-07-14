@@ -35,6 +35,15 @@ const OrdonnancesModal = ({
       return;
     }
 
+    // Vérifier que chaque médicament a une posologie renseignée
+    const missingPosologie = ordonnanceForm.medicaments.findIndex(med => 
+      !med.posologie || med.posologie.trim() === ''
+    );
+    if (missingPosologie !== -1) {
+      showWarning('La posologie est obligatoire. Veuillez la renseigner avant de continuer.');
+      return;
+    }
+
     try {
       // Créer l'ordonnance
       console.log('Création ordonnance avec:', {

@@ -582,7 +582,7 @@ const MyWaitingQueuePage = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-medical-primary border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-          <p className="text-gray-600 text-lg">Chargement de votre file d'attente...</p>
+          <p className="text-gray-600 text-lg">Chargement de votre salle d'attente...</p>
         </div>
       </div>
     );
@@ -633,7 +633,7 @@ const MyWaitingQueuePage = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <Clock className="w-8 h-8 text-medical-primary" />
-            Ma File d'Attente
+            Salle d'attente
           </h1>
           <p className="text-gray-600 mt-2">
             Dr. {userProfile?.prenom} {userProfile?.nom} - {userProfile?.specialite}
@@ -821,7 +821,7 @@ const MyWaitingQueuePage = () => {
         </div>
       )}
 
-      {/* File d'attente - En Attente (pleine largeur) */}
+      {/* Salle d'attente - En Attente (pleine largeur) */}
       <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-section-title flex items-center gap-2">

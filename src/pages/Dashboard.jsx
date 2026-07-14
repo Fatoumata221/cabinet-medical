@@ -291,7 +291,7 @@ const Dashboard = () => {
         </motion.div>
       </div>
 
-      {/* File d'attente par médecin */}
+      {/* Salle d'attente par médecin */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -302,7 +302,7 @@ const Dashboard = () => {
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <Clock className="w-5 h-5 mr-2 text-medical-primary" />
-              File d'Attente
+              Salle d'attente
             </h2>
           </div>
           <div className="p-6 max-h-96 overflow-y-auto">

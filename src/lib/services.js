@@ -820,6 +820,24 @@ export const appointmentService = {
   // Supprimer un rendez-vous et ses entrées associées dans la file d'attente
   async deleteAppointmentAndQueue(appointmentId) {
     try {
+      // Récupérer d'abord le statut du rendez-vous
+      const { data: appointment, error: fetchError } = await supabase
+        .from('appointments')
+        .select('statut')
+        .eq('id', appointmentId)
+        .single();
+
+      if (fetchError) {
+        console.error('Erreur lors de la récupération du rendez-vous:', fetchError);
+        throw fetchError;
+      }
+
+      // Empêcher la suppression des rendez-vous déjà réalisés
+      const completedStatuses = ['termine', 'réalisé', 'consulté', 'termine_consultation', 'consultation_terminee'];
+      if (appointment && completedStatuses.includes(appointment.statut?.toLowerCase())) {
+        throw new Error('Impossible de supprimer un rendez-vous déjà réalisé. Ce rendez-vous fait partie de l\'historique médical.');
+      }
+
       // Supprimer d'abord les entrées de file d'attente liées à ce RDV
       const { error: queueError } = await supabase
         .from('waiting_queue')
