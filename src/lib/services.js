@@ -833,7 +833,7 @@ export const appointmentService = {
       }
 
       // Empêcher la suppression des rendez-vous déjà réalisés
-      const completedStatuses = ['termine', 'réalisé', 'consulté', 'termine_consultation', 'consultation_terminee'];
+      const completedStatuses = ['terminee', 'termine', 'réalisé', 'consulté', 'termine_consultation', 'consultation_terminee'];
       if (appointment && completedStatuses.includes(appointment.statut?.toLowerCase())) {
         throw new Error('Impossible de supprimer un rendez-vous déjà réalisé. Ce rendez-vous fait partie de l\'historique médical.');
       }

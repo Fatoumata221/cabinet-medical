@@ -252,7 +252,11 @@ const PriseRendezVousPage = () => {
       showCancel: true,
       onConfirm: async () => {
         try {
-          await appointmentService.deleteAppointment(appointmentId);
+          const result = await appointmentService.deleteAppointment(appointmentId);
+          if (result && result.success === false) {
+            showAlertError(result.error || 'Erreur lors de la suppression du rendez-vous');
+            return;
+          }
           refreshAppointments();
           showSuccess('Rendez-vous supprimé avec succès');
         } catch (err) {
@@ -480,7 +484,7 @@ const PriseRendezVousPage = () => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {appointment.statut !== 'arrive' && (
+                    {!['arrive', 'termine', 'annule'].includes(appointment.statut) && (
                       <button
                         onClick={() => handleConfirmPatientPresence(appointment)}
                         className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"

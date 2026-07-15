@@ -115,7 +115,11 @@ export const hasPastAppointment = (queueItem, now = new Date()) => {
   // deja arrive physiquement. Le nettoyage "non honore" ne doit donc
   // jamais s'appliquer ici, quel que soit le statut actif en cours
   // (waiting, called, present, in_consultation, etc.).
-  if (isActiveQueueStatus(queueItem?.status)) {
+  // Le nettoyage "non honore" ne doit concerner que les patients
+  // strictement encore en attente (jamais appeles, jamais recus).
+  // Tout le reste (appele, present, en consultation, deja termine,
+  // deja absent, etc.) ne doit jamais etre reclasse ici.
+  if (!isStrictlyWaitingStatus(queueItem?.status)) {
     return false;
   }
   // Gérer différentes structures de données

@@ -216,6 +216,9 @@ const RechercheRendezVousPage = () => {
     const config = {
       confirme: { label: 'Confirmé', color: 'bg-green-100 text-green-800' },
       en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
+      arrive: { label: 'Arrive', color: 'bg-blue-100 text-blue-800' },
+      termine: { label: 'Termine', color: 'bg-purple-100 text-purple-800' },
+      reporte: { label: 'Reporte', color: 'bg-orange-100 text-orange-800' },
       annule: { label: 'Annulé', color: 'bg-red-100 text-red-800' }
     };
     const { label, color } = config[statut] || { label: statut || 'Inconnu', color: 'bg-gray-100 text-gray-600' };

@@ -9,7 +9,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useToothStates } from '../../hooks/useToothStates';
 import { supabase } from '../../lib/supabase';
 
-const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActes, patientId, isTerminated = false }) => {
+const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActes, patientId, isTerminated = false, onSaved }) => {
     const { showError, showSuccess } = useAlert();
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
@@ -155,9 +155,10 @@ const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActe
         try {
             setSaveStatus('saving');
             setIsSaving(true);
-            await updateDentalState(consultationId, teethRef.current);
+            const updated = await updateDentalState(consultationId, teethRef.current);
             hasChangesRef.current = false;
             setSaveStatus('saved');
+            onSaved?.(updated);
             
             // Reset to idle after 2 seconds
             setTimeout(() => {
@@ -213,10 +214,11 @@ const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActe
         try {
             setSaveStatus('saving');
             setIsSaving(true);
-            await updateDentalState(consultationId, teeth);
+            const updated = await updateDentalState(consultationId, teeth);
             hasChangesRef.current = false;
             setSaveStatus('saved');
             showSuccess('État dentaire sauvegardé avec succès');
+            onSaved?.(updated);
             
             setTimeout(() => {
                 setSaveStatus('idle');

@@ -799,6 +799,12 @@ const ConsultationDetail = () => {
               fetchActes={refetchFunctions.refetchActes}
               patientId={patient?.id}
               isTerminated={isTerminated}
+              onSaved={(updated) => {
+                if (updated) {
+                  setConsultation((prev) => ({ ...prev, dental_state: updated.dental_state }));
+                }
+                refetchFunctions.refetchActes();
+              }}
             />
           </div>
         )}
