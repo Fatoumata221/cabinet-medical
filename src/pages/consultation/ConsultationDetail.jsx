@@ -299,6 +299,25 @@ const ConsultationDetail = () => {
       } else {
         console.warn('⚠️ [Consultation] waitingQueueId manquant, impossible de mettre à jour la file d\'attente');
       }
+      // Synchroniser appointments.statut avec la fin de consultation
+      if (consultation?.appointment_id) {
+        const { error: apptStatusError } = await supabase
+          .from('appointments')
+          .update({
+            statut: 'termine',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', consultation.appointment_id);
+        if (apptStatusError) {
+          console.error('❌ [Consultation] Erreur mise à jour appointments:', apptStatusError);
+          showWarning(`Attention: Le statut du rendez-vous n'a pas pu être mis à jour: ${apptStatusError.message}`);
+        } else {
+          console.log('✅ [Consultation] appointments.statut mis à jour à "termine"');
+        }
+      } else {
+        console.warn('⚠️ [Consultation] appointment_id manquant, impossible de mettre à jour appointments');
+      }
+
 
       await showSuccessDialog('Consultation terminée', `La consultation a été terminée avec succès. La secrétaire a été notifiée.`);
       await showConfirm({

@@ -215,7 +215,6 @@ const GlobalWaitingQueue = ({
         .in('medecin_id', medecinIds)
         .gte('date_heure', today.toISOString())
         .lt('date_heure', tomorrow.toISOString())
-        .not('statut', 'in', '("annule","reporte","termine")')
         .order('date_heure', { ascending: true });
 
       if (apptsError) {
