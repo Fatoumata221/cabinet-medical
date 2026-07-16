@@ -20,27 +20,6 @@ const CabinetWelcomePublic = () => {
   }, [tenantId]);
 
   const loadCabinetAndUsers = async () => {
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-  const headers = {
-    'apikey': SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-  };
-
-  const [cabinetRes, usersRes] = await Promise.all([
-    fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${tenantId}&select=*`, { headers }),
-    fetch(`${SUPABASE_URL}/rest/v1/users?tenant_id=eq.${tenantId}&actif=eq.true&select=id,username,nom,prenom,role,photo_url&order=role`, { headers })
-  ]);
-
-  const cabinetData = await cabinetRes.json();
-  const usersData = await usersRes.json();
-
-  setCabinet(Array.isArray(cabinetData) ? cabinetData[0] : null);
-  setUsers(Array.isArray(usersData) ? usersData : []);
-};
-
-  /*const loadCabinetAndUsers = async () => {
     const { data: cabinetData } = await supabase
       .from('tenants')
       .select('*')
@@ -51,7 +30,8 @@ const CabinetWelcomePublic = () => {
     const { data: usersData } = await supabase
       .rpc('get_quick_login_users', { p_tenant_id: tenantId });
     setUsers(usersData || []);
-  };*/
+  };
+
 
   const getRoleIcon = (role) => {
     switch (role) {
