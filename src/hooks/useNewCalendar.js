@@ -34,14 +34,13 @@ const getEventColor = (
     (normalizedSpecialty && specialtyColorMap[normalizedSpecialty]) ||
     (normalizedSpecialty ? hashSpecialtyToColor(normalizedSpecialty) : null)
 
-  if (statut === 'annule') return '#6b7280'
-  if (statut === 'termine') return '#10b981'
-  if (priorite === 'tres_urgente') return '#dc2626'
-
   const baseColor =
     colorByDoctor && doctorColor
       ? doctorColor
       : specialtyColor ?? '#3b82f6'
+
+  if (statut === 'annule') return '#6b7280'
+  if (priorite === 'tres_urgente') return '#dc2626'
   if (priorite === 'urgente') return darkenHexColor(baseColor, 0.25)
 
   return baseColor
@@ -236,9 +235,9 @@ export const useNewCalendar = ({
 
   const doctorColorMap = useMemo(() => {
     const map = new Map()
-    medecins.forEach((medecin) => {
-      // Utiliser la couleur du médecin depuis la base de données, ou une couleur par défaut
-      const doctorColor = medecin?.couleur || getDoctorCalendarColor(medecin.id, 0)
+    medecins.forEach((medecin, index) => {
+      // Utiliser la couleur du médecin depuis la base de données, ou une couleur unique de la palette
+      const doctorColor = medecin?.couleur || getDoctorCalendarColor(medecin.id, index)
       map.set(String(medecin.id), doctorColor)
     })
     return map
