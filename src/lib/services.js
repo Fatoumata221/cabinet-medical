@@ -61,11 +61,29 @@ export const userService = {
     const { ignoreSpecialityFilter = false } = options || {}
     console.log(`[SPECIALITY_CONFIG] userService.getDoctors() appelé`, { ignoreSpecialityFilter })
     const specialiteId = ignoreSpecialityFilter ? null : await getSpecialityFilter()
+    // Recuperer le tenant_id de l'utilisateur connecte pour cloisonner par cabinet
+    let currentTenantId = null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: currentUserData } = await supabase
+          .from('users')
+          .select('tenant_id')
+          .eq('auth_id', user.id)
+          .maybeSingle();
+        currentTenantId = currentUserData?.tenant_id || null;
+      }
+    } catch (e) {
+      console.warn('[SPECIALITY_CONFIG] Impossible de recuperer le tenant_id utilisateur:', e);
+    }
     let query = supabase
       .from('users')
       .select('*, couleur')
       .eq('role', 'doctor')
       .eq('actif', true) // Seulement les médecins actifs
+    if (currentTenantId) {
+      query = query.eq('tenant_id', currentTenantId)
+    }
     
     // Appliquer le filtre de spécialité si en mode spécialité et non ignoré explicitement
     if (specialiteId !== null) {
