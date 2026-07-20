@@ -28,7 +28,7 @@ import { useSpecialityConfig } from '../../contexts/SpecialityConfigContext';
 const SecretaryDashboard = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { userProfile, loading: userProfileLoading } = useUserProfile();
+  const { profile: userProfile, isLoading: userProfileLoading } = useUserProfile();
   const [activeView, setActiveView] = useState('global'); // 'global' ou 'specific'
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const { specialityConfig } = useSpecialityConfig();
@@ -43,8 +43,12 @@ const SecretaryDashboard = () => {
   const [notificationSubscription, setNotificationSubscription] = useState(null);
 
   useEffect(() => {
-    fetchDoctors().finally(() => setLoading(false));
-  }, []);
+    if (userProfile?.tenant_id) {
+      fetchDoctors().finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [userProfile?.tenant_id]);
 
   useEffect(() => {
     // Abonnement aux changements de la file d'attente
@@ -99,6 +103,7 @@ const SecretaryDashboard = () => {
         .select('*')
         .eq('role', 'doctor')
         .eq('actif', true)
+        .eq('tenant_id', userProfile?.tenant_id)
         .order('nom', { ascending: true });
 
       if (error) throw error;
