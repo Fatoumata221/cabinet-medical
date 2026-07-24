@@ -1,5 +1,5 @@
 import { supabase } from './supabase.js'
-import { getSpecialityFilter } from './specialityConfigService.js'
+import { getSpecialityFilter, getSpecialiteIdsWithChildren } from './specialityConfigService.js'
 
 // ===== SERVICES POUR LES UTILISATEURS (USERS) =====
 export const userService = {
@@ -92,7 +92,8 @@ export const userService = {
         service: 'userService.getDoctors()',
         filter: 'specialite_id = ' + specialiteId
       })
-      query = query.eq('specialite_id', specialiteId)
+      const idsAvecEnfants = await getSpecialiteIdsWithChildren(specialiteId)
+      query = query.in('specialite_id', idsAvecEnfants)
     } else {
       if (ignoreSpecialityFilter) {
         console.log(`[SPECIALITY_CONFIG] Ignorer le filtre spécialité (appel explicite, ex: secrétaire)`)
@@ -1863,7 +1864,8 @@ export const appareilsService = {
         specialite_id: specialiteId,
         service: 'appareilsService.getAll()'
       })
-      query = query.eq('specialite_id', specialiteId)
+      const idsAvecEnfants = await getSpecialiteIdsWithChildren(specialiteId)
+      query = query.in('specialite_id', idsAvecEnfants)
     } else {
       console.log(`[SPECIALITY_CONFIG] Mode généraliste - Tous les appareils seront retournés`)
     }
@@ -1899,7 +1901,8 @@ export const diagnosticsService = {
         specialite_id: specialiteId,
         service: 'diagnosticsService.getAll()'
       })
-      query = query.eq('specialite_id', specialiteId)
+      const idsAvecEnfants = await getSpecialiteIdsWithChildren(specialiteId)
+      query = query.in('specialite_id', idsAvecEnfants)
     } else {
       console.log(`[SPECIALITY_CONFIG] Mode généraliste - Tous les diagnostics seront retournés`)
     }
@@ -1935,7 +1938,8 @@ export const medicamentsService = {
         specialite_id: specialiteId,
         service: 'medicamentsService.getAll()'
       })
-      query = query.eq('specialite_id', specialiteId)
+      const idsAvecEnfants = await getSpecialiteIdsWithChildren(specialiteId)
+      query = query.in('specialite_id', idsAvecEnfants)
     } else {
       console.log(`[SPECIALITY_CONFIG] Mode généraliste - Tous les médicaments seront retournés`)
     }
@@ -1971,7 +1975,8 @@ export const typesCertificatsService = {
         specialite_id: specialiteId,
         service: 'typesCertificatsService.getAll()'
       })
-      query = query.eq('specialite_id', specialiteId)
+      const idsAvecEnfants = await getSpecialiteIdsWithChildren(specialiteId)
+      query = query.in('specialite_id', idsAvecEnfants)
     } else {
       console.log(`[SPECIALITY_CONFIG] Mode généraliste - Tous les types de certificats seront retournés`)
     }
@@ -2026,7 +2031,8 @@ export const constantesService = {
         specialite_id: specialiteId,
         service: 'constantesService.getAll()'
       })
-      query = query.eq('specialite_id', specialiteId)
+      const idsAvecEnfants = await getSpecialiteIdsWithChildren(specialiteId)
+      query = query.in('specialite_id', idsAvecEnfants)
     } else {
       console.log(`[SPECIALITY_CONFIG] Mode généraliste - Toutes les constantes seront retournées`)
     }

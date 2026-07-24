@@ -59,11 +59,25 @@ export const useToothSelector = (initialTeethState = {}, onChange) => {
       .map(([id]) => parseInt(id));
   };
 
+  const mergeTeethData = useCallback((teethUpdates) => {
+    setTeeth((prevTeeth) => {
+      const newTeeth = {
+        ...prevTeeth,
+        ...teethUpdates,
+      };
+      if (onChange) {
+        onChange(newTeeth);
+      }
+      return newTeeth;
+    });
+  }, [onChange]);
+
   return {
     teeth,
     handleToothClick,
     setToothState,
     updateToothData, // New function for rich updates
+    mergeTeethData, // Merge multiple teeth at once (e.g. loading history)
     getSelectedTeeth,
   };
 };

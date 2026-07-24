@@ -5,7 +5,7 @@ import {
   appointmentService, 
   consultationService 
 } from '../../lib/services';
-import { getCurrentSpeciality } from '../../lib/specialityConfigService';
+import { getCurrentSpeciality, getSpecialiteIdsWithChildren } from '../../lib/specialityConfigService';
 import { 
   CheckCircle, 
   XCircle, 
@@ -22,6 +22,7 @@ import {
 const TestSpecialityFilter = () => {
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState(null);
+  const [specialiteIdsWithChildren, setSpecialiteIdsWithChildren] = useState([]);
   const [results, setResults] = useState({
     doctors: { data: null, error: null, count: 0 },
     typesActes: { data: null, error: null, count: 0 },
@@ -34,6 +35,10 @@ const TestSpecialityFilter = () => {
     try {
       const currentConfig = await getCurrentSpeciality();
       setConfig(currentConfig);
+      const idsWithChildren = currentConfig.mode_specialite_id !== null
+        ? await getSpecialiteIdsWithChildren(currentConfig.mode_specialite_id)
+        : [];
+      setSpecialiteIdsWithChildren(idsWithChildren);
       console.log('[TEST] Configuration chargée:', currentConfig);
     } catch (error) {
       console.error('[TEST] Erreur chargement config:', error);
@@ -163,10 +168,10 @@ const TestSpecialityFilter = () => {
     if (hasData && specialiteId !== null && result.data.length > 0) {
       if (result.data[0].specialite_id !== undefined) {
         // Filtrage direct (specialite_id)
-        filterRespected = result.data.every(item => item.specialite_id === specialiteId);
+        filterRespected = result.data.every(item => specialiteIdsWithChildren.includes(item.specialite_id));
       } else if (result.data[0].medecin?.specialite_id !== undefined) {
         // Filtrage via relation (medecin.specialite_id)
-        filterRespected = result.data.every(item => item.medecin?.specialite_id === specialiteId);
+        filterRespected = result.data.every(item => specialiteIdsWithChildren.includes(item.medecin?.specialite_id));
       }
     }
 
@@ -226,7 +231,7 @@ const TestSpecialityFilter = () => {
                           {item.nom || item.libelle || `ID: ${item.id}`}
                         </span>
                         <span className={`px-2 py-1 rounded ${
-                          item.specialite_id === specialiteId || item.medecin?.specialite_id === specialiteId
+                          specialiteIdsWithChildren.includes(item.specialite_id) || specialiteIdsWithChildren.includes(item.medecin?.specialite_id)
                             ? 'bg-green-100 text-green-800'
                             : specialiteId === null
                             ? 'bg-blue-100 text-blue-800'

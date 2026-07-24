@@ -23,7 +23,7 @@ const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActe
     const { formattedStates, refresh: refreshStates, createState } = useToothStates();
 
     // Initialiser le sélecteur avec l'état sauvegardé ou vide
-    const { teeth, setToothState, handleToothClick: originalHandleToothClick, updateToothData } = useToothSelector(
+    const { teeth, setToothState, handleToothClick: originalHandleToothClick, updateToothData, mergeTeethData } = useToothSelector(
         initialDentalState || {},
         (newState) => {
              hasChangesRef.current = true;
@@ -49,12 +49,11 @@ const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActe
                         created_at,
                         consultations (
                             id,
-                            date_heure,
+                            date_consultation,
                             statut
                         ),
                         types_actes (
-                            nom,
-                            code_ccam
+                            nom
                         )
                     `)
                     .not('dent_id', 'is', null)
@@ -80,11 +79,11 @@ const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActe
                         historyByTooth[toothId].push({
                             date: act.created_at,
                             type: 'PROCEDURE',
-                            code: act.types_actes?.code_ccam || 'ACTE',
+                            code: act.types_actes?.nom || 'ACTE',
                             name: act.types_actes?.nom || 'Acte dentaire',
                             note: act.notes,
                             consultationId: act.consultations?.id,
-                            consultationDate: act.consultations?.date_heure,
+                            consultationDate: act.consultations?.date_consultation,
                             price: act.tarif_unitaire
                         });
                     });
@@ -122,7 +121,7 @@ const ConsultationDentalChart = ({ consultationId, initialDentalState, fetchActe
                         }
                     });
 
-                    updateToothData(null, updatedTeeth);
+                    mergeTeethData(updatedTeeth);
                     console.log('[DentalChart] Historique dentaire chargé pour', Object.keys(historyByTooth).length, 'dents');
                 }
             } catch (err) {
